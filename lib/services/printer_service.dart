@@ -206,6 +206,46 @@ class PrinterService extends ChangeNotifier {
   }
 
   Future<void> _printBluetooth(PrinterModel printer, List<int> bytes) async {
+    // If Android and address is not a MAC, attempt Classic BT fallback using paired list by name
+    if (!kIsWeb && Platform.isAndroid && !printer.address.contains(':')) {
+      try {
+        final paired = await PrintBluetoothThermal.pairedBluetooths;
+        final match = paired.firstWhere(
+          (p) => p.name.trim().toLowerCase() == printer.name.trim().toLowerCase(),
+          orElse: () => paired.firstWhere(
+            (p) => p.name.trim().toLowerCase().contains(printer.name.trim().toLowerCase()),
+            orElse: () => BluetoothInfo(name: '', macAdress: ''),
+          ),
+        );
+        if (match.macAdress.isNotEmpty) {
+          final connected = await PrintBluetoothThermal.connect(macPrinterAddress: match.macAdress);
+          if (!connected) {
+            throw Exception("Failed to connect to Classic BT printer (paired list)");
+          }
+          final ok = await PrintBluetoothThermal.writeBytes(bytes);
+          if (ok != true) {
+            throw Exception("Write failed on Classic BT printer");
+          }
+          // Persist MAC for future prints
+          _savedPrinters = _savedPrinters.map((p) => p.id == printer.id
+              ? PrinterModel(
+                  id: p.id,
+                  name: p.name,
+                  type: p.type,
+                  address: match.macAdress,
+                  port: p.port,
+                  isKOT: p.isKOT,
+                  isBill: p.isBill,
+                )
+              : p).toList();
+          await _savePrinters();
+          return;
+        }
+      } catch (_) {
+        // fall through to other paths
+      }
+    }
+
     // Classic BT path (Android): MAC addresses contain ':' (e.g., 00:1B:10:73:AD:08)
     if (!kIsWeb && Platform.isAndroid && printer.address.contains(':')) {
       final connected = await PrintBluetoothThermal.connect(macPrinterAddress: printer.address);

@@ -71,11 +71,21 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> with Sing
           children: [
             Padding(
               padding: const EdgeInsets.all(8.0),
-              child: ElevatedButton.icon(
-                onPressed: service.isScanning ? service.stopScan : service.startScan,
-                icon: Icon(service.isScanning ? Icons.stop : Icons.search),
-                label: Text(service.isScanning ? 'Stop Scanning' : 'Scan for Printers'),
-              ),
+              child: (!Platform.isAndroid || kIsWeb)
+                  ? ElevatedButton.icon(
+                      onPressed: service.isScanning ? service.stopScan : service.startScan,
+                      icon: Icon(service.isScanning ? Icons.stop : Icons.search),
+                      label: Text(service.isScanning ? 'Stop Scanning' : 'Scan for Printers (BLE)'),
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: const [
+                        Text(
+                          'Android Tip: Use "Load Paired Bluetooths" or add MAC address (Classic BT). BLE scanning is disabled because most thermal printers are not BLE.',
+                          style: TextStyle(color: Colors.white70),
+                        ),
+                      ],
+                    ),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8.0),
