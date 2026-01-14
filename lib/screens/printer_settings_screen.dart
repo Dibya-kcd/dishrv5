@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart';
 import '../models/printer_model.dart';
 import '../services/printer_service.dart';
 
@@ -122,27 +124,36 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> with Sing
                     }),
                     const Divider(),
                   ],
-                  const ListTile(title: Text('Available Devices', style: TextStyle(fontWeight: FontWeight.bold))),
-                  ...service.scanResults.map((r) {
-                    if (r.device.platformName.isEmpty) return const SizedBox.shrink();
-                    return ListTile(
-                      title: Text(r.device.platformName),
-                      subtitle: Text(r.device.remoteId.str),
-                      trailing: ElevatedButton(
-                        onPressed: () {
-                          _showAddPrinterDialog(
-                            PrinterModel(
-                              id: r.device.remoteId.str,
-                              name: r.device.platformName,
-                              type: PrinterType.bluetooth,
-                              address: r.device.remoteId.str,
-                            ),
-                          );
-                        },
-                        child: const Text('Add'),
+                  if (!(Platform.isAndroid && !kIsWeb)) ...[
+                    const ListTile(title: Text('Available Devices (BLE)', style: TextStyle(fontWeight: FontWeight.bold))),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16.0),
+                      child: Text(
+                        'Note: Most Android thermal printers use Classic Bluetooth (SPP). Prefer "Paired Devices" or manual MAC address.',
+                        style: TextStyle(color: Colors.white70),
                       ),
-                    );
-                  }),
+                    ),
+                    ...service.scanResults.map((r) {
+                      if (r.device.platformName.isEmpty) return const SizedBox.shrink();
+                      return ListTile(
+                        title: Text(r.device.platformName),
+                        subtitle: Text(r.device.remoteId.str),
+                        trailing: ElevatedButton(
+                          onPressed: () {
+                            _showAddPrinterDialog(
+                              PrinterModel(
+                                id: r.device.remoteId.str,
+                                name: r.device.platformName,
+                                type: PrinterType.bluetooth,
+                                address: r.device.remoteId.str,
+                              ),
+                            );
+                          },
+                          child: const Text('Add'),
+                        ),
+                      );
+                    }),
+                  ],
                   const Divider(),
                   const ListTile(title: Text('Add Manual Bluetooth Printer', style: TextStyle(fontWeight: FontWeight.bold))),
                   Padding(

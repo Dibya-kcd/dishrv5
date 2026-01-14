@@ -224,8 +224,7 @@ class PrinterService extends ChangeNotifier {
     try {
       await device.connect();
     } catch (e) {
-      // If we can't connect, we can't discover services.
-      throw Exception("Could not connect to BLE printer: $e");
+      throw Exception("Could not connect via BLE. On Android, most thermal printers use Classic Bluetooth (SPP). Add printer from 'Paired Devices' or enter MAC (e.g., 00:1B:10:73:AD:08). Original error: $e");
     }
 
     if (device.isConnected == false) {
@@ -233,8 +232,8 @@ class PrinterService extends ChangeNotifier {
        try {
           await device.connect();
        } catch (e) {
-          throw Exception("Could not connect to BLE printer (retry failed): $e");
-       }
+          throw Exception("BLE connect retry failed. If your printer is not BLE, use Classic Bluetooth via paired list or MAC address. Original error: $e");
+      }
     }
     
     List<BluetoothService> services = await device.discoverServices();
@@ -249,7 +248,7 @@ class PrinterService extends ChangeNotifier {
       if (targetChar != null) break;
     }
     if (targetChar == null) {
-      throw Exception("No writable characteristic found on printer");
+      throw Exception("No writable BLE characteristic found. Your printer may not support BLE write. Use Classic Bluetooth (SPP) by adding a paired device or entering its MAC address.");
     }
     const int chunkSize = 20;
     for (var i = 0; i < bytes.length; i += chunkSize) {
