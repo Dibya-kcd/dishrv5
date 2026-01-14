@@ -317,7 +317,7 @@ class SyncService {
       final snapshot = await _dbRef.child('counters/takeout/$date').get();
       final value = snapshot.value;
       if (value is Map) {
-        return Map<String, dynamic>.from(value as Map);
+        return Map<String, dynamic>.from(value);
       }
       return null;
     } catch (_) {
@@ -334,7 +334,7 @@ class SyncService {
           return Transaction.success({'current': delta});
         }
         if (currentValue is Map) {
-          final data = Map<String, dynamic>.from(currentValue as Map);
+          final data = Map<String, dynamic>.from(currentValue);
           final cur = (data['current'] as num?)?.toInt() ?? 0;
           data['current'] = cur + delta;
           return Transaction.success(data);
@@ -343,7 +343,7 @@ class SyncService {
       });
       final value = result.snapshot.value;
       if (value is Map) {
-        return Map<String, dynamic>.from(value as Map);
+        return Map<String, dynamic>.from(value);
       }
       return null;
     } catch (_) {
@@ -360,7 +360,7 @@ class SyncService {
           return Transaction.success({'current': 1});
         }
         if (currentValue is Map) {
-          final data = Map<String, dynamic>.from(currentValue as Map);
+          final data = Map<String, dynamic>.from(currentValue);
           final cur = (data['current'] as num?)?.toInt() ?? 0;
           data['current'] = cur + 1;
           return Transaction.success(data);
@@ -369,7 +369,7 @@ class SyncService {
       });
       final value = result.snapshot.value;
       if (value is Map) {
-        return Map<String, dynamic>.from(value as Map);
+        return Map<String, dynamic>.from(value);
       }
       return null;
     } catch (_) {

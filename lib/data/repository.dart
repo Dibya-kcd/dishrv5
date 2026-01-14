@@ -209,14 +209,6 @@ class SettingsDao {
   }
 }
 class OrderDao {
-  int _getPrio(String s) {
-    if (s == 'Settled' || s == 'Cancelled') return 5;
-    if (s == 'Completed') return 4;
-    if (s == 'Ready') return 3;
-    if (s == 'Preparing') return 2;
-    return 1;
-  }
-
   Future<void> logEvent(String orderId, String event, {Map<String, dynamic>? data}) async {
     final db = await Repository.instance._db.database;
     await db.insert('order_events', {
