@@ -95,14 +95,12 @@ class KitchenScreen extends StatelessWidget {
           },
         );
       });
-      return Padding(
-        padding: const EdgeInsets.all(16),
+      return PageScaffold(
+        title: 'Kitchen',
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Kitchen', style: TextStyle(color: Color(0xFFA1A1AA))),
-              const SizedBox(height: 12),
               grid,
             ],
           ),

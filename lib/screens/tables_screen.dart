@@ -79,7 +79,7 @@ class TablesScreen extends StatelessWidget {
           }),
         ],
       );
-      return Padding(padding: const EdgeInsets.all(16), child: SingleChildScrollView(child: content));
+      return PageScaffold(title: 'Tables', child: SingleChildScrollView(child: content));
     });
   }
 }
