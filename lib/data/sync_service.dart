@@ -311,6 +311,71 @@ class SyncService {
   Future<void> addInventoryTxn(Map<String, dynamic> txn) async {
     await _dbRef.child('inventory_txns/${txn['id']}').set(txn);
   }
+
+  Future<Map<String, dynamic>?> getTakeoutCounterForDate(String date) async {
+    try {
+      final snapshot = await _dbRef.child('counters/takeout/$date').get();
+      final value = snapshot.value;
+      if (value is Map) {
+        return Map<String, dynamic>.from(value as Map);
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> incrementTakeoutCounter(String date, int delta) async {
+    try {
+      final ref = _dbRef.child('counters/takeout/$date');
+      final result = await ref.runTransaction((currentData) {
+        final currentValue = currentData;
+        if (currentValue == null) {
+          return Transaction.success({'current': delta});
+        }
+        if (currentValue is Map) {
+          final data = Map<String, dynamic>.from(currentValue as Map);
+          final cur = (data['current'] as num?)?.toInt() ?? 0;
+          data['current'] = cur + delta;
+          return Transaction.success(data);
+        }
+        return Transaction.success({'current': delta});
+      });
+      final value = result.snapshot.value;
+      if (value is Map) {
+        return Map<String, dynamic>.from(value as Map);
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> allocateTakeoutTokenForDate(String date) async {
+    try {
+      final ref = _dbRef.child('counters/takeout/$date');
+      final result = await ref.runTransaction((currentData) {
+        final currentValue = currentData;
+        if (currentValue == null) {
+          return Transaction.success({'current': 1});
+        }
+        if (currentValue is Map) {
+          final data = Map<String, dynamic>.from(currentValue as Map);
+          final cur = (data['current'] as num?)?.toInt() ?? 0;
+          data['current'] = cur + 1;
+          return Transaction.success(data);
+        }
+        return Transaction.success({'current': 1});
+      });
+      final value = result.snapshot.value;
+      if (value is Map) {
+        return Map<String, dynamic>.from(value as Map);
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
   
   // Initial Upload
   Future<void> initialUpload() async {

@@ -2,9 +2,7 @@ name: Deploy Flutter Web to GitHub Pages
 
 on:
   push:
-    branches:
-      - "main"
-      - "master"
+    branches: [ "main" ]
   workflow_dispatch:
 
 permissions:
@@ -35,13 +33,10 @@ jobs:
         run: flutter pub get
 
       - name: Analyze
-        run: dart analyze
+        run: flutter analyze
 
       - name: Build web
         run: flutter build web --release --base-href "/dishrv5/"
-      
-      - name: Add SPA fallback (404.html)
-        run: cp build/web/index.html build/web/404.html
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

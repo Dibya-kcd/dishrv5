@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/restaurant_provider.dart';
 import '../models/menu_item.dart';
-import '../widgets/page_scaffold.dart';
 
 class KitchenScreen extends StatelessWidget {
   final bool embedded;
@@ -95,12 +94,14 @@ class KitchenScreen extends StatelessWidget {
           },
         );
       });
-      return PageScaffold(
-        title: 'Kitchen',
+      return Padding(
+        padding: const EdgeInsets.all(16),
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const Text('Kitchen', style: TextStyle(color: Color(0xFFA1A1AA))),
+              const SizedBox(height: 12),
               grid,
             ],
           ),

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/restaurant_provider.dart';
-import '../widgets/page_scaffold.dart';
 
 class TablesScreen extends StatelessWidget {
   final bool embedded;
@@ -79,7 +78,7 @@ class TablesScreen extends StatelessWidget {
           }),
         ],
       );
-      return PageScaffold(title: 'Tables', child: SingleChildScrollView(child: content));
+      return Padding(padding: const EdgeInsets.all(16), child: SingleChildScrollView(child: content));
     });
   }
 }

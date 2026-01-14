@@ -354,7 +354,7 @@ class _OrdersTabState extends State<OrdersTab> with AutomaticKeepAliveClientMixi
                 children: [
                   Text('#${order.id}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                   const SizedBox(width: 8),
-                  Text(order.status, style: TextStyle(color: order.status == 'Completed' ? Colors.green : Colors.orange)),
+                  Text(order.table.startsWith('Takeout #') && order.status == 'Completed' ? 'Billing' : order.status, style: TextStyle(color: order.status == 'Completed' ? Colors.green : Colors.orange)),
                   const Spacer(),
                   Text(
                     order.createdAt != null 

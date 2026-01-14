@@ -228,18 +228,6 @@ class OrderDao {
   }
   Future<void> insertOrder(Order order, List<CartItem> items, {bool fromSync = false}) async {
     final db = await Repository.instance._db.database;
-    
-    if (fromSync) {
-       final rows = await db.query('orders', columns: ['status', 'total'], where: 'id = ?', whereArgs: [order.id]);
-       if (rows.isNotEmpty) {
-         final cur = rows.first['status'] as String;
-         final curTotal = (rows.first['total'] as num?)?.toDouble() ?? 0.0;
-         if ((curTotal - order.total).abs() < 0.01) {
-           if (_getPrio(cur) > _getPrio(order.status)) return;
-         }
-       }
-     }
-
     await db.transaction((txn) async {
       await txn.insert('orders', {
         'id': order.id,
@@ -356,15 +344,6 @@ class OrderDao {
 
   Future<void> updateOrderStatus(String id, String status, {String? paymentMethod, int? readyAtMs, bool fromSync = false}) async {
     final db = await Repository.instance._db.database;
-    
-    if (fromSync) {
-      final rows = await db.query('orders', columns: ['status'], where: 'id = ?', whereArgs: [id]);
-      if (rows.isNotEmpty) {
-        final cur = rows.first['status'] as String;
-        if (_getPrio(cur) > _getPrio(status)) return;
-      }
-    }
-
     final updateMap = <String, Object?>{
       'status': status,
       'payment_method': paymentMethod,

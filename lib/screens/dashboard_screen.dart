@@ -312,13 +312,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           label = 'Ready';
                           badgeBorder = const Color(0xFF3B82F6);
                           break;
+                        case 'Completed':
+                          label = 'Billing';
+                          badgeBorder = const Color(0xFF22C55E);
+                          break;
                         case 'Awaiting Payment':
                           label = 'Awaiting Payment';
                           badgeBorder = const Color(0xFFA855F7);
-                          break;
-                        case 'Completed':
-                          label = 'Completed';
-                          badgeBorder = const Color(0xFF22C55E);
                           break;
                         default:
                           label = status;

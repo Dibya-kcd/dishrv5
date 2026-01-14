@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io' show Platform, Socket;
-import 'package:esc_pos_utils_plus/esc_pos_utils_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
@@ -166,12 +165,13 @@ class PrinterService extends ChangeNotifier {
   }
 
   Future<void> testPrint(PrinterModel printer) async {
-    final profile = await CapabilityProfile.load();
-    final generator = Generator(PaperSize.mm80, profile);
     List<int> bytes = [];
-    bytes += generator.text('TEST PRINT SUCCESS', styles: const PosStyles(align: PosAlign.center, bold: true, height: PosTextSize.size2));
-    bytes += generator.feed(2);
-    bytes += generator.cut();
+    bytes += [27, 64];
+    bytes += [27, 97, 1];
+    bytes += utf8.encode('TEST PRINT SUCCESS');
+    bytes += [10, 10];
+    bytes += [27, 97, 0];
+    bytes += [29, 86, 66, 0];
     await _printBytes(printer, bytes);
   }
 
