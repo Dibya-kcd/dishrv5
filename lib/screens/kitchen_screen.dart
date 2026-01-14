@@ -95,10 +95,19 @@ class KitchenScreen extends StatelessWidget {
           },
         );
       });
-      if (!embedded) {
-        return PageScaffold(title: 'Kitchen Display', child: grid);
-      }
-      return Padding(padding: const EdgeInsets.all(16), child: SingleChildScrollView(child: grid));
+      return Padding(
+        padding: const EdgeInsets.all(16),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Kitchen', style: TextStyle(color: Color(0xFFA1A1AA))),
+              const SizedBox(height: 12),
+              grid,
+            ],
+          ),
+        ),
+      );
     });
   }
 

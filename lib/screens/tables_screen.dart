@@ -12,50 +12,7 @@ class TablesScreen extends StatelessWidget {
     final provider = context.watch<RestaurantProvider>();
     final tables = provider.tables.where((t) => t.status != 'deleted').toList();
 
-    void showAddTableDialog() {
-      final numberController = TextEditingController();
-      final capacityController = TextEditingController(text: '4');
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Add New Table'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: numberController,
-                decoration: const InputDecoration(labelText: 'Table Number', hintText: 'e.g. 10'),
-                keyboardType: TextInputType.number,
-                autofocus: true,
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: capacityController,
-                decoration: const InputDecoration(labelText: 'Capacity', hintText: 'Number of seats'),
-                keyboardType: TextInputType.number,
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                final number = int.tryParse(numberController.text.trim());
-                final capacity = int.tryParse(capacityController.text.trim());
-                if (number != null && capacity != null) {
-                  provider.addTable(number, capacity);
-                  Navigator.pop(context);
-                }
-              },
-              child: const Text('Add Table'),
-            ),
-          ],
-        ),
-      );
-    }
+    
 
     return LayoutBuilder(builder: (context, constraints) {
       final width = constraints.maxWidth;
@@ -112,76 +69,7 @@ class TablesScreen extends StatelessWidget {
                           child: Text(t.status.toUpperCase(), style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 12)),
                         ),
                         const SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.edit, color: Colors.white),
-                              tooltip: 'Edit',
-                              onPressed: () {
-                                final numberController = TextEditingController(text: '${t.number}');
-                                final capacityController = TextEditingController(text: '${t.capacity}');
-                                showDialog(
-                                  context: context,
-                                  builder: (context) => AlertDialog(
-                                    title: const Text('Edit Table'),
-                                    content: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        TextField(
-                                          controller: numberController,
-                                          decoration: const InputDecoration(labelText: 'Table Number'),
-                                          keyboardType: TextInputType.number,
-                                        ),
-                                        const SizedBox(height: 16),
-                                        TextField(
-                                          controller: capacityController,
-                                          decoration: const InputDecoration(labelText: 'Capacity'),
-                                          keyboardType: TextInputType.number,
-                                        ),
-                                      ],
-                                    ),
-                                    actions: [
-                                      TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-                                      ElevatedButton(
-                                        onPressed: () {
-                                          final number = int.tryParse(numberController.text.trim());
-                                          final capacity = int.tryParse(capacityController.text.trim());
-                                          if (number != null && capacity != null) {
-                                            provider.editTable(t.id, number, capacity);
-                                            Navigator.pop(context);
-                                          }
-                                        },
-                                        child: const Text('Save'),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              },
-                            ),
-                            const SizedBox(width: 8),
-                            IconButton(
-                              icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-                              tooltip: 'Delete',
-                              onPressed: () async {
-                                final confirmed = await showDialog<bool>(
-                                  context: context,
-                                  builder: (context) => AlertDialog(
-                                    title: const Text('Delete Table'),
-                                    content: const Text('Are you sure you want to delete this table?'),
-                                    actions: [
-                                      TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('No')),
-                                      ElevatedButton(onPressed: () => Navigator.pop(context, true), style: ElevatedButton.styleFrom(backgroundColor: Colors.red), child: const Text('Yes, Delete')),
-                                    ],
-                                  ),
-                                );
-                                if (confirmed == true) {
-                                  provider.deleteTable(t.id);
-                                }
-                              },
-                            ),
-                          ],
-                        ),
+                        
                       ],
                     ),
                   ),
@@ -191,19 +79,6 @@ class TablesScreen extends StatelessWidget {
           }),
         ],
       );
-      if (!embedded) {
-        return PageScaffold(
-          title: 'Table Management', 
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.add),
-              tooltip: 'Add Table',
-              onPressed: showAddTableDialog,
-            ),
-          ],
-          child: content
-        );
-      }
       return Padding(padding: const EdgeInsets.all(16), child: SingleChildScrollView(child: content));
     });
   }

@@ -25,227 +25,142 @@ class _MenuScreenState extends State<MenuScreen> {
       final isMobile = width < 600;
       final isTablet = width >= 600 && width <= 1024;
       final isDesktop = width > 1024;
-      final cross = isDesktop ? 3 : (isTablet ? 2 : 1);
-      final cardAspect = isDesktop ? 0.95 : (isTablet ? 1.0 : 1.05);
+      final cross = width >= 1024 ? 4 : (width >= 640 ? 3 : 2);
+      final cardAspect = 1.0;
       
       return PageScaffold(
         title: 'Menu',
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Builder(builder: (_) {
-            if (isMobile) {
-              return Column(children: [
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                    child: Row(
+        actions: [
+          IconButton(
+            onPressed: () {
+              showModalBottomSheet(
+                context: context,
+                backgroundColor: const Color(0xFF18181B),
+                shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(12))),
+                builder: (_) {
+                  final cats = context.read<RestaurantProvider>().categories;
+                  final current = context.read<RestaurantProvider>().selectedCategory;
+                  return Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        ...categories.map((c) {
-                        final active = selectedCategory == c;
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: TextButton(
-                            onPressed: () => context.read<RestaurantProvider>().setSelectedCategory(c),
-                            style: TextButton.styleFrom(
-                              backgroundColor: active ? const Color(0xFFF59E0B) : const Color(0xFF18181B),
-                              foregroundColor: active ? Colors.white : const Color(0xFFA1A1AA),
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                            ),
-                            child: Text(c),
-                          ),
-                        );
-                        })
+                        const Text('Category Filter', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: cats.map((c) {
+                            final selected = c == current;
+                            return FilterChip(
+                              selected: selected,
+                              label: Text(c),
+                              onSelected: (_) {
+                                context.read<RestaurantProvider>().setSelectedCategory(c);
+                                Navigator.pop(context);
+                              },
+                            );
+                          }).toList(),
+                        ),
                       ],
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(children: [
-                    Expanded(
-                      child: TextButton(
-                        onPressed: () async {
-                          final nameController = TextEditingController();
-                          await showDialog(context: context, builder: (_) {
-                            return AlertDialog(
-                              backgroundColor: const Color(0xFF18181B),
-                              title: const Text('Add Category', style: TextStyle(color: Colors.white, letterSpacing: 0.5)),
-                              content: TextField(
-                                controller: nameController,
-                                decoration: const InputDecoration(hintText: 'Category name'),
-                              ),
-                              actions: [
-                                TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-                                ElevatedButton(onPressed: () {
-                                  final v = nameController.text.trim();
-                                  if (v.isNotEmpty) {
-                                    context.read<RestaurantProvider>().addCategory(v);
-                                  }
-                                  Navigator.of(context).pop();
-                                }, child: const Text('Add')),
-                              ],
-                            );
-                          });
-                        },
-                        style: TextButton.styleFrom(backgroundColor: const Color(0xFF27272A), foregroundColor: Colors.white),
-                        child: const Text('Add Category'),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextButton(
-                        onPressed: () async {
-                          final nameController = TextEditingController();
-                          final priceController = TextEditingController();
-                          String selected = selectedCategory == 'All' ? (categories.length > 1 ? categories[1] : 'General') : selectedCategory;
-                          await showDialog(context: context, builder: (_) {
-                            return AlertDialog(
-                              backgroundColor: const Color(0xFF18181B),
-                              title: const Text('Add Menu Item', style: TextStyle(color: Colors.white, letterSpacing: 0.5)),
-                              content: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  TextField(decoration: const InputDecoration(hintText: 'Name'), controller: nameController),
-                                  const SizedBox(height: 8),
-                                  TextField(decoration: const InputDecoration(hintText: 'Price'), controller: priceController, keyboardType: TextInputType.number),
-                                  const SizedBox(height: 8),
-                                  DropdownButtonFormField<String>(
-                                    value: selected,
-                                    items: categories.where((c) => c != 'All').map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
-                                    onChanged: (v) { if (v != null) selected = v; },
-                                    decoration: const InputDecoration(hintText: 'Category'),
-                                  ),
-                                ],
-                              ),
-                              actions: [
-                                TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-                                ElevatedButton(onPressed: () {
-                                  final name = nameController.text.trim();
-                                  final price = int.tryParse(priceController.text.trim()) ?? 0;
-                                  if (name.isNotEmpty && price > 0) {
-                                    context.read<RestaurantProvider>().addMenuItem(name: name, category: selected, price: price, image: '🍽️');
-                                  }
-                                  Navigator.of(context).pop();
-                                }, child: const Text('Add')),
-                              ],
-                            );
-                          });
-                        },
-                        style: TextButton.styleFrom(backgroundColor: const Color(0xFF27272A), foregroundColor: Colors.white),
-                        child: const Text('Add Item'),
-                      ),
-                    ),
-                  ]),
-                ]);
-              } else {
-                return Row(
-                  children: [
-                    Expanded(
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            ...categories.map((c) {
-                            final active = selectedCategory == c;
-                            return Padding(
-                              padding: const EdgeInsets.only(right: 8),
-                              child: TextButton(
-                                onPressed: () => context.read<RestaurantProvider>().setSelectedCategory(c),
-                                style: TextButton.styleFrom(
-                                  backgroundColor: active ? const Color(0xFFF59E0B) : const Color(0xFF18181B),
-                                  foregroundColor: active ? Colors.white : const Color(0xFFA1A1AA),
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                ),
-                                child: Text(c),
-                              ),
-                            );
-                            })
-                          ],
+                  );
+                },
+              );
+            },
+            icon: const Icon(Icons.tune, color: Colors.white),
+            tooltip: 'Filters',
+          ),
+        ],
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          // Removed category chips/dropdowns to keep filter icon only
+            const SizedBox(height: 12),
+            Row(children: [
+              Expanded(
+                child: TextButton(
+                  onPressed: () async {
+                    final nameController = TextEditingController();
+                    await showDialog(context: context, builder: (_) {
+                      return AlertDialog(
+                        backgroundColor: const Color(0xFF18181B),
+                        title: const Text('Add Category', style: TextStyle(color: Colors.white, letterSpacing: 0.5)),
+                        content: TextField(
+                          controller: nameController,
+                          decoration: const InputDecoration(hintText: 'Category name'),
                         ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    TextButton(
-                      onPressed: () async {
-                        final nameController = TextEditingController();
-                        await showDialog(context: context, builder: (_) {
-                          return AlertDialog(
-                            backgroundColor: const Color(0xFF18181B),
-                            title: const Text('Add Category', style: TextStyle(color: Colors.white, letterSpacing: 0.5)),
-                            content: TextField(
-                              controller: nameController,
-                              decoration: const InputDecoration(hintText: 'Category name'),
-                            ),
-                            actions: [
-                              TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-                              ElevatedButton(onPressed: () {
-                                final v = nameController.text.trim();
-                                if (v.isNotEmpty) {
-                                  context.read<RestaurantProvider>().addCategory(v);
-                                }
-                                Navigator.of(context).pop();
-                              }, child: const Text('Add')),
-                            ],
-                          );
-                        });
-                      },
-                      style: TextButton.styleFrom(backgroundColor: const Color(0xFF27272A), foregroundColor: Colors.white),
-                      child: const Text('Add Category'),
-                    ),
-                    const SizedBox(width: 8),
-                    TextButton(
-                      onPressed: () async {
-                        final nameController = TextEditingController();
-                        final priceController = TextEditingController();
-                        String selected = selectedCategory == 'All' ? (categories.length > 1 ? categories[1] : 'General') : selectedCategory;
-                        await showDialog(context: context, builder: (_) {
-                          return StatefulBuilder(builder: (context, setLocal) {
-                            return AlertDialog(
-                              backgroundColor: const Color(0xFF18181B),
-                              title: const Text('Add Menu Item', style: TextStyle(color: Colors.white, letterSpacing: 0.5)),
-                              content: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  TextField(decoration: const InputDecoration(hintText: 'Name'), controller: nameController),
-                                  const SizedBox(height: 8),
-                                  TextField(decoration: const InputDecoration(hintText: 'Price'), controller: priceController, keyboardType: TextInputType.number),
-                                  const SizedBox(height: 8),
-                                  DropdownButtonFormField<String>(
-                                    value: selected,
-                                    items: categories.where((c) => c != 'All').map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
-                                    onChanged: (v) { if (v != null) setLocal(() => selected = v); },
-                                    decoration: const InputDecoration(hintText: 'Category'),
-                                  ),
-                                ],
+                        actions: [
+                          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+                          ElevatedButton(onPressed: () {
+                            final v = nameController.text.trim();
+                            if (v.isNotEmpty) {
+                              context.read<RestaurantProvider>().addCategory(v);
+                            }
+                            Navigator.of(context).pop();
+                          }, child: const Text('Add')),
+                        ],
+                      );
+                    });
+                  },
+                  style: TextButton.styleFrom(backgroundColor: const Color(0xFF27272A), foregroundColor: Colors.white),
+                  child: const Text('Add Category'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: TextButton(
+                  onPressed: () async {
+                    final nameController = TextEditingController();
+                    final priceController = TextEditingController();
+                    String selected = selectedCategory == 'All' ? (categories.length > 1 ? categories[1] : 'General') : selectedCategory;
+                    await showDialog(context: context, builder: (_) {
+                      return StatefulBuilder(builder: (context, setLocal) {
+                        return AlertDialog(
+                          backgroundColor: const Color(0xFF18181B),
+                          title: const Text('Add Menu Item', style: TextStyle(color: Colors.white, letterSpacing: 0.5)),
+                          content: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              TextField(decoration: const InputDecoration(hintText: 'Name'), controller: nameController),
+                              const SizedBox(height: 8),
+                              TextField(decoration: const InputDecoration(hintText: 'Price'), controller: priceController, keyboardType: TextInputType.number),
+                              const SizedBox(height: 8),
+                              DropdownButtonFormField<String>(
+                                value: selected,
+                                items: categories.where((c) => c != 'All').map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                                onChanged: (v) { if (v != null) setLocal(() => selected = v); },
+                                decoration: const InputDecoration(hintText: 'Category'),
                               ),
-                              actions: [
-                                TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-                                ElevatedButton(onPressed: () {
-                                  final name = nameController.text.trim();
-                                  final price = int.tryParse(priceController.text.trim()) ?? 0;
-                                  if (name.isNotEmpty && price > 0) {
-                                    context.read<RestaurantProvider>().addMenuItem(name: name, category: selected, price: price, image: '🍽️');
-                                  }
-                                  Navigator.of(context).pop();
-                                }, child: const Text('Add')),
-                              ],
-                            );
-                          });
-                        });
-                      },
-                      style: TextButton.styleFrom(backgroundColor: const Color(0xFF27272A), foregroundColor: Colors.white),
-                      child: const Text('Add Item'),
-                    ),
-                  ],
-                );
-              }
-            }),
+                            ],
+                          ),
+                          actions: [
+                            TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+                            ElevatedButton(onPressed: () {
+                              final name = nameController.text.trim();
+                              final price = int.tryParse(priceController.text.trim()) ?? 0;
+                              if (name.isNotEmpty && price > 0) {
+                                context.read<RestaurantProvider>().addMenuItem(name: name, category: selected, price: price, image: '🍽️');
+                              }
+                              Navigator.of(context).pop();
+                            }, child: const Text('Add')),
+                          ],
+                        );
+                      });
+                    });
+                  },
+                  style: TextButton.styleFrom(backgroundColor: const Color(0xFF27272A), foregroundColor: Colors.white),
+                  child: const Text('Add Item'),
+                ),
+              ),
+            ]),
             const SizedBox(height: 12),
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: cross,
-                crossAxisSpacing: isDesktop ? 16 : 12,
-                mainAxisSpacing: isDesktop ? 16 : 12,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
                 childAspectRatio: cardAspect
               ),
               itemCount: menuItems.length,

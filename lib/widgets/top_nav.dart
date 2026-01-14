@@ -125,16 +125,66 @@ class TopNav extends StatelessWidget {
                       child: const Icon(Icons.workspaces_outlined, color: Colors.white),
                     ),
                     const SizedBox(width: 4),
-                    TextButton.icon(
-                      onPressed: () => provider.setCurrentView('reports'),
-                      icon: const Icon(Icons.bar_chart, color: Colors.white, size: 16),
-                      label: const Text('Reports', style: TextStyle(color: Colors.white)),
-                      style: TextButton.styleFrom(
-                        backgroundColor: const Color(0xFF27272A),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
+                    PopupMenuButton<String>(
+                      tooltip: 'Reports',
+                      offset: const Offset(0, 36),
+                      color: const Color(0xFF18181B),
+                      itemBuilder: (context) => [
+                        PopupMenuItem(
+                          value: '0',
+                          child: Row(children: const [
+                            Icon(Icons.trending_up, color: Colors.white, size: 16),
+                            SizedBox(width: 8),
+                            Text('Sales', style: TextStyle(color: Colors.white)),
+                          ]),
+                        ),
+                        PopupMenuItem(
+                          value: '1',
+                          child: Row(children: const [
+                            Icon(Icons.receipt_long, color: Colors.white, size: 16),
+                            SizedBox(width: 8),
+                            Text('Orders', style: TextStyle(color: Colors.white)),
+                          ]),
+                        ),
+                        PopupMenuItem(
+                          value: '2',
+                          child: Row(children: const [
+                            Icon(Icons.payments_outlined, color: Colors.white, size: 16),
+                            SizedBox(width: 8),
+                            Text('Payment', style: TextStyle(color: Colors.white)),
+                          ]),
+                        ),
+                        PopupMenuItem(
+                          value: '3',
+                          child: Row(children: const [
+                            Icon(Icons.speed, color: Colors.white, size: 16),
+                            SizedBox(width: 8),
+                            Text('Performance', style: TextStyle(color: Colors.white)),
+                          ]),
+                        ),
+                        PopupMenuItem(
+                          value: '4',
+                          child: Row(children: const [
+                            Icon(Icons.inventory_2_outlined, color: Colors.white, size: 16),
+                            SizedBox(width: 8),
+                            Text('Inventory', style: TextStyle(color: Colors.white)),
+                          ]),
+                        ),
+                        PopupMenuItem(
+                          value: '5',
+                          child: Row(children: const [
+                            Icon(Icons.account_balance, color: Colors.white, size: 16),
+                            SizedBox(width: 8),
+                            Text('Financial', style: TextStyle(color: Colors.white)),
+                          ]),
+                        ),
+                      ],
+                      onSelected: (v) {
+                        final idx = int.tryParse(v) ?? 0;
+                        provider.setReportsTabIndex(idx);
+                        provider.setCurrentView('reports');
+                      },
+                      child: const Icon(Icons.bar_chart, color: Colors.white),
                     ),
                     const SizedBox(width: 4),
                     PopupMenuButton<String>(
@@ -142,6 +192,14 @@ class TopNav extends StatelessWidget {
                       offset: const Offset(0, 36),
                       color: const Color(0xFF18181B),
                       itemBuilder: (context) => [
+                        PopupMenuItem(
+                          value: 'tables_manage',
+                          child: Row(children: const [
+                            Icon(Icons.table_bar, color: Colors.white, size: 16),
+                            SizedBox(width: 8),
+                            Text('Tables', style: TextStyle(color: Colors.white)),
+                          ]),
+                        ),
                         PopupMenuItem(
                           value: 'menu',
                           child: Row(children: const [

@@ -18,6 +18,7 @@ import 'inventory_screen.dart';
 import 'printer_settings_screen.dart';
 import 'expense_screen.dart';
 import 'employee_screen.dart';
+import 'table_management_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -63,6 +64,9 @@ class _HomeScreenState extends State<HomeScreen> {
           break;
         case 'inventory':
           currentScreen = const InventoryScreen();
+          break;
+        case 'tables_manage':
+          currentScreen = const TableManagementScreen();
           break;
         case 'printer_settings':
           currentScreen = const PrinterSettingsScreen();

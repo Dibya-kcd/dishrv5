@@ -36,113 +36,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
     });
   }
 
-  Future<void> _showReportsDialog() async {
-    String filterType = 'All';
-    List<Map<String, dynamic>> txns = [];
-    bool loading = true;
-
-    Future<void> load(StateSetter setLocal) async {
-      setLocal(() => loading = true);
-      final t = await Repository.instance.ingredients.listTransactions(
-        type: filterType == 'All' ? null : filterType.toLowerCase(),
-        limit: 50,
-      );
-      setLocal(() {
-        txns = t;
-        loading = false;
-      });
-    }
-
-    await showDialog(context: context, builder: (_) {
-      return StatefulBuilder(builder: (context, setLocal) {
-        if (loading) load(setLocal);
-        
-        return AlertDialog(
-          backgroundColor: const Color(0xFF18181B),
-          title: const Text('Inventory Reports', style: TextStyle(color: Colors.white, letterSpacing: 0.5)),
-          content: SizedBox(
-            width: 700,
-            height: 500,
-            child: Column(children: [
-              Row(children: [
-                const Text('Filter by Type: ', style: TextStyle(color: Colors.white)),
-                const SizedBox(width: 8),
-                DropdownButtonHideUnderline(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    decoration: BoxDecoration(color: const Color(0xFF0B0B0E), borderRadius: BorderRadius.circular(8), border: Border.all(color: const Color(0xFF27272A))),
-                    child: DropdownButton<String>(
-                      value: filterType,
-                      dropdownColor: const Color(0xFF18181B),
-                      items: ['All', 'Purchase', 'Wastage', 'Deduction', 'Restore'].map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(color: Colors.white)))).toList(),
-                      onChanged: (v) {
-                        if (v != null) {
-                          setLocal(() {
-                            filterType = v;
-                            loading = true; // Trigger reload
-                          });
-                        }
-                      },
-                    ),
-                  ),
-                ),
-                const Spacer(),
-                IconButton(onPressed: () => load(setLocal), icon: const Icon(Icons.refresh, color: Colors.white)),
-              ]),
-              const SizedBox(height: 12),
-              Expanded(
-                child: loading
-                    ? const Center(child: CircularProgressIndicator())
-                    : txns.isEmpty
-                        ? const Center(child: Text('No transactions found', style: TextStyle(color: Colors.grey)))
-                        : ListView.builder(
-                            itemCount: txns.length,
-                            itemBuilder: (context, index) {
-                              final t = txns[index];
-                              final ingId = t['ingredient_id'] as String;
-                              final ingName = _ingredients.firstWhere((i) => i['id'] == ingId, orElse: () => <String, Object>{'name': 'Unknown'})['name'];
-                              final type = t['type'] as String;
-                              final qty = (t['qty'] as num).toDouble();
-                              final unit = t['unit'] as String;
-                              final date = DateTime.fromMillisecondsSinceEpoch(t['timestamp'] as int);
-                              final color = type == 'purchase' || type == 'restore' ? Colors.green : Colors.red;
-                              final reason = t['reason'] != null ? '(${t['reason']})' : '';
-                              final kot = t['kot_number'] != null ? '[KOT: ${t['kot_number']}]' : '';
-                              
-                              return Container(
-                                margin: const EdgeInsets.only(bottom: 8),
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(color: const Color(0xFF27272A), borderRadius: BorderRadius.circular(8)),
-                                child: Row(children: [
-                                  Expanded(
-                                    flex: 2,
-                                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                      Text('$ingName', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                                      Text(date.toString().split('.')[0], style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                                    ]),
-                                  ),
-                                  Expanded(
-                                    flex: 3,
-                                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                      Text('${type.toUpperCase()} $reason $kot', style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 13)),
-                                      if (t['supplier'] != null) Text('Supplier: ${t['supplier']}', style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                                    ]),
-                                  ),
-                                  Text('${qty.toStringAsFixed(2)} $unit', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                                ]),
-                              );
-                            },
-                          ),
-              ),
-            ]),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close')),
-          ],
-        );
-      });
-    });
-  }
+  // Reports dialog moved to Inventory Report screen
 
   List<Map<String, Object>> get _filtered {
     final byCat = _categoryFilter == 'All' ? _ingredients : _ingredients.where((r) => (r['category'] as String? ?? '') == _categoryFilter).toList();
@@ -505,6 +399,47 @@ class _InventoryScreenState extends State<InventoryScreen> {
     final cats = ['All', ..._ingredients.map((r) => r['category'] as String? ?? '').where((c) => c.isNotEmpty).toSet()];
     return PageScaffold(
       title: 'Inventory',
+      actions: [
+        IconButton(
+          onPressed: () {
+            showModalBottomSheet(
+              context: context,
+              backgroundColor: const Color(0xFF18181B),
+              shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(12))),
+              builder: (_) {
+                return Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Category Filter', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: cats.map((c) {
+                          final selected = c == _categoryFilter;
+                          return FilterChip(
+                            selected: selected,
+                            label: Text(c),
+                            onSelected: (_) {
+                              setState(() => _categoryFilter = c);
+                              Navigator.pop(context);
+                            },
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+          icon: const Icon(Icons.tune, color: Colors.white),
+          tooltip: 'Filters',
+        ),
+      ],
       child: _loading
           ? const Center(child: CircularProgressIndicator())
           : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -528,11 +463,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
                       final actions = [
       {'icon': Icons.block, 'label': 'Deduct for Wastage', 'onTap': _showWastageDialog, 'color': const Color(0xFFEF4444)},
       {'icon': Icons.playlist_add_outlined, 'label': 'Batch Prep', 'onTap': _showBatchPrepDialog, 'color': const Color(0xFFF59E0B)},
-      {'icon': Icons.assessment_outlined, 'label': 'View Reports', 'onTap': _showReportsDialog, 'color': const Color(0xFF3B82F6)},
+      // Moved 'View Reports' to Inventory Report screen
       {'icon': Icons.restore_outlined, 'label': 'Restore Cancelled KOT', 'onTap': _showRestoreKOTDialog, 'color': const Color(0xFF14B8A6)},
       {'icon': Icons.add_circle_outline, 'label': 'Add New Ingredient', 'onTap': _showCreateIngredientDialog, 'color': const Color(0xFF10B981)},
-      {'icon': Icons.cleaning_services_outlined, 'label': 'Clean Duplicates', 'onTap': _fixDuplicates, 'color': const Color(0xFF8B5CF6)},
-      {'icon': Icons.image_outlined, 'label': 'Design Mockups', 'onTap': _openMockupPreview, 'color': const Color(0xFFA78BFA)},
+      // Removed 'Clean Duplicates' and 'Design Mockups'
     ];
                       return GridView.count(
                         crossAxisCount: cross,
@@ -568,20 +502,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                         onChanged: (v) => setState(() => _searchText = v),
                       ),
                       const SizedBox(height: 8),
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(children: cats.map((c) {
-                          final sel = _categoryFilter == c;
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 6),
-                            child: ChoiceChip(
-                              label: Text(c),
-                              selected: sel,
-                              onSelected: (_) => setState(() => _categoryFilter = c),
-                            ),
-                          );
-                        }).toList()),
-                      ),
+                      // Removed duplicate category chips; use filter icon in AppBar
                     ]),
                     const SizedBox(height: 12),
                     Builder(builder: (_) {
@@ -620,12 +541,19 @@ class _InventoryScreenState extends State<InventoryScreen> {
                                 ),
                                 const SizedBox(width: 6),
                                 Tooltip(
+                                  message: 'Edit Ingredient',
+                                  child: IconButton(
+                                    onPressed: () => _showEditIngredientDialog(r),
+                                    icon: const Icon(Icons.edit, color: Colors.white),
+                                  ),
+                                ),
+                                Tooltip(
                                   message: 'Remove Ingredient',
                                   child: IconButton(
                                     onPressed: () => _confirmAndDeleteIngredient(r['id'] as String, name),
                                     icon: const Icon(Icons.delete_forever, color: Colors.white),
                                   ),
-                                )
+                                ),
                               ]),
                               const SizedBox(height: 6),
                               Row(children: [
@@ -839,79 +767,56 @@ window.onload = function(){ setTimeout(function(){ window.print(); }, 500); }
     });
   }
 
-  Future<void> _openMockupPreview() async {
-    final htmlDoc = '''
-<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>Inventory Quick Actions — Visual Mock</title>
-<style>
-  :root {
-    --bg: #0B0B0E; --card: #18181B; --text: #FFFFFF; --muted: #A1A1AA; --border: #27272A;
-    --red:#EF4444; --amber:#F59E0B; --blue:#3B82F6; --teal:#14B8A6; --green:#10B981; --violet:#A78BFA;
+  Future<void> _showEditIngredientDialog(Map<String, Object> ing) async {
+    final id = ing['id'] as String;
+    final name = (ing['name'] as String?) ?? '';
+    final categoryCtrl = TextEditingController(text: (ing['category'] as String?) ?? 'Uncategorized');
+    final unitCtrl = TextEditingController(text: (ing['base_unit'] as String?) ?? 'g');
+    final supplierCtrl = TextEditingController(text: (ing['supplier'] as String?) ?? '');
+    final thresholdCtrl = TextEditingController(text: ((ing['min_threshold'] as num?)?.toString() ?? '0'));
+    final stockCtrl = TextEditingController(text: ((ing['stock'] as num?)?.toString() ?? '0'));
+    await showDialog(context: context, builder: (_) {
+      return AlertDialog(
+        backgroundColor: const Color(0xFF18181B),
+        title: Text('Edit $name', style: const TextStyle(color: Colors.white, letterSpacing: 0.5)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(decoration: const InputDecoration(hintText: 'Category'), controller: categoryCtrl),
+            const SizedBox(height: 8),
+            TextField(decoration: const InputDecoration(hintText: 'Base Unit (e.g., g, kg, ml, l, pc)'), controller: unitCtrl),
+            const SizedBox(height: 8),
+            TextField(decoration: const InputDecoration(hintText: 'Supplier'), controller: supplierCtrl),
+            const SizedBox(height: 8),
+            TextField(decoration: const InputDecoration(hintText: 'Min Threshold'), controller: thresholdCtrl, keyboardType: TextInputType.number),
+            const SizedBox(height: 8),
+            TextField(decoration: const InputDecoration(hintText: 'Current Stock'), controller: stockCtrl, keyboardType: TextInputType.number),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+          ElevatedButton(onPressed: () async {
+            final nav = Navigator.of(context);
+            final rp = context.read<RestaurantProvider>();
+            await Repository.instance.ingredients.upsertIngredient({
+              'id': id,
+              'name': name,
+              'category': categoryCtrl.text.trim().isEmpty ? 'Uncategorized' : categoryCtrl.text.trim(),
+              'base_unit': unitCtrl.text.trim().isEmpty ? 'g' : unitCtrl.text.trim(),
+              'stock': double.tryParse(stockCtrl.text.trim()) ?? (ing['stock'] as num?)?.toDouble() ?? 0.0,
+              'min_threshold': double.tryParse(thresholdCtrl.text.trim()) ?? (ing['min_threshold'] as num?)?.toDouble() ?? 0.0,
+              'supplier': supplierCtrl.text.trim(),
+            });
+            nav.pop();
+            await _refresh();
+            rp.showToast('Ingredient updated.', icon: '✅');
+          }, child: const Text('Save')),
+        ],
+      );
+    });
   }
-  body { background: var(--bg); color: var(--text); font-family: Arial, sans-serif; margin: 0; padding: 24px; }
-  h1 { font-size: 20px; margin: 0 0 8px 0; }
-  .section { margin-bottom: 24px; }
-  .grid { display: grid; gap: 12px; }
-  .grid.mobile { grid-template-columns: repeat(2, 1fr); width: 375px; }
-  .grid.tablet { grid-template-columns: repeat(3, 1fr); width: 768px; }
-  .grid.desktop { grid-template-columns: repeat(4, 1fr); width: 1280px; }
-  .pill { background: var(--card); border-radius: 24px; border: 1px solid var(--border); min-height: 56px; display: flex; align-items: center; justify-content: center; padding: 12px; transition: box-shadow .15s, border-color .15s; }
-  .pill .dot { width: 36px; height: 36px; border-radius: 50%; border: 2px solid currentColor; display: inline-block; margin-right: 8px; }
-  .pill .label { font-size: 13px; color: var(--muted); }
-  .pill:hover { box-shadow: 0 4px 12px rgba(255,255,255,0.05); }
-  .pill.red { color: var(--red); border-color: rgba(239,68,68,0.35); }
-  .pill.amber { color: var(--amber); border-color: rgba(245,158,11,0.35); }
-  .pill.blue { color: var(--blue); border-color: rgba(59,130,246,0.35); }
-  .pill.teal { color: var(--teal); border-color: rgba(20,184,166,0.35); }
-  .pill.green { color: var(--green); border-color: rgba(16,185,129,0.35); }
-  .pill.violet { color: var(--violet); border-color: rgba(167,139,250,0.35); }
-  .wrap { display: flex; gap: 24px; align-items: flex-start; }
-  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
-  .sub { color: var(--muted); font-size: 12px; margin-bottom: 12px; }
-</style>
-</head><body>
-  <div class="wrap">
-    <div class="card">
-      <h1>Mobile • 2 columns</h1>
-      <div class="sub">Min touch 56×56, collapsible Quick Actions</div>
-      <div class="grid mobile">
-        <div class="pill red"><span class="dot"></span><span class="label">Wastage</span></div>
-        <div class="pill amber"><span class="dot"></span><span class="label">Batch Prep</span></div>
-        <div class="pill blue"><span class="dot"></span><span class="label">Reports</span></div>
-        <div class="pill teal"><span class="dot"></span><span class="label">Restore KOT</span></div>
-        <div class="pill green"><span class="dot"></span><span class="label">Add Ingredient</span></div>
-        <div class="pill violet"><span class="dot"></span><span class="label">Design Mockups</span></div>
-      </div>
-    </div>
-    <div class="card">
-      <h1>Tablet • 3 columns</h1>
-      <div class="sub">Balanced spacing</div>
-      <div class="grid tablet">
-        <div class="pill red"><span class="dot"></span><span class="label">Wastage</span></div>
-        <div class="pill amber"><span class="dot"></span><span class="label">Batch Prep</span></div>
-        <div class="pill blue"><span class="dot"></span><span class="label">Reports</span></div>
-        <div class="pill teal"><span class="dot"></span><span class="label">Restore KOT</span></div>
-        <div class="pill green"><span class="dot"></span><span class="label">Add Ingredient</span></div>
-        <div class="pill violet"><span class="dot"></span><span class="label">Design Mockups</span></div>
-      </div>
-    </div>
-    <div class="card">
-      <h1>Desktop • 4 columns</h1>
-      <div class="sub">Compact, consistent stroke and padding</div>
-      <div class="grid desktop">
-        <div class="pill red"><span class="dot"></span><span class="label">Wastage</span></div>
-        <div class="pill amber"><span class="dot"></span><span class="label">Batch Prep</span></div>
-        <div class="pill blue"><span class="dot"></span><span class="label">Reports</span></div>
-        <div class="pill teal"><span class="dot"></span><span class="label">Restore KOT</span></div>
-        <div class="pill green"><span class="dot"></span><span class="label">Add Ingredient</span></div>
-        <div class="pill violet"><span class="dot"></span><span class="label">Design Mockups</span></div>
-      </div>
-    </div>
-  </div>
-</body></html>
-''';
-    await web.openHtmlDocument(htmlDoc);
-  }
+
+  // Removed _openMockupPreview
 }
 
 class _QuickActionPill extends StatefulWidget {

@@ -95,19 +95,46 @@ class ExpenseScreen extends StatelessWidget {
                           ),
                         ),
                       ),
-                      Padding(
-                        padding: EdgeInsets.only(right: 8 * scale),
-                        child: Wrap(
-                          spacing: 6 * scale,
-                          children: ['Today','7D','30D','365D', 'All Time'].map((r) {
-                            final selected = r == range || (r == '365D' && !['Today','7D','30D', 'All Time'].contains(range));
-                            return FilterChip(
-                              selected: selected,
-                              label: Text(r, style: TextStyle(fontSize: 12 * scale)),
-                              onSelected: (_) => context.read<RestaurantProvider>().setAnalyticsRange(r == '365D' ? '365D' : r),
-                            );
-                          }).toList(),
-                        ),
+                      IconButton(
+                        onPressed: () {
+                          showModalBottomSheet(
+                            context: context,
+                            backgroundColor: const Color(0xFF18181B),
+                            shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(12))),
+                            builder: (_) {
+                              final opts = ['Today','7D','30D','365D','All Time'];
+                              final current = context.read<RestaurantProvider>().analyticsRange;
+                              return Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('Date Range', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                    const SizedBox(height: 12),
+                                    Wrap(
+                                      spacing: 8,
+                                      runSpacing: 8,
+                                      children: opts.map((r) {
+                                        final sel = r == current || (r == '365D' && !['Today','7D','30D','All Time'].contains(current));
+                                        return FilterChip(
+                                          selected: sel,
+                                          label: Text(r),
+                                          onSelected: (_) {
+                                            context.read<RestaurantProvider>().setAnalyticsRange(r == '365D' ? '365D' : r);
+                                            Navigator.pop(context);
+                                          },
+                                        );
+                                      }).toList(),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          );
+                        },
+                        icon: const Icon(Icons.tune, color: Colors.white),
+                        tooltip: 'Filters',
                       ),
                     ],
                   ),

@@ -50,6 +50,7 @@ class RestaurantProvider extends ChangeNotifier {
   String analyticsRange = 'Today';
   String analyticsCategoryFilter = 'All';
   String analyticsServiceFilter = 'All'; // All, Dine-In, Take-Out
+  int reportsTabIndex = 0;
   StreamSubscription? _dataSubscription;
 
   List<MenuItem> menuItems = [];
@@ -78,6 +79,10 @@ class RestaurantProvider extends ChangeNotifier {
       _categories = ['All', ...setCats];
     }
     return _categories;
+  }
+  void setReportsTabIndex(int index) {
+    reportsTabIndex = index;
+    notifyListeners();
   }
   String _todayYYMMDD() {
     final now = DateTime.now();
@@ -663,7 +668,7 @@ class RestaurantProvider extends ChangeNotifier {
 
   Future<void> addTable(int number, int capacity) async {
     final id = DateTime.now().millisecondsSinceEpoch;
-    if (_tables.any((t) => t.number == number)) {
+    if (_tables.any((t) => t.status != 'deleted' && t.number == number)) {
       showToast('Table $number already exists', icon: '⚠️');
       return;
     }
@@ -682,7 +687,7 @@ class RestaurantProvider extends ChangeNotifier {
   }
 
   Future<void> editTable(int id, int number, int capacity) async {
-    final existsOther = _tables.any((t) => t.id != id && t.number == number);
+    final existsOther = _tables.any((t) => t.status != 'deleted' && t.id != id && t.number == number);
     if (existsOther) {
       showToast('Table number already in use', icon: '⚠️');
       return;

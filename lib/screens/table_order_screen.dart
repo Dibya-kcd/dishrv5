@@ -654,17 +654,47 @@ class TableOrderScreen extends StatelessWidget {
                                     ),
                                   ),
                                   const SizedBox(width: 12),
-                                  DropdownButton<String>(
-                                    value: provider.categories.contains(provider.selectedCategory) ? provider.selectedCategory : 'All',
-                                    items: provider.categories.map((c) => DropdownMenuItem(
-                                      value: c,
-                                      child: Text(c, style: const TextStyle(color: Colors.white)),
-                                    )).toList(),
-                                    onChanged: (v) {
-                                      if (v != null) provider.setSelectedCategory(v);
+                                  const SizedBox(width: 8),
+                                  IconButton(
+                                    onPressed: () {
+                                      showModalBottomSheet(
+                                        context: context,
+                                        backgroundColor: const Color(0xFF18181B),
+                                        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(12))),
+                                        builder: (_) {
+                                          final cats = context.read<RestaurantProvider>().categories;
+                                          final current = context.read<RestaurantProvider>().selectedCategory;
+                                          return Padding(
+                                            padding: const EdgeInsets.all(16),
+                                            child: Column(
+                                              mainAxisSize: MainAxisSize.min,
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                const Text('Category Filter', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                                const SizedBox(height: 12),
+                                                Wrap(
+                                                  spacing: 8,
+                                                  runSpacing: 8,
+                                                  children: cats.map((c) {
+                                                    final selected = c == current;
+                                                    return FilterChip(
+                                                      selected: selected,
+                                                      label: Text(c),
+                                                      onSelected: (_) {
+                                                        context.read<RestaurantProvider>().setSelectedCategory(c);
+                                                        Navigator.pop(context);
+                                                      },
+                                                    );
+                                                  }).toList(),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                        },
+                                      );
                                     },
-                                    dropdownColor: const Color(0xFF27272A),
-                                    style: const TextStyle(color: Colors.white),
+                                    icon: const Icon(Icons.tune, color: Colors.white),
+                                    tooltip: 'Filters',
                                   ),
                                 ],
                               ),

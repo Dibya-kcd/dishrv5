@@ -517,7 +517,7 @@ class TablesDao {
   }
   Future<List<TableInfo>> listTables() async {
     final db = await Repository.instance._db.database;
-    final rows = await db.query('tables');
+    final rows = await db.query('tables', where: 'status != ?', whereArgs: ['deleted']);
     return rows.map((r) => TableInfo(
       id: (r['id'] as num).toInt(),
       number: (r['number'] as num).toInt(),
