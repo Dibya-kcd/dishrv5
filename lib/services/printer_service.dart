@@ -48,6 +48,11 @@ class PrinterService extends ChangeNotifier {
 
   Future<void> loadPairedBluetooths() async {
     try {
+      if (kIsWeb) {
+        _pairedBluetooths = [];
+        notifyListeners();
+        return;
+      }
       final list = await PrintBluetoothThermal.pairedBluetooths;
       _pairedBluetooths = list;
       notifyListeners();
@@ -113,6 +118,11 @@ class PrinterService extends ChangeNotifier {
     notifyListeners();
 
     try {
+      if (kIsWeb) {
+        _isScanning = false;
+        notifyListeners();
+        return;
+      }
       // Check if Bluetooth is supported/on
       if (await FlutterBluePlus.isSupported == false) {
         _isScanning = false;

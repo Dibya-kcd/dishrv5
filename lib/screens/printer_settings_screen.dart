@@ -63,6 +63,21 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> with Sing
   }
 
   Widget _buildBluetoothTab() {
+    if (kIsWeb) {
+      return Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: const [
+            ListTile(
+              leading: Icon(Icons.info, color: Colors.orange),
+              title: Text('Bluetooth printing is not available in Chrome'),
+              subtitle: Text('Use Network (LAN) printers for laptops/desktops. Classic Bluetooth is supported on Android devices.'),
+            ),
+          ],
+        ),
+      );
+    }
     return AnimatedBuilder(
       animation: PrinterService.instance,
       builder: (context, child) {
