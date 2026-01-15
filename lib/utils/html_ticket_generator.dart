@@ -59,6 +59,15 @@ window.onload = function() {
   setTimeout(function() {
     window.print();
   }, 500);
+  window.onafterprint = function() {
+    setTimeout(function() {
+      try { window.close(); } catch (_) {}
+    }, 300);
+  };
+  setTimeout(function() {
+    // Fallback: close even if onafterprint didn't fire
+    try { window.close(); } catch (_) {}
+  }, 5000);
 }
 </script>
 ''';
@@ -119,6 +128,15 @@ window.onload = function() {
   setTimeout(function() {
     window.print();
   }, 500);
+  window.onafterprint = function() {
+    setTimeout(function() {
+      try { window.close(); } catch (_) {}
+    }, 300);
+  };
+  setTimeout(function() {
+    // Fallback: close even if onafterprint didn't fire
+    try { window.close(); } catch (_) {}
+  }, 5000);
 }
 </script>
 ''';

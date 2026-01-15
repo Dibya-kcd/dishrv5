@@ -1887,8 +1887,6 @@ class RestaurantProvider extends ChangeNotifier {
         kotData: currentKOT!,
         menuItems: menuItems,
       );
-      final url = 'data:text/html;charset=utf-8,${Uri.encodeComponent(doc)}';
-      web.openNewTab(url, features: 'width=800,height=600');
       _sendToPrinter('kot', doc);
     }
     
@@ -2040,8 +2038,6 @@ class RestaurantProvider extends ChangeNotifier {
       final doc = HtmlTicketGenerator.generateBill(
         billData: currentBill!,
       );
-      final url = 'data:text/html;charset=utf-8,${Uri.encodeComponent(doc)}';
-      web.openNewTab(url, features: 'width=800,height=600');
       _sendToPrinter('bill', doc);
     }
 
