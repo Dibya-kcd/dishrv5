@@ -71,7 +71,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> with Sing
           children: [
             Padding(
               padding: const EdgeInsets.all(8.0),
-              child: (!Platform.isAndroid || kIsWeb)
+              child: (kIsWeb || !Platform.isAndroid)
                   ? ElevatedButton.icon(
                       onPressed: service.isScanning ? service.stopScan : service.startScan,
                       icon: Icon(service.isScanning ? Icons.stop : Icons.search),
@@ -134,14 +134,11 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> with Sing
                     }),
                     const Divider(),
                   ],
-                  if (!(Platform.isAndroid && !kIsWeb)) ...[
+                  if (kIsWeb || !Platform.isAndroid) ...[
                     const ListTile(title: Text('Available Devices (BLE)', style: TextStyle(fontWeight: FontWeight.bold))),
                     const Padding(
                       padding: EdgeInsets.symmetric(horizontal: 16.0),
-                      child: Text(
-                        'Note: Most Android thermal printers use Classic Bluetooth (SPP). Prefer "Paired Devices" or manual MAC address.',
-                        style: TextStyle(color: Colors.white70),
-                      ),
+                      child: Text('Note: Most Android thermal printers use Classic Bluetooth (SPP). Prefer Paired Devices or manual MAC address.', style: TextStyle(color: Colors.white70)),
                     ),
                     ...service.scanResults.map((r) {
                       if (r.device.platformName.isEmpty) return const SizedBox.shrink();

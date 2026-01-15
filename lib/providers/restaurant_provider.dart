@@ -13,7 +13,6 @@ import '../models/table_info.dart';
 import '../data/repository.dart';
 import '../data/sync_service.dart';
 import '../services/printer_service.dart';
-import '../utils/html_ticket_generator.dart';
 
 class RestaurantProvider extends ChangeNotifier {
   String _currentView = 'dashboard';
@@ -731,23 +730,7 @@ class RestaurantProvider extends ChangeNotifier {
   // Printer Logic
   static const String _printerEndpoint = 'http://localhost:3001/print';
 
-  Future<void> _sendToPrinter(String kind, String htmlDoc) async {
-    try {
-      final res = await http.post(Uri.parse(_printerEndpoint), 
-        headers: {'Content-Type': 'application/json'}, 
-        body: jsonEncode({'type': kind, 'html': htmlDoc})
-      );
-      if (res.statusCode != 200) {
-        throw Exception('Printer responded ${res.statusCode}');
-      }
-    } catch (e) {
-      final prefs = await SharedPreferences.getInstance();
-      final queueStr = prefs.getString('pending_prints');
-      final queue = queueStr != null ? (jsonDecode(queueStr) as List<dynamic>) : <dynamic>[];
-      queue.add({'type': kind, 'html': htmlDoc});
-      await prefs.setString('pending_prints', jsonEncode(queue));
-    }
-  }
+  // Deprecated web printing via HTML; direct device printing is used instead
 
   Future<void> _flushPendingPrints() async {
     if (!web.isOnline()) return;
@@ -1963,13 +1946,7 @@ class RestaurantProvider extends ChangeNotifier {
     if (currentKOT == null) return;
     final items = currentKOT!['items'] as List<CartItem>;
     
-    if (kIsWeb) {
-      final doc = HtmlTicketGenerator.generateKOT(
-        kotData: currentKOT!,
-        menuItems: menuItems,
-      );
-      _sendToPrinter('kot', doc);
-    }
+    // Direct device printing only; skip opening browser tabs
     
     try {
       final kotItems = items.map((i) => {
@@ -2115,12 +2092,7 @@ class RestaurantProvider extends ChangeNotifier {
     currentBill!['total'] = recalculatedTotal;
     final items = finalItems;
     
-    if (kIsWeb) {
-      final doc = HtmlTicketGenerator.generateBill(
-        billData: currentBill!,
-      );
-      _sendToPrinter('bill', doc);
-    }
+    // Direct device printing only; skip opening browser tabs
 
     try {
       final billItems = items.map((i) => {
