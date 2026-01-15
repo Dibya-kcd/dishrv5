@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import '../models/printer_model.dart';
 import '../services/printer_service.dart';
@@ -86,7 +85,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> with Sing
           children: [
             Padding(
               padding: const EdgeInsets.all(8.0),
-              child: (kIsWeb || !Platform.isAndroid)
+              child: kIsWeb
                   ? ElevatedButton.icon(
                       onPressed: service.isScanning ? service.stopScan : service.startScan,
                       icon: Icon(service.isScanning ? Icons.stop : Icons.search),
@@ -149,7 +148,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> with Sing
                     }),
                     const Divider(),
                   ],
-                  if (kIsWeb || !Platform.isAndroid) ...[
+                  if (!kIsWeb) ...[
                     const ListTile(title: Text('Available Devices (BLE)', style: TextStyle(fontWeight: FontWeight.bold))),
                     const Padding(
                       padding: EdgeInsets.symmetric(horizontal: 16.0),
