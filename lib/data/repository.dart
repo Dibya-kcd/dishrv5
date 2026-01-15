@@ -262,7 +262,7 @@ class OrderDao {
         createdAt: order.createdAt,
         readyAt: order.readyAt,
     );
-    if (!fromSync) await SyncService.instance.updateOrder(fullOrder);
+    if (!fromSync) await SyncService.instance.updateOrderTx(fullOrder);
     await logEvent(order.id, 'sent_to_kitchen', data: {
       'items': items.map((i) => {'id': i.id, 'q': i.quantity}).toList(),
       'table': order.table,
@@ -329,7 +329,7 @@ class OrderDao {
         createdAt: r['created_at'] as int?,
         readyAt: r['ready_at'] as int?,
       );
-      if (!fromSync) await SyncService.instance.updateOrder(order);
+      if (!fromSync) await SyncService.instance.updateOrderTx(order);
     }
     Repository.instance.notifyDataChanged();
   }
@@ -380,7 +380,7 @@ class OrderDao {
               readyAt: r['ready_at'] as int?,
               settledAt: r['settled_at'] as int?,
            );
-           await SyncService.instance.updateOrder(order);
+           await SyncService.instance.updateOrderTx(order);
       }
     }
     Repository.instance.notifyDataChanged();
@@ -477,7 +477,7 @@ class TablesDao {
     }, conflictAlgorithm: ConflictAlgorithm.replace);
     
     if (!fromSync) {
-      await SyncService.instance.updateTable(TableInfo(
+      await SyncService.instance.updateTableTx(TableInfo(
           id: id,
           number: number,
           status: status,

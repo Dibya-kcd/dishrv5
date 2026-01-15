@@ -24,6 +24,9 @@ class RestaurantProvider extends ChangeNotifier {
   Map<String, List<Map<String, dynamic>>> _kotBatchesByOrder = {};
   Map<String, Set<String>> _cancelledKeysByOrder = {};
   final Map<String, Set<String>> _completedKeysByOrder = {};
+  final Map<String, Set<String>> _readyKeysByOrder = {};
+  final Map<String, Set<String>> _servedKeysByOrder = {};
+  int _pendingOpsCount = 0;
   List<Order> _orders = [];
   
   // UI State for Modals
@@ -84,6 +87,8 @@ class RestaurantProvider extends ChangeNotifier {
     }
     return _categories;
   }
+  int get pendingOpsCount => _pendingOpsCount;
+  bool get isOnline => web.isOnline();
   void setReportsTabIndex(int index) {
     reportsTabIndex = index;
     notifyListeners();
@@ -261,6 +266,9 @@ class RestaurantProvider extends ChangeNotifier {
       _initRouting();
       _takeoutSyncTimer = Timer.periodic(const Duration(seconds: 30), (_) {
         _syncTakeoutTokenIfNeeded();
+        _reconcileOrderStatuses();
+        SyncService.instance.flushPendingOps();
+        _updatePendingOpsCount();
       });
     });
   }
@@ -655,6 +663,44 @@ class RestaurantProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> _reconcileOrderStatuses() async {
+    if (!web.isOnline()) return;
+    try {
+      final remoteOrders = await SyncService.instance.listRemoteOrders();
+      if (remoteOrders.isEmpty) return;
+      final byId = {for (final o in remoteOrders) o.id: o};
+      final localActive = await Repository.instance.orders.listActiveOrders();
+      for (final lo in localActive) {
+        final ro = byId[lo.id];
+        if (ro == null) continue;
+        final remoteStatus = ro.status;
+        final okToSettle = remoteStatus == 'Settled' ? (ro.settledAt != null) : true;
+        if (remoteStatus != lo.status && okToSettle) {
+          await Repository.instance.orders.updateOrderStatus(
+            lo.id,
+            remoteStatus,
+            paymentMethod: ro.paymentMethod,
+            fromSync: true,
+          );
+        }
+      }
+      await _loadState();
+    } catch (_) {}
+  }
+  
+  Future<void> _updatePendingOpsCount() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final s = prefs.getString('pending_ops');
+      if (s == null) {
+        _pendingOpsCount = 0;
+      } else {
+        final list = (jsonDecode(s) as List<dynamic>);
+        _pendingOpsCount = list.length;
+      }
+      notifyListeners();
+    } catch (_) {}
+  }
   Future<void> _saveState() async {
     // Only save to SharedPreferences what is NOT in DB or for legacy support if needed.
     // Actually, we should stop saving large datasets to SharedPreferences to improve performance.
@@ -1225,7 +1271,10 @@ class RestaurantProvider extends ChangeNotifier {
     await Repository.instance.orders.logEvent(orderId, 'ready');
     try {
       final ord = _orders.firstWhere((o) => o.id == orderId);
+      final set = _readyKeysByOrder.putIfAbsent(orderId, () => <String>{});
       for (final it in ord.items.where((i) => !i.isCancelled)) {
+        final key = _itemKey(it);
+        set.add(key);
         await Repository.instance.orders.logEvent(orderId, 'ready_item', data: {'id': it.id, 'q': it.quantity});
       }
     } catch (_) {}
@@ -1275,6 +1324,38 @@ class RestaurantProvider extends ChangeNotifier {
     } catch (_) {}
     
     _saveState();
+  }
+
+  bool itemIsReady(String orderId, CartItem item) {
+    final set = _readyKeysByOrder[orderId] ?? const <String>{};
+    return set.contains(_itemKey(item));
+  }
+  bool itemIsServed(String orderId, CartItem item) {
+    final set = _servedKeysByOrder[orderId] ?? const <String>{};
+    return set.contains(_itemKey(item));
+  }
+  Future<void> setItemPreparing(String orderId, CartItem item) async {
+    final key = _itemKey(item);
+    final rset = _readyKeysByOrder.putIfAbsent(orderId, () => <String>{});
+    final sset = _servedKeysByOrder.putIfAbsent(orderId, () => <String>{});
+    rset.remove(key);
+    sset.remove(key);
+    await Repository.instance.orders.logEvent(orderId, 'preparing_item', data: {'id': item.id, 'q': item.quantity});
+    notifyListeners();
+  }
+  Future<void> setItemReady(String orderId, CartItem item) async {
+    final key = _itemKey(item);
+    final set = _readyKeysByOrder.putIfAbsent(orderId, () => <String>{});
+    set.add(key);
+    await Repository.instance.orders.logEvent(orderId, 'ready_item', data: {'id': item.id, 'q': item.quantity});
+    notifyListeners();
+  }
+  Future<void> setItemServed(String orderId, CartItem item) async {
+    final key = _itemKey(item);
+    final set = _servedKeysByOrder.putIfAbsent(orderId, () => <String>{});
+    set.add(key);
+    await Repository.instance.orders.logEvent(orderId, 'served_item', data: {'id': item.id, 'q': item.quantity});
+    notifyListeners();
   }
  
   void openOrderFromDashboard(Order order) {

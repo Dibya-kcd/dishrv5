@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'repository.dart';
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/menu_item.dart';
 import '../models/order.dart';
 import '../models/table_info.dart';
@@ -13,6 +15,7 @@ class SyncService {
   final Repository _repo = Repository.instance;
 
   bool _initialized = false;
+  bool _flushing = false;
 
   void init() {
     if (_initialized) return;
@@ -30,6 +33,54 @@ class SyncService {
     Future.delayed(const Duration(seconds: 2), () {
       initialUpload();
     });
+  }
+
+  Future<void> _enqueuePendingOp(Map<String, dynamic> op) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final s = prefs.getString('pending_ops');
+      final list = s == null ? <Map<String, dynamic>>[] : List<Map<String, dynamic>>.from((jsonDecode(s) as List).map((e) => Map<String, dynamic>.from(e as Map)));
+      list.add(op);
+      await prefs.setString('pending_ops', jsonEncode(list));
+      _repo.notifyDataChanged();
+    } catch (_) {}
+  }
+  Future<void> flushPendingOps() async {
+    if (_flushing) return;
+    _flushing = true;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final s = prefs.getString('pending_ops');
+      if (s == null) return;
+      final list = List<Map<String, dynamic>>.from((jsonDecode(s) as List).map((e) => Map<String, dynamic>.from(e as Map)));
+      if (list.isEmpty) return;
+      final remaining = <Map<String, dynamic>>[];
+      for (final op in list) {
+        final type = op['type']?.toString() ?? '';
+        final path = op['path']?.toString() ?? '';
+        final payload = Map<String, dynamic>.from(op['payload'] as Map? ?? {});
+        final version = (op['version'] as num?)?.toInt() ?? DateTime.now().millisecondsSinceEpoch;
+        try {
+          if (type == 'order_tx') {
+            await updateOrderTx(Order.fromJson(payload), version: version);
+          } else if (type == 'table_tx') {
+            await updateTableTx(TableInfo.fromJson(payload), version: version);
+          } else if (type == 'set') {
+            await _dbRef.child(path).set(payload);
+          } else if (type == 'remove') {
+            await _dbRef.child(path).remove();
+          } else {
+            remaining.add(op);
+          }
+        } catch (_) {
+          remaining.add(op);
+        }
+      }
+      await prefs.setString('pending_ops', jsonEncode(remaining));
+      _repo.notifyDataChanged();
+    } catch (_) {} finally {
+      _flushing = false;
+    }
   }
 
   // --- Menu Items ---
@@ -93,10 +144,79 @@ class SyncService {
   }
   
   Future<void> updateOrder(Order order) async {
-    await _dbRef.child('orders/${order.id}').set(order.toJson());
+    try {
+      await _dbRef.child('orders/${order.id}').set(order.toJson());
+    } catch (_) {
+      await _enqueuePendingOp({
+        'type': 'set',
+        'path': 'orders/${order.id}',
+        'payload': order.toJson(),
+      });
+    }
   }
   Future<void> deleteAllOrders() async {
     await _dbRef.child('orders').remove();
+  }
+
+  Future<void> updateOrderTx(Order order, {int? version}) async {
+    final v = version ?? DateTime.now().millisecondsSinceEpoch;
+    try {
+      final ref = _dbRef.child('orders/${order.id}');
+      await ref.runTransaction((currentData) {
+        final d = currentData as dynamic;
+        final cur = d.value;
+        if (cur == null) {
+          final data = order.toJson();
+          data['version'] = v;
+          return Transaction.success(data);
+        }
+        if (cur is Map) {
+          final m = Map<String, dynamic>.from(cur);
+          final curV = (m['version'] as num?)?.toInt() ?? 0;
+          if (v > curV) {
+            final data = order.toJson();
+            data['version'] = v;
+            return Transaction.success(data);
+          }
+        }
+        return Transaction.abort();
+      });
+    } catch (_) {
+      await _enqueuePendingOp({
+        'type': 'order_tx',
+        'path': 'orders/${order.id}',
+        'payload': order.toJson(),
+        'version': v,
+      });
+    }
+  }
+  Future<List<Order>> listRemoteOrders() async {
+    try {
+      final snapshot = await _dbRef.child('orders').get();
+      final value = snapshot.value;
+      final orders = <Order>[];
+      if (value is Map) {
+        for (final key in value.keys) {
+          try {
+            final data = Map<String, dynamic>.from(value[key] as Map);
+            final order = Order.fromJson(data);
+            orders.add(order);
+          } catch (_) {}
+        }
+      } else if (value is List) {
+        for (final item in value) {
+          if (item == null) continue;
+          try {
+            final data = Map<String, dynamic>.from(item as Map);
+            final order = Order.fromJson(data);
+            orders.add(order);
+          } catch (_) {}
+        }
+      }
+      return orders;
+    } catch (_) {
+      return const [];
+    }
   }
   Future<void> deleteAllData() async {
     await _dbRef.child('menu_items').remove();
@@ -139,7 +259,47 @@ class SyncService {
   }
 
   Future<void> updateTable(TableInfo table) async {
-    await _dbRef.child('tables/${table.id}').set(table.toJson());
+    try {
+      await _dbRef.child('tables/${table.id}').set(table.toJson());
+    } catch (_) {
+      await _enqueuePendingOp({
+        'type': 'set',
+        'path': 'tables/${table.id}',
+        'payload': table.toJson(),
+      });
+    }
+  }
+  Future<void> updateTableTx(TableInfo table, {int? version}) async {
+    final v = version ?? DateTime.now().millisecondsSinceEpoch;
+    try {
+      final ref = _dbRef.child('tables/${table.id}');
+      await ref.runTransaction((currentData) {
+        final d = currentData as dynamic;
+        final cur = d.value;
+        if (cur == null) {
+          final data = table.toJson();
+          data['version'] = v;
+          return Transaction.success(data);
+        }
+        if (cur is Map) {
+          final m = Map<String, dynamic>.from(cur);
+          final curV = (m['version'] as num?)?.toInt() ?? 0;
+          if (v > curV) {
+            final data = table.toJson();
+            data['version'] = v;
+            return Transaction.success(data);
+          }
+        }
+        return Transaction.abort();
+      });
+    } catch (_) {
+      await _enqueuePendingOp({
+        'type': 'table_tx',
+        'path': 'tables/${table.id}',
+        'payload': table.toJson(),
+        'version': v,
+      });
+    }
   }
 
   // --- Expenses ---
