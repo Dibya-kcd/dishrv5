@@ -329,13 +329,13 @@ class _MenuScreenState extends State<MenuScreen> {
                                           const SizedBox(height: 8),
                                         ValueListenableBuilder<bool>(
                                           valueListenable: soldOut,
-                                          builder: (_, v, __) => SwitchListTile(
-                                            value: v,
-                                            onChanged: (val) => soldOut.value = val,
-                                            title: const Text('Sold Out', style: TextStyle(color: Colors.white)),
-                                            activeColor: const Color(0xFFEF4444),
+                                            builder: (_, v, __) => SwitchListTile(
+                                              value: v,
+                                              onChanged: (val) => soldOut.value = val,
+                                              title: const Text('Sold Out', style: TextStyle(color: Colors.white)),
+                                              activeColor: const Color(0xFFEF4444),
+                                            ),
                                           ),
-                                        ),
                                         const SizedBox(height: 8),
                                         TextField(decoration: const InputDecoration(hintText: 'Stock (optional)'), controller: stockController, keyboardType: TextInputType.number),
                                         const SizedBox(height: 12),
