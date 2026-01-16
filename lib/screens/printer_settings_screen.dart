@@ -74,7 +74,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> with Sing
                   Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Card(
-                      color: Colors.orangeAccent.withOpacity(0.2), 
+                      color: Colors.orangeAccent.withValues(alpha: 0.2), 
                       child: const Padding(
                         padding: EdgeInsets.all(16.0),
                         child: Text(
