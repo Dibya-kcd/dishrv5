@@ -125,11 +125,16 @@ class _MenuScreenState extends State<MenuScreen> {
                               const SizedBox(height: 8),
                               TextField(decoration: const InputDecoration(hintText: 'Price'), controller: priceController, keyboardType: TextInputType.number),
                               const SizedBox(height: 8),
-                              DropdownButtonFormField<String>(
-                                value: selected,
-                                items: categories.where((c) => c != 'All').map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
-                                onChanged: (v) { if (v != null) setLocal(() => selected = v); },
-                                decoration: const InputDecoration(hintText: 'Category'),
+                              DropdownButtonHideUnderline(
+                                child: InputDecorator(
+                                  decoration: const InputDecoration(hintText: 'Category'),
+                                  child: DropdownButton<String>(
+                                    value: selected,
+                                    items: categories.where((c) => c != 'All').map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                                    onChanged: (v) { if (v != null) setLocal(() => selected = v); },
+                                    dropdownColor: const Color(0xFF18181B),
+                                  ),
+                                ),
                               ),
                             ],
                           ),
@@ -321,22 +326,31 @@ class _MenuScreenState extends State<MenuScreen> {
                                           const SizedBox(height: 8),
                                           TextField(decoration: const InputDecoration(hintText: 'Price'), controller: priceController, keyboardType: TextInputType.number),
                                           const SizedBox(height: 8),
-                                          DropdownButtonFormField<String>(
-                                            value: selected,
-                                            items: categories.where((c) => c != 'All').map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
-                                            onChanged: (v) { if (v != null) setLocal(() => selected = v); },
-                                            decoration: const InputDecoration(hintText: 'Category'),
+                                          DropdownButtonHideUnderline(
+                                            child: InputDecorator(
+                                              decoration: const InputDecoration(hintText: 'Category'),
+                                              child: DropdownButton<String>(
+                                                value: selected,
+                                                items: categories.where((c) => c != 'All').map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                                                onChanged: (v) { if (v != null) setLocal(() => selected = v); },
+                                                dropdownColor: const Color(0xFF18181B),
+                                              ),
+                                            ),
                                           ),
                                           const SizedBox(height: 8),
                                           TextField(decoration: const InputDecoration(hintText: 'Emoji/Image'), controller: emojiController),
                                           const SizedBox(height: 8),
                                         ValueListenableBuilder<bool>(
                                           valueListenable: soldOut,
-                                          builder: (_, v, __) => SwitchListTile(
-                                            value: v,
-                                            onChanged: (val) => soldOut.value = val,
+                                          builder: (_, v, __) => ListTile(
                                             title: const Text('Sold Out', style: TextStyle(color: Colors.white)),
-                                            activeColor: const Color(0xFFEF4444),
+                                            trailing: Switch(
+                                              value: v,
+                                              onChanged: (val) => soldOut.value = val,
+                                              thumbColor: WidgetStateProperty.resolveWith<Color?>(
+                                                (states) => states.contains(WidgetState.selected) ? const Color(0xFFEF4444) : null,
+                                              ),
+                                            ),
                                           ),
                                         ),
                                         const SizedBox(height: 8),
@@ -638,7 +652,9 @@ class _MenuScreenState extends State<MenuScreen> {
                         Switch(
                           value: item.soldOut,
                           onChanged: (v) => context.read<RestaurantProvider>().toggleSoldOut(item.id, v),
-                          activeColor: const Color(0xFFEF4444),
+                          thumbColor: WidgetStateProperty.resolveWith<Color?>(
+                            (states) => states.contains(WidgetState.selected) ? const Color(0xFFEF4444) : null,
+                          ),
                         ),
                       ],
                     ),

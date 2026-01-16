@@ -324,10 +324,7 @@ class _CategoryCardState extends State<_CategoryCard> {
         onTapDown: (_) => setState(() => _hover = true),
         onTapCancel: () => setState(() => _hover = false),
         onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          curve: Curves.easeOut,
-          transform: Matrix4.identity()..scale(_hover ? 1.02 : 1.0),
+        child: Container(
           padding: EdgeInsets.all(12 * s),
           decoration: BoxDecoration(
             color: const Color(0xFF18181B),

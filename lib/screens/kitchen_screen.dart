@@ -124,11 +124,16 @@ class KitchenScreen extends StatelessWidget {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              DropdownButtonFormField<String>(
-                value: selectedReason,
-                items: reasons.map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
-                onChanged: (v) => setState(() => selectedReason = v!),
-                decoration: const InputDecoration(labelText: 'Reason'),
+              DropdownButtonHideUnderline(
+                child: InputDecorator(
+                  decoration: const InputDecoration(labelText: 'Reason'),
+                  child: DropdownButton<String>(
+                    value: selectedReason,
+                    items: reasons.map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
+                    onChanged: (v) => setState(() => selectedReason = v!),
+                    dropdownColor: const Color(0xFF272727),
+                  ),
+                ),
               ),
               const SizedBox(height: 16),
               CheckboxListTile(
