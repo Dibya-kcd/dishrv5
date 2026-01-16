@@ -1,276 +1,312 @@
 -- Merging decision tree log ---
 manifest
-ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:2:1-24:12
-INJECTED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:2:1-24:12
-INJECTED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:2:1-24:12
-INJECTED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:2:1-24:12
-MERGED from [androidx.appcompat:appcompat-resources:1.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\7d4e510a5875bd7af44d604a642af1b5\transformed\appcompat-resources-1.6.1\AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.appcompat:appcompat:1.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\c53380108ff9be171b1d26d8cc5d217b\transformed\appcompat-1.6.1\AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.fragment:fragment:1.3.6] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\f4823cbc1d2f076e2229fbcec3a1d4fb\transformed\fragment-1.3.6\AndroidManifest.xml:17:1-24:12
-MERGED from [androidx.activity:activity:1.8.2] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\2eeaf877eac4e16428ba8ec168e656c3\transformed\activity-1.8.2\AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.activity:activity-ktx:1.8.2] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\7f1ea63a8e18c5df22f6c0528ca8a7ac\transformed\activity-ktx-1.8.2\AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.webkit:webkit:1.9.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\44bc9cc91f8e1c93ffb463d3c8b4a087\transformed\webkit-1.9.0\AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.drawerlayout:drawerlayout:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\7c2689cd57ecef50c2fba12d0e7d502c\transformed\drawerlayout-1.0.0\AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.emoji2:emoji2-views-helper:1.2.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\ee451a74c5dd4ca8efd5af46451dd2d6\transformed\emoji2-views-helper-1.2.0\AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.emoji2:emoji2:1.2.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\b07a66d8841dcd286176f9ad30ac2489\transformed\emoji2-1.2.0\AndroidManifest.xml:17:1-35:12
-MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\730478a979244655d090034d0566fed4\transformed\vectordrawable-animated-1.1.0\AndroidManifest.xml:17:1-24:12
-MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\622ad05354d8a6e61fc0053429bb593d\transformed\vectordrawable-1.1.0\AndroidManifest.xml:17:1-24:12
-MERGED from [androidx.viewpager:viewpager:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\bab1b133df7f2621cbae3e5febe7b985\transformed\viewpager-1.0.0\AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.customview:customview:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\61bb3632ed884af7836e328a845e38a6\transformed\customview-1.0.0\AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.loader:loader:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\50cba0ba3999db89808f616cabf6d8d4\transformed\loader-1.0.0\AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.core:core:1.12.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\f1f72109f28a6e915fa6aa68da8c646c\transformed\core-1.12.0\AndroidManifest.xml:17:1-30:12
-MERGED from [androidx.savedstate:savedstate-ktx:1.2.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\b767d39ace37d529443470e58030fe0a\transformed\savedstate-ktx-1.2.1\AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.savedstate:savedstate:1.2.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\c9a66449e0e53ec36d1d1f93323aa7f7\transformed\savedstate-1.2.1\AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.lifecycle:lifecycle-livedata:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\aeef71b07f50536e7d77962438a8a82f\transformed\lifecycle-livedata-2.6.1\AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.lifecycle:lifecycle-process:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\f8a797489c6a2779e54291f09a7f13a8\transformed\lifecycle-process-2.6.1\AndroidManifest.xml:17:1-35:12
-MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\bdd9c848f29e079a9c7ddd94e7000d3c\transformed\lifecycle-livedata-core-2.6.1\AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\9a44748d48ca61ef9f95c8a3ad5e10a6\transformed\lifecycle-viewmodel-2.6.1\AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.lifecycle:lifecycle-runtime:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\d47085e567e2e887a03a99be7609905c\transformed\lifecycle-runtime-2.6.1\AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\bfa1d6eba7c30d9c707d84db6915891f\transformed\lifecycle-viewmodel-ktx-2.6.1\AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.lifecycle:lifecycle-runtime-ktx:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\79dbc01e600a910ae3b87b83188306f4\transformed\lifecycle-runtime-ktx-2.6.1\AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\9cacf78a7170989d7a6e0e47b45a278f\transformed\lifecycle-viewmodel-savedstate-2.6.1\AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.core:core-ktx:1.12.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\336dc58c5907cabb4a3b866c52e6370b\transformed\core-ktx-1.12.0\AndroidManifest.xml:2:1-7:12
-MERGED from [androidx.annotation:annotation-experimental:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\eb6c63e134fd24ce2f260a97ec19c7bf\transformed\annotation-experimental-1.3.0\AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.cursoradapter:cursoradapter:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\21c48a990f79dc5b076fc3b992fa64a9\transformed\cursoradapter-1.0.0\AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\465d660dc89e5a5ee87eb50fddba59e9\transformed\versionedparcelable-1.1.1\AndroidManifest.xml:17:1-27:12
-MERGED from [androidx.interpolator:interpolator:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\ef948d6354ec12ce66c4034e7b982a0b\transformed\interpolator-1.0.0\AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\8178c4bff5d7079d1075161540a5d29c\transformed\profileinstaller-1.3.0\AndroidManifest.xml:17:1-55:12
-MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\3cdc893eece02b95706189decde35eff\transformed\startup-runtime-1.1.1\AndroidManifest.xml:17:1-33:12
-MERGED from [androidx.tracing:tracing:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\4adeab4d85eb8a3b28235dee72825077\transformed\tracing-1.0.0\AndroidManifest.xml:17:1-24:12
-MERGED from [androidx.arch.core:core-runtime:2.2.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\e32dda13ecdc93bd247c1d826f6b9048\transformed\core-runtime-2.2.0\AndroidManifest.xml:17:1-22:12
+ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:2:1-30:12
+INJECTED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:2:1-30:12
+INJECTED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:2:1-30:12
+INJECTED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:2:1-30:12
+MERGED from [com.google.android.material:material:1.11.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\3cf68078cee68225c804f9281c426d2c\transformed\material-1.11.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.constraintlayout:constraintlayout:2.1.4] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\38bece3b231c72499540a1d485c21920\transformed\constraintlayout-2.1.4\AndroidManifest.xml:2:1-11:12
+MERGED from [androidx.appcompat:appcompat-resources:1.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\0d80f9c927399e2a5f3d1a2a574e8d91\transformed\appcompat-resources-1.6.1\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.appcompat:appcompat:1.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\5edcc430859e13ead9316ebff007d1ff\transformed\appcompat-1.6.1\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.webkit:webkit:1.9.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\95f1c9cec7a5ef16a684ae452a247cd9\transformed\webkit-1.9.0\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.emoji2:emoji2-views-helper:1.2.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\50c3411833694170e1d0d3efc5ecbb38\transformed\emoji2-views-helper-1.2.0\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.emoji2:emoji2:1.2.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\c706c309488679f51071694868cfb538\transformed\emoji2-1.2.0\AndroidManifest.xml:17:1-35:12
+MERGED from [androidx.viewpager2:viewpager2:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\8309cb5a7a01b769be7f91b406d245c0\transformed\viewpager2-1.0.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.fragment:fragment:1.3.6] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\ee710989b537f95e101ce8737a8be549\transformed\fragment-1.3.6\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.activity:activity:1.8.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\0f75242405f2912c2ed023329fe4e9cf\transformed\activity-1.8.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.drawerlayout:drawerlayout:1.1.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\e4cd1eb8312a3b43cdf4f0b79a8c727b\transformed\drawerlayout-1.1.1\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.coordinatorlayout:coordinatorlayout:1.1.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\6905c16ff1c667e30470d564ca0b1b8c\transformed\coordinatorlayout-1.1.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.dynamicanimation:dynamicanimation:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\a1bccc3ee5677fc653344374975c3d71\transformed\dynamicanimation-1.0.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.transition:transition:1.2.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\511a0408345c13e66a1157c325c12f4e\transformed\transition-1.2.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\7f5115336ceb6bc9eca56e1af5924c8c\transformed\vectordrawable-animated-1.1.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\e76eeac5a788ba077bc8268232a03184\transformed\vectordrawable-1.1.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.viewpager:viewpager:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\45d1630fe66b1d6a9cdefdf639be8fc7\transformed\viewpager-1.0.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.legacy:legacy-support-core-utils:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\3edc357de02a8e1b380a694a2c2cbea6\transformed\legacy-support-core-utils-1.0.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.loader:loader:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\e3a3db398481a954e49977f7026311e3\transformed\loader-1.0.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.recyclerview:recyclerview:1.1.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\5ed6561858a0307af9df28df018fdb72\transformed\recyclerview-1.1.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.customview:customview:1.1.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\12a3f609dabdfa38d665d51584f65b14\transformed\customview-1.1.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.core:core:1.12.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\7f4228df67fac75b5c1ff26e9b859e80\transformed\core-1.12.0\AndroidManifest.xml:17:1-30:12
+MERGED from [androidx.savedstate:savedstate:1.2.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\06e4590dc45577b9a6266f8a053a7941\transformed\savedstate-1.2.1\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-process:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\ee8aa561dbb6f8885211a887920c2997\transformed\lifecycle-process-2.6.1\AndroidManifest.xml:17:1-35:12
+MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\2b07623d60cdf7d0778f46a4bc85f351\transformed\lifecycle-livedata-core-2.6.1\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-livedata:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\d86c62148946d583593dc2a1bceb9c1b\transformed\lifecycle-livedata-2.6.1\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\e4df99f7b2b486a16e8b9df4d073684b\transformed\lifecycle-viewmodel-2.6.1\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-runtime:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\ba48330482c87de9bc20218dce706ac9\transformed\lifecycle-runtime-2.6.1\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\0ed5561050810287d8c3b0170c224a9a\transformed\lifecycle-viewmodel-savedstate-2.6.1\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.core:core-ktx:1.12.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\9e2d879d7b456b3a58701c5cfef06089\transformed\core-ktx-1.12.0\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.annotation:annotation-experimental:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\8c8c9f1eb27eadd7c5885184711623cb\transformed\annotation-experimental-1.3.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.cursoradapter:cursoradapter:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\9f9592e4ca54981162e60a3f96d0eae5\transformed\cursoradapter-1.0.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.cardview:cardview:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\67d4fc6fb0d3a053a0304b01700970c9\transformed\cardview-1.0.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.interpolator:interpolator:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\75cb8528e25f45486022cbf9fadf1b44\transformed\interpolator-1.0.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\d61a61f91a4c45ce430bf41a40bebfcf\transformed\versionedparcelable-1.1.1\AndroidManifest.xml:17:1-27:12
+MERGED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\4723065099c645753d58f36d9dfe2e65\transformed\profileinstaller-1.3.0\AndroidManifest.xml:17:1-55:12
+MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\328dc70bf6a24a5ec25fe07459df7aaa\transformed\startup-runtime-1.1.1\AndroidManifest.xml:17:1-33:12
+MERGED from [androidx.tracing:tracing:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\a79d00786e94bcc927b00615b645cf56\transformed\tracing-1.0.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.arch.core:core-runtime:2.2.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\19896b601ea6690bd653a2ec7415ff6f\transformed\core-runtime-2.2.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.documentfile:documentfile:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\ce30cd096e2a9e787b9b14b7117b23be\transformed\documentfile-1.0.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.localbroadcastmanager:localbroadcastmanager:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\772f6a9c0a5bfe08a65323ad0ac6b481\transformed\localbroadcastmanager-1.0.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.print:print:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\e334bc17f9c85c5b99b10adb35b249fc\transformed\print-1.0.0\AndroidManifest.xml:17:1-22:12
 	package
-		ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:3:5-31
+		ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:4:5-31
 		INJECTED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml
 	android:versionName
 		INJECTED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml
+	xmlns:tools
+		ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:3:5-51
 	android:versionCode
 		INJECTED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml
 	xmlns:android
 		ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:2:11-69
 uses-permission#android.permission.INTERNET
-ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:5:5-67
+ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:6:5-67
 	android:name
-		ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:5:22-64
+		ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:6:22-64
 uses-permission#android.permission.BLUETOOTH
-ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:6:5-68
+ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:7:5-68
 	android:name
-		ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:6:22-65
+		ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:7:22-65
 uses-permission#android.permission.BLUETOOTH_ADMIN
-ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:7:5-74
+ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:8:5-74
 	android:name
-		ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:7:22-71
+		ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:8:22-71
 uses-permission#android.permission.BLUETOOTH_CONNECT
-ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:8:5-76
+ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:9:5-76
 	android:name
-		ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:8:22-73
+		ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:9:22-73
 application
-ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:10:5-23:19
-INJECTED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:10:5-23:19
-MERGED from [androidx.emoji2:emoji2:1.2.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\b07a66d8841dcd286176f9ad30ac2489\transformed\emoji2-1.2.0\AndroidManifest.xml:23:5-33:19
-MERGED from [androidx.emoji2:emoji2:1.2.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\b07a66d8841dcd286176f9ad30ac2489\transformed\emoji2-1.2.0\AndroidManifest.xml:23:5-33:19
-MERGED from [androidx.core:core:1.12.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\f1f72109f28a6e915fa6aa68da8c646c\transformed\core-1.12.0\AndroidManifest.xml:28:5-89
-MERGED from [androidx.core:core:1.12.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\f1f72109f28a6e915fa6aa68da8c646c\transformed\core-1.12.0\AndroidManifest.xml:28:5-89
-MERGED from [androidx.lifecycle:lifecycle-process:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\f8a797489c6a2779e54291f09a7f13a8\transformed\lifecycle-process-2.6.1\AndroidManifest.xml:23:5-33:19
-MERGED from [androidx.lifecycle:lifecycle-process:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\f8a797489c6a2779e54291f09a7f13a8\transformed\lifecycle-process-2.6.1\AndroidManifest.xml:23:5-33:19
-MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\465d660dc89e5a5ee87eb50fddba59e9\transformed\versionedparcelable-1.1.1\AndroidManifest.xml:24:5-25:19
-MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\465d660dc89e5a5ee87eb50fddba59e9\transformed\versionedparcelable-1.1.1\AndroidManifest.xml:24:5-25:19
-MERGED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\8178c4bff5d7079d1075161540a5d29c\transformed\profileinstaller-1.3.0\AndroidManifest.xml:23:5-53:19
-MERGED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\8178c4bff5d7079d1075161540a5d29c\transformed\profileinstaller-1.3.0\AndroidManifest.xml:23:5-53:19
-MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\3cdc893eece02b95706189decde35eff\transformed\startup-runtime-1.1.1\AndroidManifest.xml:25:5-31:19
-MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\3cdc893eece02b95706189decde35eff\transformed\startup-runtime-1.1.1\AndroidManifest.xml:25:5-31:19
+ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:11:5-28:19
+INJECTED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:11:5-28:19
+MERGED from [com.google.android.material:material:1.11.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\3cf68078cee68225c804f9281c426d2c\transformed\material-1.11.0\AndroidManifest.xml:22:5-20
+MERGED from [com.google.android.material:material:1.11.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\3cf68078cee68225c804f9281c426d2c\transformed\material-1.11.0\AndroidManifest.xml:22:5-20
+MERGED from [androidx.constraintlayout:constraintlayout:2.1.4] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\38bece3b231c72499540a1d485c21920\transformed\constraintlayout-2.1.4\AndroidManifest.xml:9:5-20
+MERGED from [androidx.constraintlayout:constraintlayout:2.1.4] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\38bece3b231c72499540a1d485c21920\transformed\constraintlayout-2.1.4\AndroidManifest.xml:9:5-20
+MERGED from [androidx.emoji2:emoji2:1.2.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\c706c309488679f51071694868cfb538\transformed\emoji2-1.2.0\AndroidManifest.xml:23:5-33:19
+MERGED from [androidx.emoji2:emoji2:1.2.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\c706c309488679f51071694868cfb538\transformed\emoji2-1.2.0\AndroidManifest.xml:23:5-33:19
+MERGED from [androidx.core:core:1.12.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\7f4228df67fac75b5c1ff26e9b859e80\transformed\core-1.12.0\AndroidManifest.xml:28:5-89
+MERGED from [androidx.core:core:1.12.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\7f4228df67fac75b5c1ff26e9b859e80\transformed\core-1.12.0\AndroidManifest.xml:28:5-89
+MERGED from [androidx.lifecycle:lifecycle-process:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\ee8aa561dbb6f8885211a887920c2997\transformed\lifecycle-process-2.6.1\AndroidManifest.xml:23:5-33:19
+MERGED from [androidx.lifecycle:lifecycle-process:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\ee8aa561dbb6f8885211a887920c2997\transformed\lifecycle-process-2.6.1\AndroidManifest.xml:23:5-33:19
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\d61a61f91a4c45ce430bf41a40bebfcf\transformed\versionedparcelable-1.1.1\AndroidManifest.xml:24:5-25:19
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\d61a61f91a4c45ce430bf41a40bebfcf\transformed\versionedparcelable-1.1.1\AndroidManifest.xml:24:5-25:19
+MERGED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\4723065099c645753d58f36d9dfe2e65\transformed\profileinstaller-1.3.0\AndroidManifest.xml:23:5-53:19
+MERGED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\4723065099c645753d58f36d9dfe2e65\transformed\profileinstaller-1.3.0\AndroidManifest.xml:23:5-53:19
+MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\328dc70bf6a24a5ec25fe07459df7aaa\transformed\startup-runtime-1.1.1\AndroidManifest.xml:25:5-31:19
+MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\328dc70bf6a24a5ec25fe07459df7aaa\transformed\startup-runtime-1.1.1\AndroidManifest.xml:25:5-31:19
 	android:extractNativeLibs
 		INJECTED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml
 	android:appComponentFactory
-		ADDED from [androidx.core:core:1.12.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\f1f72109f28a6e915fa6aa68da8c646c\transformed\core-1.12.0\AndroidManifest.xml:28:18-86
+		ADDED from [androidx.core:core:1.12.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\7f4228df67fac75b5c1ff26e9b859e80\transformed\core-1.12.0\AndroidManifest.xml:28:18-86
+	android:supportsRtl
+		ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:14:9-35
 	android:label
-		ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:12:9-37
-	android:icon
-		ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:13:9-43
+		ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:13:9-41
+	tools:targetApi
+		ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:17:9-29
 	android:allowBackup
-		ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:11:9-35
-	android:networkSecurityConfig
-		ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:15:9-69
+		ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:12:9-35
+	android:theme
+		ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:15:9-49
 	android:usesCleartextTraffic
-		ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:14:9-44
+		ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:16:9-44
 activity#com.restopos.pwa.MainActivity
-ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:16:9-22:20
+ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:18:9-27:20
+	android:label
+		ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:21:13-45
 	android:exported
-		ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:17:13-36
+		ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:20:13-36
+	android:theme
+		ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:22:13-53
 	android:name
-		ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:16:19-47
+		ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:19:13-41
 intent-filter#action:name:android.intent.action.MAIN+category:name:android.intent.category.LAUNCHER
-ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:18:13-21:29
+ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:23:13-26:29
 action#android.intent.action.MAIN
-ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:19:17-69
+ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:24:17-69
 	android:name
-		ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:19:25-66
+		ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:24:25-66
 category#android.intent.category.LAUNCHER
-ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:20:17-77
+ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:25:17-77
 	android:name
-		ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:20:27-74
+		ADDED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml:25:27-74
 uses-sdk
 INJECTED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml reason: use-sdk injection requested
 INJECTED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml
 INJECTED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml
-MERGED from [androidx.appcompat:appcompat-resources:1.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\7d4e510a5875bd7af44d604a642af1b5\transformed\appcompat-resources-1.6.1\AndroidManifest.xml:20:5-44
-MERGED from [androidx.appcompat:appcompat-resources:1.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\7d4e510a5875bd7af44d604a642af1b5\transformed\appcompat-resources-1.6.1\AndroidManifest.xml:20:5-44
-MERGED from [androidx.appcompat:appcompat:1.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\c53380108ff9be171b1d26d8cc5d217b\transformed\appcompat-1.6.1\AndroidManifest.xml:20:5-44
-MERGED from [androidx.appcompat:appcompat:1.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\c53380108ff9be171b1d26d8cc5d217b\transformed\appcompat-1.6.1\AndroidManifest.xml:20:5-44
-MERGED from [androidx.fragment:fragment:1.3.6] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\f4823cbc1d2f076e2229fbcec3a1d4fb\transformed\fragment-1.3.6\AndroidManifest.xml:20:5-22:41
-MERGED from [androidx.fragment:fragment:1.3.6] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\f4823cbc1d2f076e2229fbcec3a1d4fb\transformed\fragment-1.3.6\AndroidManifest.xml:20:5-22:41
-MERGED from [androidx.activity:activity:1.8.2] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\2eeaf877eac4e16428ba8ec168e656c3\transformed\activity-1.8.2\AndroidManifest.xml:20:5-44
-MERGED from [androidx.activity:activity:1.8.2] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\2eeaf877eac4e16428ba8ec168e656c3\transformed\activity-1.8.2\AndroidManifest.xml:20:5-44
-MERGED from [androidx.activity:activity-ktx:1.8.2] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\7f1ea63a8e18c5df22f6c0528ca8a7ac\transformed\activity-ktx-1.8.2\AndroidManifest.xml:5:5-44
-MERGED from [androidx.activity:activity-ktx:1.8.2] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\7f1ea63a8e18c5df22f6c0528ca8a7ac\transformed\activity-ktx-1.8.2\AndroidManifest.xml:5:5-44
-MERGED from [androidx.webkit:webkit:1.9.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\44bc9cc91f8e1c93ffb463d3c8b4a087\transformed\webkit-1.9.0\AndroidManifest.xml:5:5-44
-MERGED from [androidx.webkit:webkit:1.9.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\44bc9cc91f8e1c93ffb463d3c8b4a087\transformed\webkit-1.9.0\AndroidManifest.xml:5:5-44
-MERGED from [androidx.drawerlayout:drawerlayout:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\7c2689cd57ecef50c2fba12d0e7d502c\transformed\drawerlayout-1.0.0\AndroidManifest.xml:20:5-44
-MERGED from [androidx.drawerlayout:drawerlayout:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\7c2689cd57ecef50c2fba12d0e7d502c\transformed\drawerlayout-1.0.0\AndroidManifest.xml:20:5-44
-MERGED from [androidx.emoji2:emoji2-views-helper:1.2.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\ee451a74c5dd4ca8efd5af46451dd2d6\transformed\emoji2-views-helper-1.2.0\AndroidManifest.xml:5:5-44
-MERGED from [androidx.emoji2:emoji2-views-helper:1.2.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\ee451a74c5dd4ca8efd5af46451dd2d6\transformed\emoji2-views-helper-1.2.0\AndroidManifest.xml:5:5-44
-MERGED from [androidx.emoji2:emoji2:1.2.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\b07a66d8841dcd286176f9ad30ac2489\transformed\emoji2-1.2.0\AndroidManifest.xml:21:5-44
-MERGED from [androidx.emoji2:emoji2:1.2.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\b07a66d8841dcd286176f9ad30ac2489\transformed\emoji2-1.2.0\AndroidManifest.xml:21:5-44
-MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\730478a979244655d090034d0566fed4\transformed\vectordrawable-animated-1.1.0\AndroidManifest.xml:20:5-22:41
-MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\730478a979244655d090034d0566fed4\transformed\vectordrawable-animated-1.1.0\AndroidManifest.xml:20:5-22:41
-MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\622ad05354d8a6e61fc0053429bb593d\transformed\vectordrawable-1.1.0\AndroidManifest.xml:20:5-22:41
-MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\622ad05354d8a6e61fc0053429bb593d\transformed\vectordrawable-1.1.0\AndroidManifest.xml:20:5-22:41
-MERGED from [androidx.viewpager:viewpager:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\bab1b133df7f2621cbae3e5febe7b985\transformed\viewpager-1.0.0\AndroidManifest.xml:20:5-44
-MERGED from [androidx.viewpager:viewpager:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\bab1b133df7f2621cbae3e5febe7b985\transformed\viewpager-1.0.0\AndroidManifest.xml:20:5-44
-MERGED from [androidx.customview:customview:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\61bb3632ed884af7836e328a845e38a6\transformed\customview-1.0.0\AndroidManifest.xml:20:5-44
-MERGED from [androidx.customview:customview:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\61bb3632ed884af7836e328a845e38a6\transformed\customview-1.0.0\AndroidManifest.xml:20:5-44
-MERGED from [androidx.loader:loader:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\50cba0ba3999db89808f616cabf6d8d4\transformed\loader-1.0.0\AndroidManifest.xml:20:5-44
-MERGED from [androidx.loader:loader:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\50cba0ba3999db89808f616cabf6d8d4\transformed\loader-1.0.0\AndroidManifest.xml:20:5-44
-MERGED from [androidx.core:core:1.12.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\f1f72109f28a6e915fa6aa68da8c646c\transformed\core-1.12.0\AndroidManifest.xml:20:5-44
-MERGED from [androidx.core:core:1.12.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\f1f72109f28a6e915fa6aa68da8c646c\transformed\core-1.12.0\AndroidManifest.xml:20:5-44
-MERGED from [androidx.savedstate:savedstate-ktx:1.2.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\b767d39ace37d529443470e58030fe0a\transformed\savedstate-ktx-1.2.1\AndroidManifest.xml:20:5-44
-MERGED from [androidx.savedstate:savedstate-ktx:1.2.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\b767d39ace37d529443470e58030fe0a\transformed\savedstate-ktx-1.2.1\AndroidManifest.xml:20:5-44
-MERGED from [androidx.savedstate:savedstate:1.2.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\c9a66449e0e53ec36d1d1f93323aa7f7\transformed\savedstate-1.2.1\AndroidManifest.xml:20:5-44
-MERGED from [androidx.savedstate:savedstate:1.2.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\c9a66449e0e53ec36d1d1f93323aa7f7\transformed\savedstate-1.2.1\AndroidManifest.xml:20:5-44
-MERGED from [androidx.lifecycle:lifecycle-livedata:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\aeef71b07f50536e7d77962438a8a82f\transformed\lifecycle-livedata-2.6.1\AndroidManifest.xml:20:5-44
-MERGED from [androidx.lifecycle:lifecycle-livedata:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\aeef71b07f50536e7d77962438a8a82f\transformed\lifecycle-livedata-2.6.1\AndroidManifest.xml:20:5-44
-MERGED from [androidx.lifecycle:lifecycle-process:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\f8a797489c6a2779e54291f09a7f13a8\transformed\lifecycle-process-2.6.1\AndroidManifest.xml:21:5-44
-MERGED from [androidx.lifecycle:lifecycle-process:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\f8a797489c6a2779e54291f09a7f13a8\transformed\lifecycle-process-2.6.1\AndroidManifest.xml:21:5-44
-MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\bdd9c848f29e079a9c7ddd94e7000d3c\transformed\lifecycle-livedata-core-2.6.1\AndroidManifest.xml:20:5-44
-MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\bdd9c848f29e079a9c7ddd94e7000d3c\transformed\lifecycle-livedata-core-2.6.1\AndroidManifest.xml:20:5-44
-MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\9a44748d48ca61ef9f95c8a3ad5e10a6\transformed\lifecycle-viewmodel-2.6.1\AndroidManifest.xml:20:5-44
-MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\9a44748d48ca61ef9f95c8a3ad5e10a6\transformed\lifecycle-viewmodel-2.6.1\AndroidManifest.xml:20:5-44
-MERGED from [androidx.lifecycle:lifecycle-runtime:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\d47085e567e2e887a03a99be7609905c\transformed\lifecycle-runtime-2.6.1\AndroidManifest.xml:5:5-44
-MERGED from [androidx.lifecycle:lifecycle-runtime:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\d47085e567e2e887a03a99be7609905c\transformed\lifecycle-runtime-2.6.1\AndroidManifest.xml:5:5-44
-MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\bfa1d6eba7c30d9c707d84db6915891f\transformed\lifecycle-viewmodel-ktx-2.6.1\AndroidManifest.xml:20:5-44
-MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\bfa1d6eba7c30d9c707d84db6915891f\transformed\lifecycle-viewmodel-ktx-2.6.1\AndroidManifest.xml:20:5-44
-MERGED from [androidx.lifecycle:lifecycle-runtime-ktx:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\79dbc01e600a910ae3b87b83188306f4\transformed\lifecycle-runtime-ktx-2.6.1\AndroidManifest.xml:20:5-44
-MERGED from [androidx.lifecycle:lifecycle-runtime-ktx:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\79dbc01e600a910ae3b87b83188306f4\transformed\lifecycle-runtime-ktx-2.6.1\AndroidManifest.xml:20:5-44
-MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\9cacf78a7170989d7a6e0e47b45a278f\transformed\lifecycle-viewmodel-savedstate-2.6.1\AndroidManifest.xml:20:5-44
-MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\9cacf78a7170989d7a6e0e47b45a278f\transformed\lifecycle-viewmodel-savedstate-2.6.1\AndroidManifest.xml:20:5-44
-MERGED from [androidx.core:core-ktx:1.12.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\336dc58c5907cabb4a3b866c52e6370b\transformed\core-ktx-1.12.0\AndroidManifest.xml:5:5-44
-MERGED from [androidx.core:core-ktx:1.12.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\336dc58c5907cabb4a3b866c52e6370b\transformed\core-ktx-1.12.0\AndroidManifest.xml:5:5-44
-MERGED from [androidx.annotation:annotation-experimental:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\eb6c63e134fd24ce2f260a97ec19c7bf\transformed\annotation-experimental-1.3.0\AndroidManifest.xml:20:5-44
-MERGED from [androidx.annotation:annotation-experimental:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\eb6c63e134fd24ce2f260a97ec19c7bf\transformed\annotation-experimental-1.3.0\AndroidManifest.xml:20:5-44
-MERGED from [androidx.cursoradapter:cursoradapter:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\21c48a990f79dc5b076fc3b992fa64a9\transformed\cursoradapter-1.0.0\AndroidManifest.xml:20:5-44
-MERGED from [androidx.cursoradapter:cursoradapter:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\21c48a990f79dc5b076fc3b992fa64a9\transformed\cursoradapter-1.0.0\AndroidManifest.xml:20:5-44
-MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\465d660dc89e5a5ee87eb50fddba59e9\transformed\versionedparcelable-1.1.1\AndroidManifest.xml:20:5-22:41
-MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\465d660dc89e5a5ee87eb50fddba59e9\transformed\versionedparcelable-1.1.1\AndroidManifest.xml:20:5-22:41
-MERGED from [androidx.interpolator:interpolator:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\ef948d6354ec12ce66c4034e7b982a0b\transformed\interpolator-1.0.0\AndroidManifest.xml:20:5-44
-MERGED from [androidx.interpolator:interpolator:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\ef948d6354ec12ce66c4034e7b982a0b\transformed\interpolator-1.0.0\AndroidManifest.xml:20:5-44
-MERGED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\8178c4bff5d7079d1075161540a5d29c\transformed\profileinstaller-1.3.0\AndroidManifest.xml:21:5-44
-MERGED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\8178c4bff5d7079d1075161540a5d29c\transformed\profileinstaller-1.3.0\AndroidManifest.xml:21:5-44
-MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\3cdc893eece02b95706189decde35eff\transformed\startup-runtime-1.1.1\AndroidManifest.xml:21:5-23:41
-MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\3cdc893eece02b95706189decde35eff\transformed\startup-runtime-1.1.1\AndroidManifest.xml:21:5-23:41
-MERGED from [androidx.tracing:tracing:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\4adeab4d85eb8a3b28235dee72825077\transformed\tracing-1.0.0\AndroidManifest.xml:20:5-22:41
-MERGED from [androidx.tracing:tracing:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\4adeab4d85eb8a3b28235dee72825077\transformed\tracing-1.0.0\AndroidManifest.xml:20:5-22:41
-MERGED from [androidx.arch.core:core-runtime:2.2.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\e32dda13ecdc93bd247c1d826f6b9048\transformed\core-runtime-2.2.0\AndroidManifest.xml:20:5-44
-MERGED from [androidx.arch.core:core-runtime:2.2.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\e32dda13ecdc93bd247c1d826f6b9048\transformed\core-runtime-2.2.0\AndroidManifest.xml:20:5-44
+MERGED from [com.google.android.material:material:1.11.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\3cf68078cee68225c804f9281c426d2c\transformed\material-1.11.0\AndroidManifest.xml:20:5-44
+MERGED from [com.google.android.material:material:1.11.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\3cf68078cee68225c804f9281c426d2c\transformed\material-1.11.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.constraintlayout:constraintlayout:2.1.4] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\38bece3b231c72499540a1d485c21920\transformed\constraintlayout-2.1.4\AndroidManifest.xml:5:5-7:41
+MERGED from [androidx.constraintlayout:constraintlayout:2.1.4] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\38bece3b231c72499540a1d485c21920\transformed\constraintlayout-2.1.4\AndroidManifest.xml:5:5-7:41
+MERGED from [androidx.appcompat:appcompat-resources:1.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\0d80f9c927399e2a5f3d1a2a574e8d91\transformed\appcompat-resources-1.6.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.appcompat:appcompat-resources:1.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\0d80f9c927399e2a5f3d1a2a574e8d91\transformed\appcompat-resources-1.6.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.appcompat:appcompat:1.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\5edcc430859e13ead9316ebff007d1ff\transformed\appcompat-1.6.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.appcompat:appcompat:1.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\5edcc430859e13ead9316ebff007d1ff\transformed\appcompat-1.6.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.webkit:webkit:1.9.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\95f1c9cec7a5ef16a684ae452a247cd9\transformed\webkit-1.9.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.webkit:webkit:1.9.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\95f1c9cec7a5ef16a684ae452a247cd9\transformed\webkit-1.9.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.emoji2:emoji2-views-helper:1.2.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\50c3411833694170e1d0d3efc5ecbb38\transformed\emoji2-views-helper-1.2.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.emoji2:emoji2-views-helper:1.2.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\50c3411833694170e1d0d3efc5ecbb38\transformed\emoji2-views-helper-1.2.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.emoji2:emoji2:1.2.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\c706c309488679f51071694868cfb538\transformed\emoji2-1.2.0\AndroidManifest.xml:21:5-44
+MERGED from [androidx.emoji2:emoji2:1.2.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\c706c309488679f51071694868cfb538\transformed\emoji2-1.2.0\AndroidManifest.xml:21:5-44
+MERGED from [androidx.viewpager2:viewpager2:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\8309cb5a7a01b769be7f91b406d245c0\transformed\viewpager2-1.0.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.viewpager2:viewpager2:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\8309cb5a7a01b769be7f91b406d245c0\transformed\viewpager2-1.0.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.fragment:fragment:1.3.6] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\ee710989b537f95e101ce8737a8be549\transformed\fragment-1.3.6\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.fragment:fragment:1.3.6] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\ee710989b537f95e101ce8737a8be549\transformed\fragment-1.3.6\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.activity:activity:1.8.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\0f75242405f2912c2ed023329fe4e9cf\transformed\activity-1.8.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.activity:activity:1.8.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\0f75242405f2912c2ed023329fe4e9cf\transformed\activity-1.8.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.drawerlayout:drawerlayout:1.1.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\e4cd1eb8312a3b43cdf4f0b79a8c727b\transformed\drawerlayout-1.1.1\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.drawerlayout:drawerlayout:1.1.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\e4cd1eb8312a3b43cdf4f0b79a8c727b\transformed\drawerlayout-1.1.1\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.coordinatorlayout:coordinatorlayout:1.1.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\6905c16ff1c667e30470d564ca0b1b8c\transformed\coordinatorlayout-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.coordinatorlayout:coordinatorlayout:1.1.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\6905c16ff1c667e30470d564ca0b1b8c\transformed\coordinatorlayout-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.dynamicanimation:dynamicanimation:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\a1bccc3ee5677fc653344374975c3d71\transformed\dynamicanimation-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.dynamicanimation:dynamicanimation:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\a1bccc3ee5677fc653344374975c3d71\transformed\dynamicanimation-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.transition:transition:1.2.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\511a0408345c13e66a1157c325c12f4e\transformed\transition-1.2.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.transition:transition:1.2.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\511a0408345c13e66a1157c325c12f4e\transformed\transition-1.2.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\7f5115336ceb6bc9eca56e1af5924c8c\transformed\vectordrawable-animated-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\7f5115336ceb6bc9eca56e1af5924c8c\transformed\vectordrawable-animated-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\e76eeac5a788ba077bc8268232a03184\transformed\vectordrawable-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\e76eeac5a788ba077bc8268232a03184\transformed\vectordrawable-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.viewpager:viewpager:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\45d1630fe66b1d6a9cdefdf639be8fc7\transformed\viewpager-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.viewpager:viewpager:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\45d1630fe66b1d6a9cdefdf639be8fc7\transformed\viewpager-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.legacy:legacy-support-core-utils:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\3edc357de02a8e1b380a694a2c2cbea6\transformed\legacy-support-core-utils-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.legacy:legacy-support-core-utils:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\3edc357de02a8e1b380a694a2c2cbea6\transformed\legacy-support-core-utils-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.loader:loader:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\e3a3db398481a954e49977f7026311e3\transformed\loader-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.loader:loader:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\e3a3db398481a954e49977f7026311e3\transformed\loader-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.recyclerview:recyclerview:1.1.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\5ed6561858a0307af9df28df018fdb72\transformed\recyclerview-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.recyclerview:recyclerview:1.1.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\5ed6561858a0307af9df28df018fdb72\transformed\recyclerview-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.customview:customview:1.1.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\12a3f609dabdfa38d665d51584f65b14\transformed\customview-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.customview:customview:1.1.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\12a3f609dabdfa38d665d51584f65b14\transformed\customview-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.core:core:1.12.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\7f4228df67fac75b5c1ff26e9b859e80\transformed\core-1.12.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.core:core:1.12.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\7f4228df67fac75b5c1ff26e9b859e80\transformed\core-1.12.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.savedstate:savedstate:1.2.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\06e4590dc45577b9a6266f8a053a7941\transformed\savedstate-1.2.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.savedstate:savedstate:1.2.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\06e4590dc45577b9a6266f8a053a7941\transformed\savedstate-1.2.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-process:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\ee8aa561dbb6f8885211a887920c2997\transformed\lifecycle-process-2.6.1\AndroidManifest.xml:21:5-44
+MERGED from [androidx.lifecycle:lifecycle-process:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\ee8aa561dbb6f8885211a887920c2997\transformed\lifecycle-process-2.6.1\AndroidManifest.xml:21:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\2b07623d60cdf7d0778f46a4bc85f351\transformed\lifecycle-livedata-core-2.6.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\2b07623d60cdf7d0778f46a4bc85f351\transformed\lifecycle-livedata-core-2.6.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\d86c62148946d583593dc2a1bceb9c1b\transformed\lifecycle-livedata-2.6.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\d86c62148946d583593dc2a1bceb9c1b\transformed\lifecycle-livedata-2.6.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\e4df99f7b2b486a16e8b9df4d073684b\transformed\lifecycle-viewmodel-2.6.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\e4df99f7b2b486a16e8b9df4d073684b\transformed\lifecycle-viewmodel-2.6.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\ba48330482c87de9bc20218dce706ac9\transformed\lifecycle-runtime-2.6.1\AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\ba48330482c87de9bc20218dce706ac9\transformed\lifecycle-runtime-2.6.1\AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\0ed5561050810287d8c3b0170c224a9a\transformed\lifecycle-viewmodel-savedstate-2.6.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\0ed5561050810287d8c3b0170c224a9a\transformed\lifecycle-viewmodel-savedstate-2.6.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.core:core-ktx:1.12.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\9e2d879d7b456b3a58701c5cfef06089\transformed\core-ktx-1.12.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.core:core-ktx:1.12.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\9e2d879d7b456b3a58701c5cfef06089\transformed\core-ktx-1.12.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.annotation:annotation-experimental:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\8c8c9f1eb27eadd7c5885184711623cb\transformed\annotation-experimental-1.3.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.annotation:annotation-experimental:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\8c8c9f1eb27eadd7c5885184711623cb\transformed\annotation-experimental-1.3.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.cursoradapter:cursoradapter:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\9f9592e4ca54981162e60a3f96d0eae5\transformed\cursoradapter-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.cursoradapter:cursoradapter:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\9f9592e4ca54981162e60a3f96d0eae5\transformed\cursoradapter-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.cardview:cardview:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\67d4fc6fb0d3a053a0304b01700970c9\transformed\cardview-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.cardview:cardview:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\67d4fc6fb0d3a053a0304b01700970c9\transformed\cardview-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.interpolator:interpolator:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\75cb8528e25f45486022cbf9fadf1b44\transformed\interpolator-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.interpolator:interpolator:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\75cb8528e25f45486022cbf9fadf1b44\transformed\interpolator-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\d61a61f91a4c45ce430bf41a40bebfcf\transformed\versionedparcelable-1.1.1\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\d61a61f91a4c45ce430bf41a40bebfcf\transformed\versionedparcelable-1.1.1\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\4723065099c645753d58f36d9dfe2e65\transformed\profileinstaller-1.3.0\AndroidManifest.xml:21:5-44
+MERGED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\4723065099c645753d58f36d9dfe2e65\transformed\profileinstaller-1.3.0\AndroidManifest.xml:21:5-44
+MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\328dc70bf6a24a5ec25fe07459df7aaa\transformed\startup-runtime-1.1.1\AndroidManifest.xml:21:5-23:41
+MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\328dc70bf6a24a5ec25fe07459df7aaa\transformed\startup-runtime-1.1.1\AndroidManifest.xml:21:5-23:41
+MERGED from [androidx.tracing:tracing:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\a79d00786e94bcc927b00615b645cf56\transformed\tracing-1.0.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.tracing:tracing:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\a79d00786e94bcc927b00615b645cf56\transformed\tracing-1.0.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.arch.core:core-runtime:2.2.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\19896b601ea6690bd653a2ec7415ff6f\transformed\core-runtime-2.2.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.arch.core:core-runtime:2.2.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\19896b601ea6690bd653a2ec7415ff6f\transformed\core-runtime-2.2.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.documentfile:documentfile:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\ce30cd096e2a9e787b9b14b7117b23be\transformed\documentfile-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.documentfile:documentfile:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\ce30cd096e2a9e787b9b14b7117b23be\transformed\documentfile-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.localbroadcastmanager:localbroadcastmanager:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\772f6a9c0a5bfe08a65323ad0ac6b481\transformed\localbroadcastmanager-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.localbroadcastmanager:localbroadcastmanager:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\772f6a9c0a5bfe08a65323ad0ac6b481\transformed\localbroadcastmanager-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.print:print:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\e334bc17f9c85c5b99b10adb35b249fc\transformed\print-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.print:print:1.0.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\e334bc17f9c85c5b99b10adb35b249fc\transformed\print-1.0.0\AndroidManifest.xml:20:5-44
 	android:targetSdkVersion
 		INJECTED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml
 	android:minSdkVersion
 		INJECTED from C:\Users\piku\develop\hotela\dishrv5\android_wrapper\app\src\main\AndroidManifest.xml
 provider#androidx.startup.InitializationProvider
-ADDED from [androidx.emoji2:emoji2:1.2.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\b07a66d8841dcd286176f9ad30ac2489\transformed\emoji2-1.2.0\AndroidManifest.xml:24:9-32:20
-MERGED from [androidx.lifecycle:lifecycle-process:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\f8a797489c6a2779e54291f09a7f13a8\transformed\lifecycle-process-2.6.1\AndroidManifest.xml:24:9-32:20
-MERGED from [androidx.lifecycle:lifecycle-process:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\f8a797489c6a2779e54291f09a7f13a8\transformed\lifecycle-process-2.6.1\AndroidManifest.xml:24:9-32:20
-MERGED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\8178c4bff5d7079d1075161540a5d29c\transformed\profileinstaller-1.3.0\AndroidManifest.xml:24:9-32:20
-MERGED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\8178c4bff5d7079d1075161540a5d29c\transformed\profileinstaller-1.3.0\AndroidManifest.xml:24:9-32:20
-MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\3cdc893eece02b95706189decde35eff\transformed\startup-runtime-1.1.1\AndroidManifest.xml:26:9-30:34
-MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\3cdc893eece02b95706189decde35eff\transformed\startup-runtime-1.1.1\AndroidManifest.xml:26:9-30:34
+ADDED from [androidx.emoji2:emoji2:1.2.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\c706c309488679f51071694868cfb538\transformed\emoji2-1.2.0\AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.lifecycle:lifecycle-process:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\ee8aa561dbb6f8885211a887920c2997\transformed\lifecycle-process-2.6.1\AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.lifecycle:lifecycle-process:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\ee8aa561dbb6f8885211a887920c2997\transformed\lifecycle-process-2.6.1\AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\4723065099c645753d58f36d9dfe2e65\transformed\profileinstaller-1.3.0\AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\4723065099c645753d58f36d9dfe2e65\transformed\profileinstaller-1.3.0\AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\328dc70bf6a24a5ec25fe07459df7aaa\transformed\startup-runtime-1.1.1\AndroidManifest.xml:26:9-30:34
+MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\328dc70bf6a24a5ec25fe07459df7aaa\transformed\startup-runtime-1.1.1\AndroidManifest.xml:26:9-30:34
 	tools:node
-		ADDED from [androidx.emoji2:emoji2:1.2.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\b07a66d8841dcd286176f9ad30ac2489\transformed\emoji2-1.2.0\AndroidManifest.xml:28:13-31
+		ADDED from [androidx.emoji2:emoji2:1.2.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\c706c309488679f51071694868cfb538\transformed\emoji2-1.2.0\AndroidManifest.xml:28:13-31
 	android:authorities
-		ADDED from [androidx.emoji2:emoji2:1.2.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\b07a66d8841dcd286176f9ad30ac2489\transformed\emoji2-1.2.0\AndroidManifest.xml:26:13-68
+		ADDED from [androidx.emoji2:emoji2:1.2.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\c706c309488679f51071694868cfb538\transformed\emoji2-1.2.0\AndroidManifest.xml:26:13-68
 	android:exported
-		ADDED from [androidx.emoji2:emoji2:1.2.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\b07a66d8841dcd286176f9ad30ac2489\transformed\emoji2-1.2.0\AndroidManifest.xml:27:13-37
+		ADDED from [androidx.emoji2:emoji2:1.2.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\c706c309488679f51071694868cfb538\transformed\emoji2-1.2.0\AndroidManifest.xml:27:13-37
 	android:name
-		ADDED from [androidx.emoji2:emoji2:1.2.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\b07a66d8841dcd286176f9ad30ac2489\transformed\emoji2-1.2.0\AndroidManifest.xml:25:13-67
+		ADDED from [androidx.emoji2:emoji2:1.2.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\c706c309488679f51071694868cfb538\transformed\emoji2-1.2.0\AndroidManifest.xml:25:13-67
 meta-data#androidx.emoji2.text.EmojiCompatInitializer
-ADDED from [androidx.emoji2:emoji2:1.2.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\b07a66d8841dcd286176f9ad30ac2489\transformed\emoji2-1.2.0\AndroidManifest.xml:29:13-31:52
+ADDED from [androidx.emoji2:emoji2:1.2.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\c706c309488679f51071694868cfb538\transformed\emoji2-1.2.0\AndroidManifest.xml:29:13-31:52
 	android:value
-		ADDED from [androidx.emoji2:emoji2:1.2.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\b07a66d8841dcd286176f9ad30ac2489\transformed\emoji2-1.2.0\AndroidManifest.xml:31:17-49
+		ADDED from [androidx.emoji2:emoji2:1.2.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\c706c309488679f51071694868cfb538\transformed\emoji2-1.2.0\AndroidManifest.xml:31:17-49
 	android:name
-		ADDED from [androidx.emoji2:emoji2:1.2.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\b07a66d8841dcd286176f9ad30ac2489\transformed\emoji2-1.2.0\AndroidManifest.xml:30:17-75
+		ADDED from [androidx.emoji2:emoji2:1.2.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\c706c309488679f51071694868cfb538\transformed\emoji2-1.2.0\AndroidManifest.xml:30:17-75
 permission#${applicationId}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
-ADDED from [androidx.core:core:1.12.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\f1f72109f28a6e915fa6aa68da8c646c\transformed\core-1.12.0\AndroidManifest.xml:22:5-24:47
+ADDED from [androidx.core:core:1.12.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\7f4228df67fac75b5c1ff26e9b859e80\transformed\core-1.12.0\AndroidManifest.xml:22:5-24:47
 	android:protectionLevel
-		ADDED from [androidx.core:core:1.12.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\f1f72109f28a6e915fa6aa68da8c646c\transformed\core-1.12.0\AndroidManifest.xml:24:9-44
+		ADDED from [androidx.core:core:1.12.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\7f4228df67fac75b5c1ff26e9b859e80\transformed\core-1.12.0\AndroidManifest.xml:24:9-44
 	android:name
-		ADDED from [androidx.core:core:1.12.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\f1f72109f28a6e915fa6aa68da8c646c\transformed\core-1.12.0\AndroidManifest.xml:23:9-81
+		ADDED from [androidx.core:core:1.12.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\7f4228df67fac75b5c1ff26e9b859e80\transformed\core-1.12.0\AndroidManifest.xml:23:9-81
 permission#com.restopos.pwa.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
-ADDED from [androidx.core:core:1.12.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\f1f72109f28a6e915fa6aa68da8c646c\transformed\core-1.12.0\AndroidManifest.xml:22:5-24:47
+ADDED from [androidx.core:core:1.12.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\7f4228df67fac75b5c1ff26e9b859e80\transformed\core-1.12.0\AndroidManifest.xml:22:5-24:47
 	android:protectionLevel
-		ADDED from [androidx.core:core:1.12.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\f1f72109f28a6e915fa6aa68da8c646c\transformed\core-1.12.0\AndroidManifest.xml:24:9-44
+		ADDED from [androidx.core:core:1.12.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\7f4228df67fac75b5c1ff26e9b859e80\transformed\core-1.12.0\AndroidManifest.xml:24:9-44
 	android:name
-		ADDED from [androidx.core:core:1.12.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\f1f72109f28a6e915fa6aa68da8c646c\transformed\core-1.12.0\AndroidManifest.xml:23:9-81
+		ADDED from [androidx.core:core:1.12.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\7f4228df67fac75b5c1ff26e9b859e80\transformed\core-1.12.0\AndroidManifest.xml:23:9-81
 uses-permission#${applicationId}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
-ADDED from [androidx.core:core:1.12.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\f1f72109f28a6e915fa6aa68da8c646c\transformed\core-1.12.0\AndroidManifest.xml:26:5-97
+ADDED from [androidx.core:core:1.12.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\7f4228df67fac75b5c1ff26e9b859e80\transformed\core-1.12.0\AndroidManifest.xml:26:5-97
 	android:name
-		ADDED from [androidx.core:core:1.12.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\f1f72109f28a6e915fa6aa68da8c646c\transformed\core-1.12.0\AndroidManifest.xml:26:22-94
+		ADDED from [androidx.core:core:1.12.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\7f4228df67fac75b5c1ff26e9b859e80\transformed\core-1.12.0\AndroidManifest.xml:26:22-94
 uses-permission#com.restopos.pwa.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
-ADDED from [androidx.core:core:1.12.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\f1f72109f28a6e915fa6aa68da8c646c\transformed\core-1.12.0\AndroidManifest.xml:26:5-97
+ADDED from [androidx.core:core:1.12.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\7f4228df67fac75b5c1ff26e9b859e80\transformed\core-1.12.0\AndroidManifest.xml:26:5-97
 	android:name
-		ADDED from [androidx.core:core:1.12.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\f1f72109f28a6e915fa6aa68da8c646c\transformed\core-1.12.0\AndroidManifest.xml:26:22-94
+		ADDED from [androidx.core:core:1.12.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\7f4228df67fac75b5c1ff26e9b859e80\transformed\core-1.12.0\AndroidManifest.xml:26:22-94
 meta-data#androidx.lifecycle.ProcessLifecycleInitializer
-ADDED from [androidx.lifecycle:lifecycle-process:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\f8a797489c6a2779e54291f09a7f13a8\transformed\lifecycle-process-2.6.1\AndroidManifest.xml:29:13-31:52
+ADDED from [androidx.lifecycle:lifecycle-process:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\ee8aa561dbb6f8885211a887920c2997\transformed\lifecycle-process-2.6.1\AndroidManifest.xml:29:13-31:52
 	android:value
-		ADDED from [androidx.lifecycle:lifecycle-process:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\f8a797489c6a2779e54291f09a7f13a8\transformed\lifecycle-process-2.6.1\AndroidManifest.xml:31:17-49
+		ADDED from [androidx.lifecycle:lifecycle-process:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\ee8aa561dbb6f8885211a887920c2997\transformed\lifecycle-process-2.6.1\AndroidManifest.xml:31:17-49
 	android:name
-		ADDED from [androidx.lifecycle:lifecycle-process:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\f8a797489c6a2779e54291f09a7f13a8\transformed\lifecycle-process-2.6.1\AndroidManifest.xml:30:17-78
+		ADDED from [androidx.lifecycle:lifecycle-process:2.6.1] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\ee8aa561dbb6f8885211a887920c2997\transformed\lifecycle-process-2.6.1\AndroidManifest.xml:30:17-78
 meta-data#androidx.profileinstaller.ProfileInstallerInitializer
-ADDED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\8178c4bff5d7079d1075161540a5d29c\transformed\profileinstaller-1.3.0\AndroidManifest.xml:29:13-31:52
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\4723065099c645753d58f36d9dfe2e65\transformed\profileinstaller-1.3.0\AndroidManifest.xml:29:13-31:52
 	android:value
-		ADDED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\8178c4bff5d7079d1075161540a5d29c\transformed\profileinstaller-1.3.0\AndroidManifest.xml:31:17-49
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\4723065099c645753d58f36d9dfe2e65\transformed\profileinstaller-1.3.0\AndroidManifest.xml:31:17-49
 	android:name
-		ADDED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\8178c4bff5d7079d1075161540a5d29c\transformed\profileinstaller-1.3.0\AndroidManifest.xml:30:17-85
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\4723065099c645753d58f36d9dfe2e65\transformed\profileinstaller-1.3.0\AndroidManifest.xml:30:17-85
 receiver#androidx.profileinstaller.ProfileInstallReceiver
-ADDED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\8178c4bff5d7079d1075161540a5d29c\transformed\profileinstaller-1.3.0\AndroidManifest.xml:34:9-52:20
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\4723065099c645753d58f36d9dfe2e65\transformed\profileinstaller-1.3.0\AndroidManifest.xml:34:9-52:20
 	android:enabled
-		ADDED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\8178c4bff5d7079d1075161540a5d29c\transformed\profileinstaller-1.3.0\AndroidManifest.xml:37:13-35
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\4723065099c645753d58f36d9dfe2e65\transformed\profileinstaller-1.3.0\AndroidManifest.xml:37:13-35
 	android:exported
-		ADDED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\8178c4bff5d7079d1075161540a5d29c\transformed\profileinstaller-1.3.0\AndroidManifest.xml:38:13-36
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\4723065099c645753d58f36d9dfe2e65\transformed\profileinstaller-1.3.0\AndroidManifest.xml:38:13-36
 	android:permission
-		ADDED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\8178c4bff5d7079d1075161540a5d29c\transformed\profileinstaller-1.3.0\AndroidManifest.xml:39:13-57
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\4723065099c645753d58f36d9dfe2e65\transformed\profileinstaller-1.3.0\AndroidManifest.xml:39:13-57
 	android:directBootAware
-		ADDED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\8178c4bff5d7079d1075161540a5d29c\transformed\profileinstaller-1.3.0\AndroidManifest.xml:36:13-44
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\4723065099c645753d58f36d9dfe2e65\transformed\profileinstaller-1.3.0\AndroidManifest.xml:36:13-44
 	android:name
-		ADDED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\8178c4bff5d7079d1075161540a5d29c\transformed\profileinstaller-1.3.0\AndroidManifest.xml:35:13-76
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\4723065099c645753d58f36d9dfe2e65\transformed\profileinstaller-1.3.0\AndroidManifest.xml:35:13-76
 intent-filter#action:name:androidx.profileinstaller.action.INSTALL_PROFILE
-ADDED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\8178c4bff5d7079d1075161540a5d29c\transformed\profileinstaller-1.3.0\AndroidManifest.xml:40:13-42:29
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\4723065099c645753d58f36d9dfe2e65\transformed\profileinstaller-1.3.0\AndroidManifest.xml:40:13-42:29
 action#androidx.profileinstaller.action.INSTALL_PROFILE
-ADDED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\8178c4bff5d7079d1075161540a5d29c\transformed\profileinstaller-1.3.0\AndroidManifest.xml:41:17-91
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\4723065099c645753d58f36d9dfe2e65\transformed\profileinstaller-1.3.0\AndroidManifest.xml:41:17-91
 	android:name
-		ADDED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\8178c4bff5d7079d1075161540a5d29c\transformed\profileinstaller-1.3.0\AndroidManifest.xml:41:25-88
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\4723065099c645753d58f36d9dfe2e65\transformed\profileinstaller-1.3.0\AndroidManifest.xml:41:25-88
 intent-filter#action:name:androidx.profileinstaller.action.SKIP_FILE
-ADDED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\8178c4bff5d7079d1075161540a5d29c\transformed\profileinstaller-1.3.0\AndroidManifest.xml:43:13-45:29
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\4723065099c645753d58f36d9dfe2e65\transformed\profileinstaller-1.3.0\AndroidManifest.xml:43:13-45:29
 action#androidx.profileinstaller.action.SKIP_FILE
-ADDED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\8178c4bff5d7079d1075161540a5d29c\transformed\profileinstaller-1.3.0\AndroidManifest.xml:44:17-85
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\4723065099c645753d58f36d9dfe2e65\transformed\profileinstaller-1.3.0\AndroidManifest.xml:44:17-85
 	android:name
-		ADDED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\8178c4bff5d7079d1075161540a5d29c\transformed\profileinstaller-1.3.0\AndroidManifest.xml:44:25-82
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\4723065099c645753d58f36d9dfe2e65\transformed\profileinstaller-1.3.0\AndroidManifest.xml:44:25-82
 intent-filter#action:name:androidx.profileinstaller.action.SAVE_PROFILE
-ADDED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\8178c4bff5d7079d1075161540a5d29c\transformed\profileinstaller-1.3.0\AndroidManifest.xml:46:13-48:29
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\4723065099c645753d58f36d9dfe2e65\transformed\profileinstaller-1.3.0\AndroidManifest.xml:46:13-48:29
 action#androidx.profileinstaller.action.SAVE_PROFILE
-ADDED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\8178c4bff5d7079d1075161540a5d29c\transformed\profileinstaller-1.3.0\AndroidManifest.xml:47:17-88
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\4723065099c645753d58f36d9dfe2e65\transformed\profileinstaller-1.3.0\AndroidManifest.xml:47:17-88
 	android:name
-		ADDED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\8178c4bff5d7079d1075161540a5d29c\transformed\profileinstaller-1.3.0\AndroidManifest.xml:47:25-85
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\4723065099c645753d58f36d9dfe2e65\transformed\profileinstaller-1.3.0\AndroidManifest.xml:47:25-85
 intent-filter#action:name:androidx.profileinstaller.action.BENCHMARK_OPERATION
-ADDED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\8178c4bff5d7079d1075161540a5d29c\transformed\profileinstaller-1.3.0\AndroidManifest.xml:49:13-51:29
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\4723065099c645753d58f36d9dfe2e65\transformed\profileinstaller-1.3.0\AndroidManifest.xml:49:13-51:29
 action#androidx.profileinstaller.action.BENCHMARK_OPERATION
-ADDED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\8178c4bff5d7079d1075161540a5d29c\transformed\profileinstaller-1.3.0\AndroidManifest.xml:50:17-95
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\4723065099c645753d58f36d9dfe2e65\transformed\profileinstaller-1.3.0\AndroidManifest.xml:50:17-95
 	android:name
-		ADDED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\8178c4bff5d7079d1075161540a5d29c\transformed\profileinstaller-1.3.0\AndroidManifest.xml:50:25-92
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\4723065099c645753d58f36d9dfe2e65\transformed\profileinstaller-1.3.0\AndroidManifest.xml:50:25-92

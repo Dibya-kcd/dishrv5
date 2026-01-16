@@ -22,9 +22,9 @@ class _MenuScreenState extends State<MenuScreen> {
       final selectedCategory = provider.selectedCategory;
       final menuItems = selectedCategory == 'All' ? provider.menuItems : provider.menuItems.where((m) => m.category == selectedCategory).toList();
 
-      final isMobile = width < 600;
-      final isTablet = width >= 600 && width <= 1024;
-      final isDesktop = width > 1024;
+      // final isMobile = width < 600;
+      // final isTablet = width >= 600 && width <= 1024;
+      // final isDesktop = width > 1024;
       final cross = width >= 1024 ? 4 : (width >= 640 ? 3 : 2);
       final cardAspect = 1.0;
       

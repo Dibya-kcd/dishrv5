@@ -1,0 +1,10 @@
+[
+    {
+        "merged": "C:\\Users\\dibya\\.gradle\\daemon\\9.0-milestone-1\\com.restopos.pwa.app-merged_res-32:\\layout_activity_main.xml.flat",
+        "source": "C:\\Users\\dibya\\.gradle\\daemon\\9.0-milestone-1\\com.restopos.pwa.app-main-34:\\layout\\activity_main.xml"
+    },
+    {
+        "merged": "com.restopos.pwa.app-merged_res-32:/layout_activity_main.xml.flat",
+        "source": "com.restopos.pwa.app-main-34:/layout/activity_main.xml"
+    }
+]
