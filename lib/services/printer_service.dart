@@ -7,6 +7,7 @@ import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/printer_model.dart';
 import '../utils/ticket_generator.dart';
+import '../utils/web_adapter.dart' as web;
 
 class PrinterService extends ChangeNotifier {
   static final PrinterService instance = PrinterService._();
@@ -216,6 +217,18 @@ class PrinterService extends ChangeNotifier {
   }
 
   Future<void> _printBluetooth(PrinterModel printer, List<int> bytes) async {
+    if (kIsWeb) {
+      if (web.androidBridgeAvailable()) {
+        final ok = await web.androidPrintBytes(printer.address, bytes);
+        if (ok != true) {
+          throw Exception("Android wrapper printing failed");
+        }
+        return;
+      } else {
+        throw Exception("Bluetooth printing not available in Web environment");
+      }
+    }
+
     // If Android and address is not a MAC, attempt Classic BT fallback using paired list by name
     if (!kIsWeb && Platform.isAndroid && !printer.address.contains(':')) {
       try {
