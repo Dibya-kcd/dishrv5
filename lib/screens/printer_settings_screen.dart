@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import '../models/printer_model.dart';
 import '../services/printer_service.dart';
 
@@ -65,6 +66,71 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> with Sing
       animation: PrinterService.instance,
       builder: (context, child) {
         final service = PrinterService.instance;
+
+        // Web/PWA specific UI
+        if (kIsWeb) {
+             return ListView(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Card(
+                      color: Colors.orangeAccent.withOpacity(0.2), 
+                      child: const Padding(
+                        padding: EdgeInsets.all(16.0),
+                        child: Text(
+                          "PWA Mode: Bluetooth scanning is not supported in the browser/webview.\n"
+                          "Please add your printer manually using its MAC Address (e.g., 00:1B:10:73:AD:08).",
+                          style: TextStyle(fontSize: 14),
+                        ),
+                      )
+                    ),
+                  ),
+                  if (service.savedPrinters.any((p) => p.type == PrinterType.bluetooth)) ...[
+                    const ListTile(title: Text('Saved Printers', style: TextStyle(fontWeight: FontWeight.bold))),
+                    ...service.savedPrinters.where((p) => p.type == PrinterType.bluetooth).map((p) => _buildSavedPrinterTile(p)),
+                    const Divider(),
+                  ],
+                  const ListTile(title: Text('Add Manual Bluetooth Printer', style: TextStyle(fontWeight: FontWeight.bold))),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Column(
+                      children: [
+                        TextField(
+                          controller: _macController,
+                          decoration: const InputDecoration(labelText: 'MAC Address', hintText: '00:1B:10:73:AD:08'),
+                        ),
+                        const SizedBox(height: 10),
+                        TextField(
+                          controller: _btManualNameController,
+                          decoration: const InputDecoration(labelText: 'Printer Name', hintText: 'BT Printer'),
+                        ),
+                        const SizedBox(height: 12),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              if (_macController.text.isEmpty || _btManualNameController.text.isEmpty) return;
+                              final printer = PrinterModel(
+                                id: _macController.text,
+                                name: _btManualNameController.text,
+                                type: PrinterType.bluetooth,
+                                address: _macController.text,
+                              );
+                              PrinterService.instance.addPrinter(printer);
+                              _macController.clear();
+                              _btManualNameController.clear();
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Bluetooth Printer Added')));
+                            },
+                            child: const Text('Save'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+             );
+        }
+
         return Column(
           children: [
             Padding(

@@ -50,6 +50,7 @@ class PrinterService extends ChangeNotifier {
   }
 
   Future<void> loadPairedBluetooths() async {
+    if (kIsWeb) return; // Not supported on Web/PWA
     try {
       final list = await PrintBluetoothThermal.pairedBluetooths;
       _pairedBluetooths = list;
@@ -110,6 +111,7 @@ class PrinterService extends ChangeNotifier {
 
   // Bluetooth Scanning
   Future<void> startScan() async {
+    if (kIsWeb) return; // Scanning not supported on PWA
     if (_isScanning) return;
     _scanResults.clear();
     _isScanning = true;
