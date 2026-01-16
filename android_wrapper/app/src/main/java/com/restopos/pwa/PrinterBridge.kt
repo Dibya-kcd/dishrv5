@@ -55,7 +55,6 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
         }.start()
     }
 
-    // Accept Base64-encoded bytes from Flutter Web and send raw ESC/POS bytes
     @JavascriptInterface
     fun printBase64(b64: String) {
         val mac = prefs.getString(PREF_PRINTER_MAC, null)

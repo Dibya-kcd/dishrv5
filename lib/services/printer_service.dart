@@ -214,8 +214,14 @@ class PrinterService extends ChangeNotifier {
       try {
         connectToAndroidPrinter(printer.address);
         final dataB64 = base64.encode(bytes);
-        printToAndroidPrinterBase64(dataB64);
-        return;
+        try {
+          printToAndroidPrinterBase64(dataB64);
+          return;
+        } catch (_) {
+          final data = utf8.decode(bytes, allowMalformed: true);
+          printToAndroidPrinter(data);
+          return;
+        }
       } catch (e) {
         throw Exception("Failed to print via Android Bridge: $e");
       }
