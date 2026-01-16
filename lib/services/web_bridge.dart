@@ -7,6 +7,7 @@ external AndroidPrinterInterface? get androidPrinter;
 extension type AndroidPrinterInterface._(JSObject _) implements JSObject {
   external void connect(JSString macAddress);
   external void print(JSString data);
+  external void printBase64(JSString dataB64);
 }
 
 void connectToAndroidPrinter(String macAddress) {
@@ -15,4 +16,8 @@ void connectToAndroidPrinter(String macAddress) {
 
 void printToAndroidPrinter(String data) {
   androidPrinter?.print(data.toJS);
+}
+
+void printToAndroidPrinterBase64(String dataB64) {
+  androidPrinter?.printBase64(dataB64.toJS);
 }

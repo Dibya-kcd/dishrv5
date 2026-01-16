@@ -213,10 +213,8 @@ class PrinterService extends ChangeNotifier {
     if (kIsWeb) {
       try {
         connectToAndroidPrinter(printer.address);
-        // We send the bytes as a UTF-8 string for now, as the bridge expects String
-        // In a real scenario, we might want to base64 encode or improve the bridge to accept bytes
-        final data = utf8.decode(bytes, allowMalformed: true);
-        printToAndroidPrinter(data);
+        final dataB64 = base64.encode(bytes);
+        printToAndroidPrinterBase64(dataB64);
         return;
       } catch (e) {
         throw Exception("Failed to print via Android Bridge: $e");
