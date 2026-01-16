@@ -209,6 +209,14 @@ class SettingsDao {
   }
 }
 class OrderDao {
+  int _getPrio(String s) {
+    if (s == 'Settled' || s == 'Cancelled') return 5;
+    if (s == 'Completed') return 4;
+    if (s == 'Ready') return 3;
+    if (s == 'Preparing') return 2;
+    return 1;
+  }
+
   Future<void> logEvent(String orderId, String event, {Map<String, dynamic>? data}) async {
     final db = await Repository.instance._db.database;
     await db.insert('order_events', {
@@ -220,6 +228,18 @@ class OrderDao {
   }
   Future<void> insertOrder(Order order, List<CartItem> items, {bool fromSync = false}) async {
     final db = await Repository.instance._db.database;
+    
+    if (fromSync) {
+       final rows = await db.query('orders', columns: ['status', 'total'], where: 'id = ?', whereArgs: [order.id]);
+       if (rows.isNotEmpty) {
+         final cur = rows.first['status'] as String;
+         final curTotal = (rows.first['total'] as num?)?.toDouble() ?? 0.0;
+         if ((curTotal - order.total).abs() < 0.01) {
+           if (_getPrio(cur) > _getPrio(order.status)) return;
+         }
+       }
+     }
+
     await db.transaction((txn) async {
       await txn.insert('orders', {
         'id': order.id,
@@ -262,7 +282,7 @@ class OrderDao {
         createdAt: order.createdAt,
         readyAt: order.readyAt,
     );
-    if (!fromSync) await SyncService.instance.updateOrderTx(fullOrder);
+    if (!fromSync) await SyncService.instance.updateOrder(fullOrder);
     await logEvent(order.id, 'sent_to_kitchen', data: {
       'items': items.map((i) => {'id': i.id, 'q': i.quantity}).toList(),
       'table': order.table,
@@ -329,13 +349,22 @@ class OrderDao {
         createdAt: r['created_at'] as int?,
         readyAt: r['ready_at'] as int?,
       );
-      if (!fromSync) await SyncService.instance.updateOrderTx(order);
+      if (!fromSync) await SyncService.instance.updateOrder(order);
     }
     Repository.instance.notifyDataChanged();
   }
 
   Future<void> updateOrderStatus(String id, String status, {String? paymentMethod, int? readyAtMs, bool fromSync = false}) async {
     final db = await Repository.instance._db.database;
+    
+    if (fromSync) {
+      final rows = await db.query('orders', columns: ['status'], where: 'id = ?', whereArgs: [id]);
+      if (rows.isNotEmpty) {
+        final cur = rows.first['status'] as String;
+        if (_getPrio(cur) > _getPrio(status)) return;
+      }
+    }
+
     final updateMap = <String, Object?>{
       'status': status,
       'payment_method': paymentMethod,
@@ -380,7 +409,7 @@ class OrderDao {
               readyAt: r['ready_at'] as int?,
               settledAt: r['settled_at'] as int?,
            );
-           await SyncService.instance.updateOrderTx(order);
+           await SyncService.instance.updateOrder(order);
       }
     }
     Repository.instance.notifyDataChanged();
@@ -477,7 +506,7 @@ class TablesDao {
     }, conflictAlgorithm: ConflictAlgorithm.replace);
     
     if (!fromSync) {
-      await SyncService.instance.updateTableTx(TableInfo(
+      await SyncService.instance.updateTable(TableInfo(
           id: id,
           number: number,
           status: status,

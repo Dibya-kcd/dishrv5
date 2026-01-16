@@ -679,6 +679,13 @@ window.onload = function(){ setTimeout(function(){ window.print(); }, 500); }
     );
   }
 
+  Future<void> _fixDuplicates() async {
+    final rp = context.read<RestaurantProvider>();
+    await Repository.instance.ingredients.fixInventoryDuplicates();
+    await _refresh();
+    rp.showToast('Inventory duplicates cleaned.', icon: '✨');
+  }
+
   Future<void> _showCreateIngredientDialog() async {
     String name = '';
     String category = 'Uncategorized';

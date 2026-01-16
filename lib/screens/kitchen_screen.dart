@@ -53,14 +53,10 @@ class KitchenScreen extends StatelessWidget {
                           final note = (it.instructions ?? '').trim();
                           final mods = (it.modifiers ?? []).map((m) => m['name'] as String? ?? '').where((n) => n.isNotEmpty).toList();
                           final metaParts = [...addons, ...mods, if (note.isNotEmpty) 'Note: $note'];
-                          final isReady = provider.itemIsReady(o.id, it);
-                          final isServed = provider.itemIsServed(o.id, it);
-                          final bg = isServed ? const Color(0xFF1E3A8A) : (isReady ? const Color(0xFF064E3B) : const Color(0xFF27272A));
-                          final chipColor = isServed ? const Color(0xFF3B82F6) : (isReady ? const Color(0xFF10B981) : const Color(0xFFF59E0B));
                           return Container(
                             margin: const EdgeInsets.only(bottom: 12),
                             padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(8)),
+                            decoration: BoxDecoration(color: const Color(0xFF27272A), borderRadius: BorderRadius.circular(8)),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -80,47 +76,6 @@ class KitchenScreen extends StatelessWidget {
                                     padding: const EdgeInsets.only(top: 6),
                                     child: Text(metaParts.join(' | '), style: const TextStyle(color: Color(0xFFE5E7EB), fontSize: 12)),
                                   ),
-                                const SizedBox(height: 8),
-                                Row(children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                    decoration: BoxDecoration(color: chipColor, borderRadius: BorderRadius.circular(6)),
-                                    child: Text(isServed ? 'Served' : (isReady ? 'Ready' : 'Preparing'), style: const TextStyle(color: Colors.white, fontSize: 12)),
-                                  ),
-                                  const Spacer(),
-                                  TextButton(
-                                    onPressed: () => provider.setItemPreparing(o.id, it),
-                                    style: TextButton.styleFrom(
-                                      backgroundColor: isReady || isServed ? const Color(0xFF27272A) : const Color(0xFFF59E0B),
-                                      foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                      minimumSize: const Size(0, 0),
-                                    ),
-                                    child: const Text('Prep'),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  TextButton(
-                                    onPressed: () => provider.setItemReady(o.id, it),
-                                    style: TextButton.styleFrom(
-                                      backgroundColor: isReady ? const Color(0xFF10B981) : const Color(0xFF27272A),
-                                      foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                      minimumSize: const Size(0, 0),
-                                    ),
-                                    child: const Text('Ready'),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  TextButton(
-                                    onPressed: () => provider.setItemServed(o.id, it),
-                                    style: TextButton.styleFrom(
-                                      backgroundColor: isServed ? const Color(0xFF3B82F6) : const Color(0xFF27272A),
-                                      foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                      minimumSize: const Size(0, 0),
-                                    ),
-                                    child: const Text('Served'),
-                                  ),
-                                ]),
                               ],
                             ),
                           );

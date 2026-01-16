@@ -54,6 +54,13 @@ ${items.map((i) {
       return '<div class="item"><span>${i.name}</span><span style="font-weight: bold; font-size: 18px;">x${i.quantity}</span></div>$meta';
     }).join()}
 <div class="footer"><div style="font-weight: bold;">Total Items: ${items.fold<int>(0, (s, i) => s + i.quantity)}</div></div>
+<script>
+window.onload = function() {
+  setTimeout(function() {
+    window.print();
+  }, 500);
+}
+</script>
 ''';
     return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>KOT</title></head><body>$content</body></html>';
   }
@@ -107,6 +114,13 @@ ${items.map((i) {
 </div>
 <div style="margin-top: 10px; font-weight: bold;">Payment: $paymentMethod</div>
 <div class="footer">Thank you for dining with us!</div>
+<script>
+window.onload = function() {
+  setTimeout(function() {
+    window.print();
+  }, 500);
+}
+</script>
 ''';
     return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Bill</title></head><body>$content</body></html>';
   }

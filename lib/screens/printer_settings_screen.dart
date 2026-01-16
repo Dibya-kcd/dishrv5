@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import '../models/printer_model.dart';
 import '../services/printer_service.dart';
-import '../utils/web_adapter.dart' as web;
 
 class PrinterSettingsScreen extends StatefulWidget {
   const PrinterSettingsScreen({super.key});
@@ -18,7 +16,6 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> with Sing
   final _nameController = TextEditingController();
   final _macController = TextEditingController();
   final _btManualNameController = TextEditingController();
-  List<Map<String, String>> _androidPaired = [];
 
   @override
   void initState() {
@@ -64,113 +61,6 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> with Sing
   }
 
   Widget _buildBluetoothTab() {
-    if (kIsWeb) {
-      if (!web.androidBridgeAvailable()) {
-        return Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              ListTile(
-                leading: Icon(Icons.info, color: Colors.orange),
-                title: Text('Bluetooth printing is not available in Chrome'),
-                subtitle: Text('Use Network (LAN) printers for laptops/desktops. Classic Bluetooth is supported on Android devices.'),
-              ),
-            ],
-          ),
-        );
-      }
-      return Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      final list = await web.androidListPairedDevices();
-                      setState(() {
-                        _androidPaired = list;
-                      });
-                    },
-                    child: const Text('Load Paired Devices (Android Wrapper)'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: ListView(
-              children: [
-                if (_androidPaired.isNotEmpty) ...[
-                  const ListTile(title: Text('Paired Devices', style: TextStyle(fontWeight: FontWeight.bold))),
-                  ..._androidPaired.map((m) {
-                    final name = m['name'] ?? '';
-                    final mac = m['mac'] ?? '';
-                    return ListTile(
-                      title: Text(name),
-                      subtitle: Text(mac),
-                      trailing: ElevatedButton(
-                        onPressed: () {
-                          _showAddPrinterDialog(
-                            PrinterModel(
-                              id: mac,
-                              name: name.isEmpty ? 'BT Printer' : name,
-                              type: PrinterType.bluetooth,
-                              address: mac,
-                            ),
-                          );
-                        },
-                        child: const Text('Add'),
-                      ),
-                    );
-                  }),
-                  const Divider(),
-                ],
-                const ListTile(title: Text('Add Manual Bluetooth Printer', style: TextStyle(fontWeight: FontWeight.bold))),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Column(
-                    children: [
-                      TextField(
-                        controller: _macController,
-                        decoration: const InputDecoration(labelText: 'MAC Address', hintText: '00:1B:10:73:AD:08'),
-                      ),
-                      const SizedBox(height: 10),
-                      TextField(
-                        controller: _btManualNameController,
-                        decoration: const InputDecoration(labelText: 'Printer Name', hintText: 'BT Printer'),
-                      ),
-                      const SizedBox(height: 12),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            if (_macController.text.isEmpty || _btManualNameController.text.isEmpty) return;
-                            final printer = PrinterModel(
-                              id: _macController.text,
-                              name: _btManualNameController.text,
-                              type: PrinterType.bluetooth,
-                              address: _macController.text,
-                            );
-                            PrinterService.instance.addPrinter(printer);
-                            _macController.clear();
-                            _btManualNameController.clear();
-                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Bluetooth Printer Added')));
-                          },
-                          child: const Text('Save'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      );
-    }
     return AnimatedBuilder(
       animation: PrinterService.instance,
       builder: (context, child) {
@@ -179,21 +69,11 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> with Sing
           children: [
             Padding(
               padding: const EdgeInsets.all(8.0),
-              child: kIsWeb
-                  ? ElevatedButton.icon(
-                      onPressed: service.isScanning ? service.stopScan : service.startScan,
-                      icon: Icon(service.isScanning ? Icons.stop : Icons.search),
-                      label: Text(service.isScanning ? 'Stop Scanning' : 'Scan for Printers (BLE)'),
-                    )
-                  : Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: const [
-                        Text(
-                          'Android Tip: Use "Load Paired Bluetooths" or add MAC address (Classic BT). BLE scanning is disabled because most thermal printers are not BLE.',
-                          style: TextStyle(color: Colors.white70),
-                        ),
-                      ],
-                    ),
+              child: ElevatedButton.icon(
+                onPressed: service.isScanning ? service.stopScan : service.startScan,
+                icon: Icon(service.isScanning ? Icons.stop : Icons.search),
+                label: Text(service.isScanning ? 'Stop Scanning' : 'Scan for Printers'),
+              ),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8.0),
@@ -242,33 +122,27 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> with Sing
                     }),
                     const Divider(),
                   ],
-                  if (!kIsWeb) ...[
-                    const ListTile(title: Text('Available Devices (BLE)', style: TextStyle(fontWeight: FontWeight.bold))),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16.0),
-                      child: Text('Note: Most Android thermal printers use Classic Bluetooth (SPP). Prefer Paired Devices or manual MAC address.', style: TextStyle(color: Colors.white70)),
-                    ),
-                    ...service.scanResults.map((r) {
-                      if (r.device.platformName.isEmpty) return const SizedBox.shrink();
-                      return ListTile(
-                        title: Text(r.device.platformName),
-                        subtitle: Text(r.device.remoteId.str),
-                        trailing: ElevatedButton(
-                          onPressed: () {
-                            _showAddPrinterDialog(
-                              PrinterModel(
-                                id: r.device.remoteId.str,
-                                name: r.device.platformName,
-                                type: PrinterType.bluetooth,
-                                address: r.device.remoteId.str,
-                              ),
-                            );
-                          },
-                          child: const Text('Add'),
-                        ),
-                      );
-                    }),
-                  ],
+                  const ListTile(title: Text('Available Devices', style: TextStyle(fontWeight: FontWeight.bold))),
+                  ...service.scanResults.map((r) {
+                    if (r.device.platformName.isEmpty) return const SizedBox.shrink();
+                    return ListTile(
+                      title: Text(r.device.platformName),
+                      subtitle: Text(r.device.remoteId.str),
+                      trailing: ElevatedButton(
+                        onPressed: () {
+                          _showAddPrinterDialog(
+                            PrinterModel(
+                              id: r.device.remoteId.str,
+                              name: r.device.platformName,
+                              type: PrinterType.bluetooth,
+                              address: r.device.remoteId.str,
+                            ),
+                          );
+                        },
+                        child: const Text('Add'),
+                      ),
+                    );
+                  }),
                   const Divider(),
                   const ListTile(title: Text('Add Manual Bluetooth Printer', style: TextStyle(fontWeight: FontWeight.bold))),
                   Padding(

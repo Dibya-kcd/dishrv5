@@ -40,26 +40,7 @@ class TopNav extends StatelessWidget {
                       child: const Icon(Icons.restaurant, color: Colors.white, size: 22),
                     ),
                     const SizedBox(width: 8),
-                    Row(children: [
-                      Container(
-                        width: 12,
-                        height: 12,
-                        decoration: BoxDecoration(
-                          color: provider.isOnline ? (provider.pendingOpsCount > 0 ? const Color(0xFFF59E0B) : const Color(0xFF10B981)) : const Color(0xFFEF4444),
-                          borderRadius: const BorderRadius.all(Radius.circular(6)),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      const Text('RestoPOS', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-                      if (provider.pendingOpsCount > 0) ...[
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(color: const Color(0xFFF59E0B), borderRadius: BorderRadius.circular(6)),
-                          child: Text('${provider.pendingOpsCount}', style: const TextStyle(color: Colors.white, fontSize: 12)),
-                        ),
-                      ],
-                    ]),
+                    const Text('RestoPOS', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
                     const SizedBox(width: 12),
                     if (!isMobile)
                       Row(children: items.map((it) {

@@ -13,6 +13,7 @@ import '../models/table_info.dart';
 import '../data/repository.dart';
 import '../data/sync_service.dart';
 import '../services/printer_service.dart';
+import '../utils/html_ticket_generator.dart';
 
 class RestaurantProvider extends ChangeNotifier {
   String _currentView = 'dashboard';
@@ -23,9 +24,6 @@ class RestaurantProvider extends ChangeNotifier {
   Map<String, List<Map<String, dynamic>>> _kotBatchesByOrder = {};
   Map<String, Set<String>> _cancelledKeysByOrder = {};
   final Map<String, Set<String>> _completedKeysByOrder = {};
-  final Map<String, Set<String>> _readyKeysByOrder = {};
-  final Map<String, Set<String>> _servedKeysByOrder = {};
-  int _pendingOpsCount = 0;
   List<Order> _orders = [];
   
   // UI State for Modals
@@ -44,8 +42,6 @@ class RestaurantProvider extends ChangeNotifier {
 
   int _takeoutTokenNumber = 1;
   String _takeoutTokenDate = '';
-  bool _takeoutTokenPendingSync = false;
-  int _takeoutUnsyncedIncrements = 0;
   String _selectedCategory = 'All'; // Added state
   dynamic _installPromptEvent;
   final bool _installAvailable = false;
@@ -56,7 +52,6 @@ class RestaurantProvider extends ChangeNotifier {
   String analyticsServiceFilter = 'All'; // All, Dine-In, Take-Out
   int reportsTabIndex = 0;
   StreamSubscription? _dataSubscription;
-  Timer? _takeoutSyncTimer;
 
   List<MenuItem> menuItems = [];
   List<String> _categories = [];
@@ -72,7 +67,6 @@ class RestaurantProvider extends ChangeNotifier {
   List<TableInfo> get tables => _tables;
   String get selectedCategory => _selectedCategory; // Added getter
   int get takeoutTokenNumber => _takeoutTokenNumber;
-  bool get takeoutTokenSyncPending => _takeoutTokenPendingSync;
   bool get hasTakeoutChanges {
     final deltas = _computeTakeoutDelta(_takeoutCart);
     return deltas.isNotEmpty;
@@ -86,8 +80,6 @@ class RestaurantProvider extends ChangeNotifier {
     }
     return _categories;
   }
-  int get pendingOpsCount => _pendingOpsCount;
-  bool get isOnline => web.isOnline();
   void setReportsTabIndex(int index) {
     reportsTabIndex = index;
     notifyListeners();
@@ -100,6 +92,11 @@ class RestaurantProvider extends ChangeNotifier {
     return '$yy$mm$dd';
   }
   String get takeoutTokenId {
+    final today = _todayYYMMDD();
+    if (_takeoutTokenDate != today) {
+      _takeoutTokenDate = today;
+      _takeoutTokenNumber = 1;
+    }
     final seq = _takeoutTokenNumber.toString().padLeft(3, '0');
     return 'T#$_takeoutTokenDate-$seq';
   }
@@ -263,12 +260,6 @@ class RestaurantProvider extends ChangeNotifier {
       
       _flushPendingPrints();
       _initRouting();
-      _takeoutSyncTimer = Timer.periodic(const Duration(seconds: 30), (_) {
-        _syncTakeoutTokenIfNeeded();
-        _reconcileOrderStatuses();
-        SyncService.instance.flushPendingOps();
-        _updatePendingOpsCount();
-      });
     });
   }
 
@@ -393,7 +384,6 @@ class RestaurantProvider extends ChangeNotifier {
   @override
   void dispose() {
     _dataSubscription?.cancel();
-    _takeoutSyncTimer?.cancel();
     super.dispose();
   }
 
@@ -404,54 +394,37 @@ class RestaurantProvider extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
 
       // --- TAKEOUT TOKEN ---
-      final today = _todayYYMMDD();
-      bool tokenLoaded = false;
-      if (web.isOnline()) {
-        try {
-          final remote = await SyncService.instance.getTakeoutCounterForDate(today);
-          if (remote != null) {
-            final current = (remote['current'] as num?)?.toInt() ?? 1;
-            _takeoutTokenDate = today;
-            _takeoutTokenNumber = current;
-            _takeoutTokenPendingSync = false;
-            _takeoutUnsyncedIncrements = 0;
-            await s.set('takeoutTokenDate', _takeoutTokenDate);
-            await s.set('takeoutTokenNumber', _takeoutTokenNumber.toString());
-            tokenLoaded = true;
-          }
-        } catch (_) {}
+      final tokenNumStr = await s.get('takeoutTokenNumber');
+      if (tokenNumStr != null) {
+        final t = int.tryParse(tokenNumStr);
+        if (t != null) _takeoutTokenNumber = t;
+      } else {
+        // Fallback to Prefs
+        final token = prefs.getInt('takeoutTokenNumber');
+        if (token != null) {
+           _takeoutTokenNumber = token;
+           await s.set('takeoutTokenNumber', token.toString());
+        }
       }
-      if (!tokenLoaded) {
-        final tokenNumStr = await s.get('takeoutTokenNumber');
-        if (tokenNumStr != null) {
-          final t = int.tryParse(tokenNumStr);
-          if (t != null) _takeoutTokenNumber = t;
-        } else {
-          final token = prefs.getInt('takeoutTokenNumber');
-          if (token != null) {
-             _takeoutTokenNumber = token;
-             await s.set('takeoutTokenNumber', token.toString());
-          }
-        }
 
-        final tokenDateStr = await s.get('takeoutTokenDate');
-        if (tokenDateStr != null) {
-          _takeoutTokenDate = tokenDateStr;
-        } else {
-          final tokenDate = prefs.getString('takeoutTokenDate');
-          if (tokenDate != null) {
-            _takeoutTokenDate = tokenDate;
-            await s.set('takeoutTokenDate', tokenDate);
-          }
+      final tokenDateStr = await s.get('takeoutTokenDate');
+      if (tokenDateStr != null) {
+        _takeoutTokenDate = tokenDateStr;
+      } else {
+        // Fallback to Prefs
+        final tokenDate = prefs.getString('takeoutTokenDate');
+        if (tokenDate != null) {
+          _takeoutTokenDate = tokenDate;
+          await s.set('takeoutTokenDate', tokenDate);
         }
-        
-        if (_takeoutTokenDate != today) {
-          _takeoutTokenDate = today;
-          _takeoutTokenNumber = 1;
-          _takeoutUnsyncedIncrements = 0;
-          await s.set('takeoutTokenDate', _takeoutTokenDate);
-          await s.set('takeoutTokenNumber', '1');
-        }
+      }
+      
+      // Ensure date is today
+      if (_takeoutTokenDate != _todayYYMMDD()) {
+        _takeoutTokenDate = _todayYYMMDD();
+        _takeoutTokenNumber = 1;
+        await s.set('takeoutTokenDate', _takeoutTokenDate);
+        await s.set('takeoutTokenNumber', '1');
       }
 
       // --- CATEGORIES ---
@@ -601,105 +574,6 @@ class RestaurantProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> _syncTakeoutTokenIfNeeded() async {
-    if (!_takeoutTokenPendingSync) return;
-    if (!web.isOnline()) return;
-    final s = Repository.instance.settings;
-    final today = _todayYYMMDD();
-    try {
-      if (_takeoutUnsyncedIncrements <= 0) {
-        _takeoutTokenPendingSync = false;
-        return;
-      }
-      final remote = await SyncService.instance.incrementTakeoutCounter(today, _takeoutUnsyncedIncrements);
-      if (remote == null) return;
-      final current = (remote['current'] as num?)?.toInt() ?? _takeoutTokenNumber;
-      _takeoutTokenDate = today;
-      _takeoutTokenNumber = current;
-      _takeoutUnsyncedIncrements = 0;
-      _takeoutTokenPendingSync = false;
-      await s.set('takeoutTokenDate', _takeoutTokenDate);
-      await s.set('takeoutTokenNumber', _takeoutTokenNumber.toString());
-      notifyListeners();
-    } catch (_) {}
-  }
-
-  Future<void> _advanceTakeoutToken() async {
-    final s = Repository.instance.settings;
-    final prefs = await SharedPreferences.getInstance();
-    final today = _todayYYMMDD();
-    if (web.isOnline()) {
-      try {
-        final delta = 1 + _takeoutUnsyncedIncrements;
-        final remote = await SyncService.instance.incrementTakeoutCounter(today, delta);
-        if (remote != null) {
-          final current = (remote['current'] as num?)?.toInt() ?? 1;
-          _takeoutTokenDate = today;
-          _takeoutTokenNumber = current;
-          _takeoutUnsyncedIncrements = 0;
-          _takeoutTokenPendingSync = false;
-          await s.set('takeoutTokenDate', _takeoutTokenDate);
-          await s.set('takeoutTokenNumber', _takeoutTokenNumber.toString());
-          await prefs.setInt('takeoutTokenNumber', _takeoutTokenNumber);
-          await prefs.setString('takeoutTokenDate', _takeoutTokenDate);
-          notifyListeners();
-          return;
-        }
-      } catch (_) {}
-    }
-    if (_takeoutTokenDate != today) {
-      _takeoutTokenDate = today;
-      _takeoutTokenNumber = 0;
-      _takeoutUnsyncedIncrements = 0;
-    }
-    _takeoutTokenNumber = _takeoutTokenNumber + 1;
-    _takeoutUnsyncedIncrements = _takeoutUnsyncedIncrements + 1;
-    _takeoutTokenPendingSync = true;
-    await s.set('takeoutTokenDate', _takeoutTokenDate);
-    await s.set('takeoutTokenNumber', _takeoutTokenNumber.toString());
-    await prefs.setInt('takeoutTokenNumber', _takeoutTokenNumber);
-    await prefs.setString('takeoutTokenDate', _takeoutTokenDate);
-    notifyListeners();
-  }
-
-  Future<void> _reconcileOrderStatuses() async {
-    if (!web.isOnline()) return;
-    try {
-      final remoteOrders = await SyncService.instance.listRemoteOrders();
-      if (remoteOrders.isEmpty) return;
-      final byId = {for (final o in remoteOrders) o.id: o};
-      final localActive = await Repository.instance.orders.listActiveOrders();
-      for (final lo in localActive) {
-        final ro = byId[lo.id];
-        if (ro == null) continue;
-        final remoteStatus = ro.status;
-        final okToSettle = remoteStatus == 'Settled' ? (ro.settledAt != null) : true;
-        if (remoteStatus != lo.status && okToSettle) {
-          await Repository.instance.orders.updateOrderStatus(
-            lo.id,
-            remoteStatus,
-            paymentMethod: ro.paymentMethod,
-            fromSync: true,
-          );
-        }
-      }
-      await _loadState();
-    } catch (_) {}
-  }
-  
-  Future<void> _updatePendingOpsCount() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final s = prefs.getString('pending_ops');
-      if (s == null) {
-        _pendingOpsCount = 0;
-      } else {
-        final list = (jsonDecode(s) as List<dynamic>);
-        _pendingOpsCount = list.length;
-      }
-      notifyListeners();
-    } catch (_) {}
-  }
   Future<void> _saveState() async {
     // Only save to SharedPreferences what is NOT in DB or for legacy support if needed.
     // Actually, we should stop saving large datasets to SharedPreferences to improve performance.
@@ -730,7 +604,23 @@ class RestaurantProvider extends ChangeNotifier {
   // Printer Logic
   static const String _printerEndpoint = 'http://localhost:3001/print';
 
-  // Deprecated web printing via HTML; direct device printing is used instead
+  Future<void> _sendToPrinter(String kind, String htmlDoc) async {
+    try {
+      final res = await http.post(Uri.parse(_printerEndpoint), 
+        headers: {'Content-Type': 'application/json'}, 
+        body: jsonEncode({'type': kind, 'html': htmlDoc})
+      );
+      if (res.statusCode != 200) {
+        throw Exception('Printer responded ${res.statusCode}');
+      }
+    } catch (e) {
+      final prefs = await SharedPreferences.getInstance();
+      final queueStr = prefs.getString('pending_prints');
+      final queue = queueStr != null ? (jsonDecode(queueStr) as List<dynamic>) : <dynamic>[];
+      queue.add({'type': kind, 'html': htmlDoc});
+      await prefs.setString('pending_prints', jsonEncode(queue));
+    }
+  }
 
   Future<void> _flushPendingPrints() async {
     if (!web.isOnline()) return;
@@ -1254,10 +1144,7 @@ class RestaurantProvider extends ChangeNotifier {
     await Repository.instance.orders.logEvent(orderId, 'ready');
     try {
       final ord = _orders.firstWhere((o) => o.id == orderId);
-      final set = _readyKeysByOrder.putIfAbsent(orderId, () => <String>{});
       for (final it in ord.items.where((i) => !i.isCancelled)) {
-        final key = _itemKey(it);
-        set.add(key);
         await Repository.instance.orders.logEvent(orderId, 'ready_item', data: {'id': it.id, 'q': it.quantity});
       }
     } catch (_) {}
@@ -1274,7 +1161,7 @@ class RestaurantProvider extends ChangeNotifier {
   }
 
   Future<void> markOrderAsCompleted(String orderId) async {
-    _orders = _orders.map((o) => o.id == orderId ? Order(id: o.id, table: o.table, status: 'Completed', items: o.items, total: o.total, time: o.time, paymentMethod: o.paymentMethod, createdAt: o.createdAt, readyAt: o.readyAt, settledAt: o.settledAt) : o).toList();
+    _orders = _orders.map((o) => o.id == orderId ? Order(id: o.id, table: o.table, status: 'Completed', items: o.items, total: o.total, time: o.time, paymentMethod: o.paymentMethod) : o).toList();
     notifyListeners();
 
     await Repository.instance.orders.updateOrderStatus(orderId, 'Completed');
@@ -1307,38 +1194,6 @@ class RestaurantProvider extends ChangeNotifier {
     } catch (_) {}
     
     _saveState();
-  }
-
-  bool itemIsReady(String orderId, CartItem item) {
-    final set = _readyKeysByOrder[orderId] ?? const <String>{};
-    return set.contains(_itemKey(item));
-  }
-  bool itemIsServed(String orderId, CartItem item) {
-    final set = _servedKeysByOrder[orderId] ?? const <String>{};
-    return set.contains(_itemKey(item));
-  }
-  Future<void> setItemPreparing(String orderId, CartItem item) async {
-    final key = _itemKey(item);
-    final rset = _readyKeysByOrder.putIfAbsent(orderId, () => <String>{});
-    final sset = _servedKeysByOrder.putIfAbsent(orderId, () => <String>{});
-    rset.remove(key);
-    sset.remove(key);
-    await Repository.instance.orders.logEvent(orderId, 'preparing_item', data: {'id': item.id, 'q': item.quantity});
-    notifyListeners();
-  }
-  Future<void> setItemReady(String orderId, CartItem item) async {
-    final key = _itemKey(item);
-    final set = _readyKeysByOrder.putIfAbsent(orderId, () => <String>{});
-    set.add(key);
-    await Repository.instance.orders.logEvent(orderId, 'ready_item', data: {'id': item.id, 'q': item.quantity});
-    notifyListeners();
-  }
-  Future<void> setItemServed(String orderId, CartItem item) async {
-    final key = _itemKey(item);
-    final set = _servedKeysByOrder.putIfAbsent(orderId, () => <String>{});
-    set.add(key);
-    await Repository.instance.orders.logEvent(orderId, 'served_item', data: {'id': item.id, 'q': item.quantity});
-    notifyListeners();
   }
  
   void openOrderFromDashboard(Order order) {
@@ -1582,7 +1437,13 @@ class RestaurantProvider extends ChangeNotifier {
       } else if (order.table.startsWith('Takeout #')) {
         _takeoutCart = [];
         _sentTakeoutQtyByKey = {};
-        _advanceTakeoutToken();
+        final today = _todayYYMMDD();
+        if (_takeoutTokenDate != today) {
+          _takeoutTokenDate = today;
+          _takeoutTokenNumber = 1;
+        } else {
+          _takeoutTokenNumber = _takeoutTokenNumber + 1;
+        }
         setCurrentView('takeout');
       }
       
@@ -1946,8 +1807,18 @@ class RestaurantProvider extends ChangeNotifier {
     if (currentKOT == null) return;
     final items = currentKOT!['items'] as List<CartItem>;
     
-    // Direct device printing only; skip opening browser tabs
+    final doc = HtmlTicketGenerator.generateKOT(
+      kotData: currentKOT!,
+      menuItems: menuItems,
+    );
+
+    final url = 'data:text/html;charset=utf-8,${Uri.encodeComponent(doc)}';
+    if (kIsWeb) {
+      web.openNewTab(url, features: 'width=800,height=600');
+    }
+    _sendToPrinter('kot', doc);
     
+    // Dual Printer Integration
     try {
       final kotItems = items.map((i) => {
         'name': i.name,
@@ -2092,8 +1963,17 @@ class RestaurantProvider extends ChangeNotifier {
     currentBill!['total'] = recalculatedTotal;
     final items = finalItems;
     
-    // Direct device printing only; skip opening browser tabs
+    final doc = HtmlTicketGenerator.generateBill(
+      billData: currentBill!,
+    );
 
+    final url = 'data:text/html;charset=utf-8,${Uri.encodeComponent(doc)}';
+    if (kIsWeb) {
+      web.openNewTab(url, features: 'width=800,height=600');
+    }
+    _sendToPrinter('bill', doc);
+
+    // Dual Printer Integration
     try {
       final billItems = items.map((i) => {
         'name': i.name,
@@ -2128,11 +2008,11 @@ class RestaurantProvider extends ChangeNotifier {
       _cart = [];
       showToast('Payment received. Table is now available.', icon: '✅');
       setCurrentView('tables');
-      } else {
-        final tableLabel = currentBill!['table'] as String;
-        final method = currentBill!['paymentMethod'] as String?;
-        bool updated = false;
-        _orders = _orders.map((o) {
+    } else {
+      final tableLabel = currentBill!['table'] as String;
+      final method = currentBill!['paymentMethod'] as String?;
+      bool updated = false;
+      _orders = _orders.map((o) {
         if (o.table == tableLabel) {
           updated = true;
           final newTotal = cartTotal(o.items) * 1.05;
@@ -2169,9 +2049,16 @@ class RestaurantProvider extends ChangeNotifier {
       }
       _takeoutCart = [];
       _sentTakeoutQtyByKey = {};
+      _saveState();
       final tokenLabel = tableLabel.replaceFirst('Takeout #', '').trim();
       showToast('Payment received. $tokenLabel closed.', icon: '✅');
-      _advanceTakeoutToken();
+      final today = _todayYYMMDD();
+      if (_takeoutTokenDate != today) {
+        _takeoutTokenDate = today;
+        _takeoutTokenNumber = 1;
+      } else {
+        _takeoutTokenNumber = _takeoutTokenNumber + 1;
+      }
     }
     notifyListeners();
   }

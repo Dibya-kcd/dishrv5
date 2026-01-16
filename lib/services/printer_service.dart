@@ -1,13 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io' show Platform, Socket;
+import 'package:esc_pos_utils_plus/esc_pos_utils_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/printer_model.dart';
 import '../utils/ticket_generator.dart';
-import '../utils/web_adapter.dart' as web;
 
 class PrinterService extends ChangeNotifier {
   static final PrinterService instance = PrinterService._();
@@ -49,11 +49,6 @@ class PrinterService extends ChangeNotifier {
 
   Future<void> loadPairedBluetooths() async {
     try {
-      if (kIsWeb) {
-        _pairedBluetooths = [];
-        notifyListeners();
-        return;
-      }
       final list = await PrintBluetoothThermal.pairedBluetooths;
       _pairedBluetooths = list;
       notifyListeners();
@@ -119,11 +114,6 @@ class PrinterService extends ChangeNotifier {
     notifyListeners();
 
     try {
-      if (kIsWeb) {
-        _isScanning = false;
-        notifyListeners();
-        return;
-      }
       // Check if Bluetooth is supported/on
       if (await FlutterBluePlus.isSupported == false) {
         _isScanning = false;
@@ -176,13 +166,12 @@ class PrinterService extends ChangeNotifier {
   }
 
   Future<void> testPrint(PrinterModel printer) async {
+    final profile = await CapabilityProfile.load();
+    final generator = Generator(PaperSize.mm80, profile);
     List<int> bytes = [];
-    bytes += [27, 64];
-    bytes += [27, 97, 1];
-    bytes += utf8.encode('TEST PRINT SUCCESS');
-    bytes += [10, 10];
-    bytes += [27, 97, 0];
-    bytes += [29, 86, 66, 0];
+    bytes += generator.text('TEST PRINT SUCCESS', styles: const PosStyles(align: PosAlign.center, bold: true, height: PosTextSize.size2));
+    bytes += generator.feed(2);
+    bytes += generator.cut();
     await _printBytes(printer, bytes);
   }
 
@@ -217,58 +206,6 @@ class PrinterService extends ChangeNotifier {
   }
 
   Future<void> _printBluetooth(PrinterModel printer, List<int> bytes) async {
-    if (kIsWeb) {
-      if (web.androidBridgeAvailable()) {
-        final ok = await web.androidPrintBytes(printer.address, bytes);
-        if (ok != true) {
-          throw Exception("Android wrapper printing failed");
-        }
-        return;
-      } else {
-        throw Exception("Bluetooth printing not available in Web environment");
-      }
-    }
-
-    // If Android and address is not a MAC, attempt Classic BT fallback using paired list by name
-    if (!kIsWeb && Platform.isAndroid && !printer.address.contains(':')) {
-      try {
-        final paired = await PrintBluetoothThermal.pairedBluetooths;
-        final match = paired.firstWhere(
-          (p) => p.name.trim().toLowerCase() == printer.name.trim().toLowerCase(),
-          orElse: () => paired.firstWhere(
-            (p) => p.name.trim().toLowerCase().contains(printer.name.trim().toLowerCase()),
-            orElse: () => BluetoothInfo(name: '', macAdress: ''),
-          ),
-        );
-        if (match.macAdress.isNotEmpty) {
-          final connected = await PrintBluetoothThermal.connect(macPrinterAddress: match.macAdress);
-          if (!connected) {
-            throw Exception("Failed to connect to Classic BT printer (paired list)");
-          }
-          final ok = await PrintBluetoothThermal.writeBytes(bytes);
-          if (ok != true) {
-            throw Exception("Write failed on Classic BT printer");
-          }
-          // Persist MAC for future prints
-          _savedPrinters = _savedPrinters.map((p) => p.id == printer.id
-              ? PrinterModel(
-                  id: p.id,
-                  name: p.name,
-                  type: p.type,
-                  address: match.macAdress,
-                  port: p.port,
-                  isKOT: p.isKOT,
-                  isBill: p.isBill,
-                )
-              : p).toList();
-          await _savePrinters();
-          return;
-        }
-      } catch (_) {
-        // fall through to other paths
-      }
-    }
-
     // Classic BT path (Android): MAC addresses contain ':' (e.g., 00:1B:10:73:AD:08)
     if (!kIsWeb && Platform.isAndroid && printer.address.contains(':')) {
       final connected = await PrintBluetoothThermal.connect(macPrinterAddress: printer.address);
@@ -287,7 +224,8 @@ class PrinterService extends ChangeNotifier {
     try {
       await device.connect();
     } catch (e) {
-      throw Exception("Could not connect via BLE. On Android, most thermal printers use Classic Bluetooth (SPP). Add printer from 'Paired Devices' or enter MAC (e.g., 00:1B:10:73:AD:08). Original error: $e");
+      // If we can't connect, we can't discover services.
+      throw Exception("Could not connect to BLE printer: $e");
     }
 
     if (device.isConnected == false) {
@@ -295,8 +233,8 @@ class PrinterService extends ChangeNotifier {
        try {
           await device.connect();
        } catch (e) {
-          throw Exception("BLE connect retry failed. If your printer is not BLE, use Classic Bluetooth via paired list or MAC address. Original error: $e");
-      }
+          throw Exception("Could not connect to BLE printer (retry failed): $e");
+       }
     }
     
     List<BluetoothService> services = await device.discoverServices();
@@ -311,7 +249,7 @@ class PrinterService extends ChangeNotifier {
       if (targetChar != null) break;
     }
     if (targetChar == null) {
-      throw Exception("No writable BLE characteristic found. Your printer may not support BLE write. Use Classic Bluetooth (SPP) by adding a paired device or entering its MAC address.");
+      throw Exception("No writable characteristic found on printer");
     }
     const int chunkSize = 20;
     for (var i = 0; i < bytes.length; i += chunkSize) {
