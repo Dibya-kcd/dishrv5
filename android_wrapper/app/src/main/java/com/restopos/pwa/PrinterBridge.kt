@@ -14,7 +14,9 @@ import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import android.widget.Toast
 import java.io.IOException
+import java.io.OutputStream
 import java.util.UUID
+import kotlin.math.min
 
 class PrinterBridge(private val context: Context, private val webView: WebView) {
 
@@ -48,9 +50,13 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
                 adapter.cancelDiscovery()
                 socket.connect()
                 val out = socket.outputStream
+                Thread.sleep(150)
+                val init = byteArrayOf(0x1B, 0x40)
+                val cp = byteArrayOf(0x1D, 0x74, 0x00)
+                out.write(init)
+                out.write(cp)
                 val bytes = data.toByteArray(Charsets.UTF_8)
-                out.write(bytes)
-                out.flush()
+                writeChunks(out, bytes)
                 showToast("Print sent")
             } catch (e: Exception) {
                 Log.e(TAG, "Print failed", e)
@@ -96,9 +102,13 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
                     socket.connect()
                 }
                 val out = socket.outputStream
+                Thread.sleep(150)
+                val init = byteArrayOf(0x1B, 0x40)
+                val cp = byteArrayOf(0x1D, 0x74, 0x00)
+                out.write(init)
+                out.write(cp)
                 val bytes = android.util.Base64.decode(b64, android.util.Base64.DEFAULT)
-                out.write(bytes)
-                out.flush()
+                writeChunks(out, bytes)
                 showToast("Print sent")
             } catch (e: Exception) {
                 Log.e(TAG, "Print failed", e)
@@ -151,6 +161,17 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
                 }
             }
         }.start()
+    }
+
+    private fun writeChunks(out: OutputStream, bytes: ByteArray, chunkSize: Int = 256) {
+        var i = 0
+        while (i < bytes.size) {
+            val end = min(i + chunkSize, bytes.size)
+            out.write(bytes, i, end - i)
+            out.flush()
+            Thread.sleep(10)
+            i = end
+        }
     }
 
     private fun createSocket(device: BluetoothDevice): BluetoothSocket {
