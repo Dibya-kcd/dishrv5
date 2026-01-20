@@ -1,9 +1,12 @@
 package com.restopos.pwa
 
+import android.Manifest
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothSocket
 import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -22,6 +25,12 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
 
     @JavascriptInterface
     fun print(data: String) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (context.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                showToast("Bluetooth permission not granted")
+                return
+            }
+        }
         val mac = prefs.getString(PREF_PRINTER_MAC, null)
         if (mac.isNullOrEmpty()) {
             showToast("No printer configured")
@@ -57,6 +66,12 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
 
     @JavascriptInterface
     fun printBase64(b64: String) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (context.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                showToast("Bluetooth permission not granted")
+                return
+            }
+        }
         val mac = prefs.getString(PREF_PRINTER_MAC, null)
         if (mac.isNullOrEmpty()) {
             showToast("No printer configured")
@@ -99,6 +114,12 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
 
     @JavascriptInterface
     fun connect(macAddress: String) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (context.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                showToast("Bluetooth permission not granted")
+                return
+            }
+        }
         if (adapter == null || !adapter.isEnabled) {
             showToast("Bluetooth not available")
             return

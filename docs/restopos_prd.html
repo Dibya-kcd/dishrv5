@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RestoPOS Product Requirements Document</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+      line-height: 1.6;
+      margin: 0;
+      padding: 2rem;
+      color: #111;
+      background: #fff;
+    }
+    h1, h2, h3 {
+      margin: 0 0 0.5rem 0;
+    }
+    h1 { font-size: 1.8rem; }
+    h2 { font-size: 1.4rem; margin-top: 1.6rem; }
+    h3 { font-size: 1.1rem; margin-top: 1rem; }
+    p, li {
+      font-size: 0.98rem;
+    }
+    ul {
+      margin: 0.4rem 0 0.8rem 1.2rem;
+    }
+    .meta {
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+      color: #555;
+    }
+    .section {
+      padding-bottom: 0.8rem;
+      border-bottom: 1px solid #e5e7eb;
+      margin-bottom: 0.8rem;
+    }
+    @media print {
+      body { padding: 0.5in; }
+      a[href]::after { content: ""; }
+    }
+  </style>
+</head>
+<body>
+  <h1>RestoPOS Product Requirements Document (PRD)</h1>
+  <div class="meta">
+    Version: 1.0 • Target Platforms: Web (PWA), Android Wrapper • Date: 2026-01-20
+  </div>
+
+  <div class="section">
+    <h2>Overview</h2>
+    <p>RestoPOS is a restaurant point-of-sale application delivered as a Progressive Web App (PWA) and packaged for Android via a WebView wrapper. It enables fast order-taking, printing to thermal receipt printers via a native Android bridge, inventory tracking, menu management, billing, and reporting. The Android wrapper provides Bluetooth printing capabilities for ESC/POS-compatible printers.</p>
+  </div>
+
+  <div class="section">
+    <h2>Goals</h2>
+    <ul>
+      <li>Streamline dine-in and take-away order workflows with minimal taps.</li>
+      <li>Enable reliable receipt and kitchen ticket printing via Bluetooth printers.</li>
+      <li>Support offline-first usage with resilient sync when connectivity is restored.</li>
+      <li>Provide essential inventory and menu management with simple controls.</li>
+      <li>Deliver actionable reports for daily operations and reconciliation.</li>
+      <li>Offer a clean, responsive UI optimized for tablets and large-screen phones.</li>
+    </ul>
+    <h3>Non-Goals</h3>
+    <ul>
+      <li>Full ERP features beyond core POS needs.</li>
+      <li>Native iOS application.</li>
+      <li>Complex loyalty programs beyond basic discounts.</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>Personas</h2>
+    <ul>
+      <li>Cashier: Creates orders, applies discounts, collects payments, prints receipts.</li>
+      <li>Waitstaff: Manages table orders, splits bills, triggers kitchen tickets.</li>
+      <li>Manager/Owner: Configures menu, pricing, taxes, reviews reports, manages users.</li>
+      <li>Kitchen Staff: Receives clear, concise tickets with item notes and table info.</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>Key Use Cases</h2>
+    <ul>
+      <li>Create a new order, add items with modifiers, apply taxes and discounts, complete payment, print receipt.</li>
+      <li>Open a table, add rounds of items, move items between tables, split and settle bills, print final receipt.</li>
+      <li>Trigger kitchen tickets immediately upon item add or on submit, print per station when needed.</li>
+      <li>Configure a Bluetooth printer and send ESC/POS output via the Android bridge.</li>
+      <li>Operate offline with local persistence and queued sync for orders and inventory changes.</li>
+      <li>Review sales summary, top items, taxes collected, payment methods, and cashier shifts.</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>Functional Requirements</h2>
+    <h3>Menu Management</h3>
+    <ul>
+      <li>Create categories and items with name, SKU, price, tax class, availability.</li>
+      <li>Support modifiers/add-ons with price adjustments and optional notes.</li>
+      <li>Enable item flags: vegetarian, spicy, bestseller, out-of-stock.</li>
+      <li>Bulk import/export of items for onboarding and updates.</li>
+    </ul>
+    <h3>Ordering</h3>
+    <ul>
+      <li>Dine-in and take-away flows with fast add-to-order and search.</li>
+      <li>Table management: open, transfer items, merge/split bills.</li>
+      <li>Discounts: item-level and order-level fixed or percentage.</li>
+      <li>Taxes: configurable rates, inclusive/exclusive, per item or global.</li>
+      <li>Notes: per item and per order, visible on receipts and kitchen tickets.</li>
+    </ul>
+    <h3>Payments</h3>
+    <ul>
+      <li>Cash, card, UPI/QR, and custom methods; partial payments and split tender.</li>
+      <li>Refunds and voids with audit trail; reprint receipts.</li>
+      <li>Day open/close with cash-in/out and reconciliation.</li>
+    </ul>
+    <h3>Printing</h3>
+    <ul>
+      <li>Bluetooth printer configuration via the Android wrapper.</li>
+      <li>Receipt and kitchen ticket formats with headers, items, totals, and QR.</li>
+      <li>ESC/POS output using base64 transfer to the Android bridge.</li>
+      <li>Printer fallback: secure then insecure RFCOMM for compatibility.</li>
+      <li>Per-station routing and duplicate prints for split kitchens.</li>
+    </ul>
+    <h3>Inventory</h3>
+    <ul>
+      <li>Stock levels per item; simple decrement on sale and manual adjustment.</li>
+      <li>Low-stock alerts and out-of-stock toggles.</li>
+      <li>Optional ingredient mapping to deduct composite items.</li>
+    </ul>
+    <h3>Reports</h3>
+    <ul>
+      <li>Sales summary by day, category, item, and payment method.</li>
+      <li>Taxes collected and discounts granted with breakdowns.</li>
+      <li>Top items, peak hours, and staff performance indicators.</li>
+    </ul>
+    <h3>Users & Roles</h3>
+    <ul>
+      <li>Roles: cashier, waiter, manager, admin with scoped permissions.</li>
+      <li>Authentication with PIN or password; session timeout.</li>
+      <li>Audit events for price changes, refunds, and voids.</li>
+    </ul>
+    <h3>Settings</h3>
+    <ul>
+      <li>Business profile: name, address, GST, contact, branding.</li>
+      <li>Receipt layout toggles: header logo, QR, tax visibility, language.</li>
+      <li>Printer MAC storage, test print, and default template selection.</li>
+      <li>Localization and currency preferences.</li>
+    </ul>
+    <h3>Offline & Sync</h3>
+    <ul>
+      <li>Local caching of menu and settings; queue orders during outage.</li>
+      <li>Conflict resolution on sync with last-write-wins for simple fields.</li>
+      <li>Operational safeguards to prevent duplicate order IDs.</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>UX / UI</h2>
+    <h3>Navigation</h3>
+    <ul>
+      <li>Primary tabs: Orders, Menu, Inventory, Reports, Settings.</li>
+      <li>Quick actions bar for search, favorites, and recent items.</li>
+    </ul>
+    <h3>Layouts</h3>
+    <ul>
+      <li>Two-pane layout on tablets: catalog left, cart/right details.</li>
+      <li>Responsive cards and lists with large tap targets.</li>
+      <li>High-contrast theme with optional dark mode.</li>
+    </ul>
+    <h3>Workflows</h3>
+    <ul>
+      <li>Order flow: add items, apply discounts/taxes, payment, print.</li>
+      <li>Kitchen ticket flow: immediate or batched, per station routing.</li>
+      <li>Day close: totals, discrepancies, cash ledger export, print summary.</li>
+    </ul>
+    <h3>Accessibility</h3>
+    <ul>
+      <li>Keyboard shortcuts for frequent actions on desktop.</li>
+      <li>Screen reader labels and focus order maintained.</li>
+      <li>Minimum contrast ratios for text and controls.</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>Architecture</h2>
+    <ul>
+      <li>PWA frontend served over HTTPS; Android wrapper loads the hosted URL.</li>
+      <li>Android bridge exposes JavaScript interface for printer operations.</li>
+      <li>Bridge methods: connect(mac), print(text), printBase64(base64EscPos).</li>
+      <li>Bluetooth printing over RFCOMM SPP using ESC/POS byte streams.</li>
+      <li>Local storage for printer MAC and settings; optional backend for sync.</li>
+    </ul>
+    <h3>Data Model</h3>
+    <ul>
+      <li>Item: id, name, sku, price, taxClass, category, flags.</li>
+      <li>Modifier: id, name, priceDelta, appliesToItemIds.</li>
+      <li>Order: id, status, items[], totals, discounts[], taxes[], payments[].</li>
+      <li>Payment: id, method, amount, reference, time.</li>
+      <li>User: id, role, name, pin, active.</li>
+      <li>Printer: mac, name, template, lastTest.</li>
+    </ul>
+    <h3>Integrations</h3>
+    <ul>
+      <li>QR/UPI payments via static code generation.</li>
+      <li>Optional cloud sync API for menu, orders, reports.</li>
+      <li>CSV exports for accounting and reports.</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>Non-Functional Requirements</h2>
+    <ul>
+      <li>Performance: sub-100ms item add, sub-2s print dispatch.</li>
+      <li>Reliability: print retries and fallback socket strategy.</li>
+      <li>Security: HTTPS PWA, least-privilege roles, no storage of sensitive card data.</li>
+      <li>Privacy: customer data limited to receipt essentials only.</li>
+      <li>Maintainability: modular menu, orders, printing modules with clear boundaries.</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>Testing & QA</h2>
+    <ul>
+      <li>Unit tests for pricing, discounts, tax calculations.</li>
+      <li>Integration tests for order flows and printing bridge calls.</li>
+      <li>Device tests on common Android versions and thermal printers.</li>
+      <li>Offline tests for queueing and conflict scenarios.</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>Deployment</h2>
+    <ul>
+      <li>PWA hosting on a static site with HTTPS and service worker caching.</li>
+      <li>Android wrapper builds with AndroidX enabled and WebView settings hardened.</li>
+      <li>Versioning with semantic releases; change log and release notes.</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>Acceptance Criteria</h2>
+    <ul>
+      <li>Orders can be placed, paid, and receipts printed within expected times.</li>
+      <li>Kitchen tickets print reliably for configured stations.</li>
+      <li>Printer setup supports common ESC/POS Bluetooth models.</li>
+      <li>Reports show accurate totals and breakdowns for a given period.</li>
+      <li>App remains usable offline and syncs correctly on reconnection.</li>
+    </ul>
+  </div>
+
+  <p class="meta">End of document.</p>
+</body>
+</html>
