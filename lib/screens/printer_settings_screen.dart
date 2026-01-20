@@ -357,6 +357,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> with Sing
   Widget _buildSavedPrinterTile(PrinterModel printer) {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      color: printer.isConnected ? Colors.green.withValues(alpha: 0.12) : null,
       child: ExpansionTile(
         title: Text(printer.name, style: const TextStyle(fontWeight: FontWeight.bold)),
         subtitle: Column(

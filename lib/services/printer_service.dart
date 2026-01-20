@@ -49,6 +49,14 @@ class PrinterService extends ChangeNotifier {
     notifyListeners();
   }
 
+  void _setConnectionStatus(String id, bool isConnected) {
+    final index = _savedPrinters.indexWhere((p) => p.id == id);
+    if (index != -1) {
+      _savedPrinters[index].isConnected = isConnected;
+      _savePrinters();
+    }
+  }
+
   Future<void> loadPairedBluetooths() async {
     if (kIsWeb) return; // Not supported on Web/PWA
     try {
@@ -191,7 +199,9 @@ class PrinterService extends ChangeNotifier {
       } else {
         throw Exception("USB Printing not fully implemented yet");
       }
+      _setConnectionStatus(printer.id, true);
     } catch (e) {
+      _setConnectionStatus(printer.id, false);
       rethrow;
     }
   }

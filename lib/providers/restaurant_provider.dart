@@ -1831,7 +1831,7 @@ class RestaurantProvider extends ChangeNotifier {
         'Order'
       );
     } catch (e) {
-      // debugPrint("KOT Print Error: $e");
+      showToast('KOT printer error: $e', icon: '❌');
     }
     
     showKOTPreview = false;
@@ -1988,7 +1988,7 @@ class RestaurantProvider extends ChangeNotifier {
         recalculatedTotal
       );
     } catch (e) {
-      // debugPrint("Bill Print Error: $e");
+      showToast('Bill printer error: $e', icon: '❌');
     }
     
     showBillPreview = false;
