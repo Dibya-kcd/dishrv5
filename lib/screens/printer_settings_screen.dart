@@ -109,12 +109,19 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> with Sing
                           alignment: Alignment.centerRight,
                           child: ElevatedButton(
                             onPressed: () {
-                              if (_macController.text.isEmpty || _btManualNameController.text.isEmpty) return;
+                              final mac = _macController.text.trim();
+                              final name = _btManualNameController.text.trim();
+                              final macRegex = RegExp(r'^[0-9A-Fa-f]{2}(:[0-9A-Fa-f]{2}){5}$');
+                              if (mac.isEmpty || name.isEmpty) return;
+                              if (!macRegex.hasMatch(mac)) {
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Invalid MAC Address')));
+                                return;
+                              }
                               final printer = PrinterModel(
-                                id: _macController.text,
-                                name: _btManualNameController.text,
+                                id: mac,
+                                name: name,
                                 type: PrinterType.bluetooth,
-                                address: _macController.text,
+                                address: mac,
                               );
                               PrinterService.instance.addPrinter(printer);
                               _macController.clear();
@@ -229,12 +236,19 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> with Sing
                           alignment: Alignment.centerRight,
                           child: ElevatedButton(
                             onPressed: () {
-                              if (_macController.text.isEmpty || _btManualNameController.text.isEmpty) return;
+                              final mac = _macController.text.trim();
+                              final name = _btManualNameController.text.trim();
+                              final macRegex = RegExp(r'^[0-9A-Fa-f]{2}(:[0-9A-Fa-f]{2}){5}$');
+                              if (mac.isEmpty || name.isEmpty) return;
+                              if (!macRegex.hasMatch(mac)) {
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Invalid MAC Address')));
+                                return;
+                              }
                               final printer = PrinterModel(
-                                id: _macController.text,
-                                name: _btManualNameController.text,
+                                id: mac,
+                                name: name,
                                 type: PrinterType.bluetooth,
-                                address: _macController.text,
+                                address: mac,
                               );
                               PrinterService.instance.addPrinter(printer);
                               _macController.clear();

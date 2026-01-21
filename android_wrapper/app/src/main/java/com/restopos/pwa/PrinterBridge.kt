@@ -38,6 +38,10 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
             showToast("No printer configured")
             return
         }
+        if (!isValidMac(mac)) {
+            showToast("Invalid MAC address")
+            return
+        }
         if (adapter == null || !adapter.isEnabled) {
             showToast("Bluetooth not available")
             return
@@ -46,6 +50,10 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
             var socket: BluetoothSocket? = null
             try {
                 val device = adapter.getRemoteDevice(mac)
+                if (device.bondState != BluetoothDevice.BOND_BONDED) {
+                    showToast("Pair printer in system settings")
+                    return@Thread
+                }
                 socket = createSocket(device)
                 adapter.cancelDiscovery()
                 socket.connect()
@@ -54,9 +62,11 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
                 val init = byteArrayOf(0x1B, 0x40)
                 val cp = byteArrayOf(0x1D, 0x74, 0x00)
                 out.write(init)
+                Thread.sleep(50)
                 out.write(cp)
                 val bytes = data.toByteArray(Charsets.UTF_8)
                 writeChunks(out, bytes)
+                writeFinalization(out)
                 showToast("Print sent")
             } catch (e: Exception) {
                 Log.e(TAG, "Print failed", e)
@@ -83,6 +93,10 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
             showToast("No printer configured")
             return
         }
+        if (!isValidMac(mac)) {
+            showToast("Invalid MAC address")
+            return
+        }
         if (adapter == null || !adapter.isEnabled) {
             showToast("Bluetooth not available")
             return
@@ -91,6 +105,10 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
             var socket: BluetoothSocket? = null
             try {
                 val device = adapter.getRemoteDevice(mac)
+                if (device.bondState != BluetoothDevice.BOND_BONDED) {
+                    showToast("Pair printer in system settings")
+                    return@Thread
+                }
                 socket = createSocket(device)
                 adapter.cancelDiscovery()
                 try {
@@ -106,9 +124,11 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
                 val init = byteArrayOf(0x1B, 0x40)
                 val cp = byteArrayOf(0x1D, 0x74, 0x00)
                 out.write(init)
+                Thread.sleep(50)
                 out.write(cp)
                 val bytes = android.util.Base64.decode(b64, android.util.Base64.DEFAULT)
                 writeChunks(out, bytes)
+                writeFinalization(out)
                 showToast("Print sent")
             } catch (e: Exception) {
                 Log.e(TAG, "Print failed", e)
@@ -130,6 +150,10 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
                 return
             }
         }
+        if (!isValidMac(macAddress)) {
+            showToast("Invalid MAC address")
+            return
+        }
         if (adapter == null || !adapter.isEnabled) {
             showToast("Bluetooth not available")
             return
@@ -140,6 +164,10 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
             var socket: BluetoothSocket? = null
             try {
                 val device = adapter.getRemoteDevice(macAddress)
+                if (device.bondState != BluetoothDevice.BOND_BONDED) {
+                    showToast("Pair printer in system settings")
+                    return@Thread
+                }
                 socket = createSocket(device)
                 adapter.cancelDiscovery()
                 try {
@@ -172,6 +200,21 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
             Thread.sleep(10)
             i = end
         }
+    }
+
+    private fun writeFinalization(out: OutputStream) {
+        val lf = byteArrayOf(0x0A)
+        repeat(6) { out.write(lf) }
+        out.flush()
+        val cut = byteArrayOf(0x1D, 0x56, 0x01)
+        out.write(cut)
+        out.flush()
+        Thread.sleep(200)
+    }
+
+    private fun isValidMac(mac: String): Boolean {
+        val regex = Regex("^[0-9A-Fa-f]{2}(:[0-9A-Fa-f]{2}){5}\$")
+        return regex.matches(mac)
     }
 
     private fun createSocket(device: BluetoothDevice): BluetoothSocket {
