@@ -24,6 +24,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         ensureBtPermissions()
+        WebView.setWebContentsDebuggingEnabled(true)
         webView = findViewById(R.id.webview)
         val s: WebSettings = webView.settings
         s.javaScriptEnabled = true

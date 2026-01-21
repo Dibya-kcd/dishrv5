@@ -1,4 +1,4 @@
-#Wed Jan 21 11:19:47 IST 2026
+#Wed Jan 21 16:29:50 IST 2026
 base.2=C\:\\Users\\piku\\develop\\hotela\\dishrv5\\android_wrapper\\app\\build\\intermediates\\dex\\debug\\mergeProjectDexDebug\\8\\classes.dex
 path.2=8/classes.dex
 base.1=C\:\\Users\\piku\\develop\\hotela\\dishrv5\\android_wrapper\\app\\build\\intermediates\\dex\\debug\\mergeProjectDexDebug\\0\\classes.dex

@@ -60,9 +60,17 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
                 val out = socket!!.outputStream
                 Thread.sleep(150)
                 val init = byteArrayOf(0x1B, 0x40)
-                val cp = byteArrayOf(0x1D, 0x74, 0x00)
+                val std = byteArrayOf(0x1B, 0x53) // Standard mode
+                val cancelReverse = byteArrayOf(0x1D, 0x42, 0x00) // Cancel white/black reverse
+                val alignLeft = byteArrayOf(0x1B, 0x61, 0x00) // Align left
+                val lineDefault = byteArrayOf(0x1B, 0x32) // Default line spacing
+                val cp = byteArrayOf(0x1D, 0x74, 0x00) // Code page 0 (PC437)
                 out.write(init)
                 Thread.sleep(50)
+                out.write(std)
+                out.write(cancelReverse)
+                out.write(alignLeft)
+                out.write(lineDefault)
                 out.write(cp)
                 val bytes = data.toByteArray(Charsets.UTF_8)
                 writeChunks(out, bytes)
@@ -122,9 +130,17 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
                 val out = socket!!.outputStream
                 Thread.sleep(150)
                 val init = byteArrayOf(0x1B, 0x40)
-                val cp = byteArrayOf(0x1D, 0x74, 0x00)
+                val std = byteArrayOf(0x1B, 0x53) // Standard mode
+                val cancelReverse = byteArrayOf(0x1D, 0x42, 0x00) // Cancel white/black reverse
+                val alignLeft = byteArrayOf(0x1B, 0x61, 0x00) // Align left
+                val lineDefault = byteArrayOf(0x1B, 0x32) // Default line spacing
+                val cp = byteArrayOf(0x1D, 0x74, 0x00) // Code page 0 (PC437)
                 out.write(init)
                 Thread.sleep(50)
+                out.write(std)
+                out.write(cancelReverse)
+                out.write(alignLeft)
+                out.write(lineDefault)
                 out.write(cp)
                 val bytes = android.util.Base64.decode(b64, android.util.Base64.DEFAULT)
                 writeChunks(out, bytes)
@@ -180,6 +196,12 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
                 // Test 1: Initialization
                 Log.i(TAG, "Diagnostic: Sending ESC @ (Init)")
                 out.write(byteArrayOf(0x1B, 0x40))
+                // Force standard mode, cancel reverse, left align, default line spacing, code page 0
+                out.write(byteArrayOf(0x1B, 0x53))
+                out.write(byteArrayOf(0x1D, 0x42, 0x00))
+                out.write(byteArrayOf(0x1B, 0x61, 0x00))
+                out.write(byteArrayOf(0x1B, 0x32))
+                out.write(byteArrayOf(0x1D, 0x74, 0x00))
                 out.flush()
                 Thread.sleep(500)
 
@@ -263,8 +285,13 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
                 out.write(byteArrayOf(0x1B, 0x40))
                 Thread.sleep(200)
                 
-                // Code Page 437 (Standard) - ESC t 0
-                out.write(byteArrayOf(0x1B, 0x74, 0x00)) 
+                // Force standard mode, cancel reverse, left align, default line spacing
+                out.write(byteArrayOf(0x1B, 0x53))
+                out.write(byteArrayOf(0x1D, 0x42, 0x00))
+                out.write(byteArrayOf(0x1B, 0x61, 0x00))
+                out.write(byteArrayOf(0x1B, 0x32))
+                // Code Page 437 (Standard) - GS t 0
+                out.write(byteArrayOf(0x1D, 0x74, 0x00)) 
                 Thread.sleep(50)
 
                 val bytes = android.util.Base64.decode(b64, android.util.Base64.DEFAULT)
