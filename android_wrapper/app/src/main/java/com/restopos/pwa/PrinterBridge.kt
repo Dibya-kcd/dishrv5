@@ -57,7 +57,7 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
                 socket = createSocket(device)
                 adapter.cancelDiscovery()
                 socket.connect()
-                val out = socket.outputStream
+                val out = socket!!.outputStream
                 Thread.sleep(150)
                 val init = byteArrayOf(0x1B, 0x40)
                 val cp = byteArrayOf(0x1D, 0x74, 0x00)
@@ -119,7 +119,7 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
                     socket = createInsecureSocket(device)
                     socket.connect()
                 }
-                val out = socket.outputStream
+                val out = socket!!.outputStream
                 Thread.sleep(150)
                 val init = byteArrayOf(0x1B, 0x40)
                 val cp = byteArrayOf(0x1D, 0x74, 0x00)
@@ -138,6 +138,145 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
                     socket?.close()
                 } catch (_: IOException) {
                 }
+            }
+        }.start()
+    }
+
+    @JavascriptInterface
+    fun diagnosticTest() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (context.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                showToast("Bluetooth permission not granted")
+                return
+            }
+        }
+        val mac = prefs.getString(PREF_PRINTER_MAC, null)
+        if (mac.isNullOrEmpty()) {
+            showToast("No printer configured")
+            return
+        }
+
+        Thread {
+            var socket: BluetoothSocket? = null
+            try {
+                val device = adapter?.getRemoteDevice(mac)
+                if (device == null) {
+                    showToast("Device not found")
+                    return@Thread
+                }
+                
+                // Log connection attempt
+                Log.i(TAG, "Diagnostic: Connecting to $mac")
+                
+                socket = try {
+                    createSocket(device).also { it.connect() }
+                } catch (e: Exception) {
+                    Log.w(TAG, "Diagnostic: Secure connection failed, trying insecure", e)
+                    createInsecureSocket(device).also { it.connect() }
+                }
+
+                val out = socket!!.outputStream
+                
+                // Test 1: Initialization
+                Log.i(TAG, "Diagnostic: Sending ESC @ (Init)")
+                out.write(byteArrayOf(0x1B, 0x40))
+                out.flush()
+                Thread.sleep(500)
+
+                // Test 2: Raw Text
+                Log.i(TAG, "Diagnostic: Sending Raw Text 'TEST START'")
+                out.write("TEST START\n".toByteArray())
+                out.flush()
+                Thread.sleep(200)
+
+                // Test 3: Line Feeds
+                Log.i(TAG, "Diagnostic: Sending Line Feeds")
+                out.write("\n\n\n".toByteArray())
+                out.flush()
+                Thread.sleep(200)
+
+                // Test 4: Multiple Characters
+                Log.i(TAG, "Diagnostic: Sending Character Set")
+                out.write("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789\n".toByteArray())
+                out.flush()
+                Thread.sleep(200)
+
+                // Test 5: Paper Cut
+                Log.i(TAG, "Diagnostic: Sending Cut")
+                out.write(byteArrayOf(0x1D, 0x56, 0x01))
+                out.flush()
+                
+                Log.i(TAG, "Diagnostic: Completed successfully")
+                showToast("Diagnostic Test Sent")
+
+            } catch (e: Exception) {
+                Log.e(TAG, "Diagnostic failed", e)
+                showToast("Diagnostic Error: ${e.message}")
+            } finally {
+                try { socket?.close() } catch (e: Exception) {}
+            }
+        }.start()
+    }
+
+    @JavascriptInterface
+    fun printAlternative(b64: String) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (context.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                showToast("Bluetooth permission not granted")
+                return
+            }
+        }
+        val mac = prefs.getString(PREF_PRINTER_MAC, null)
+        if (mac.isNullOrEmpty()) {
+            showToast("No printer configured")
+            return
+        }
+        if (!isValidMac(mac)) {
+            showToast("Invalid MAC address")
+            return
+        }
+
+        Thread {
+            var socket: BluetoothSocket? = null
+            try {
+                val device = adapter!!.getRemoteDevice(mac)
+                if (device.bondState != BluetoothDevice.BOND_BONDED) {
+                    showToast("Pair printer in system settings")
+                    return@Thread
+                }
+                
+                socket = try {
+                    createSocket(device).also { it.connect() }
+                } catch (e: Exception) {
+                    Log.w(TAG, "Secure connect failed, trying insecure", e)
+                    createInsecureSocket(device).also { it.connect() }
+                }
+
+                val out = socket!!.outputStream
+                
+                // Alternative Init Sequence
+                // Wake up (Null bytes)
+                out.write(byteArrayOf(0x00, 0x00))
+                Thread.sleep(50)
+                
+                // Init (ESC @)
+                out.write(byteArrayOf(0x1B, 0x40))
+                Thread.sleep(200)
+                
+                // Code Page 437 (Standard) - ESC t 0
+                out.write(byteArrayOf(0x1B, 0x74, 0x00)) 
+                Thread.sleep(50)
+
+                val bytes = android.util.Base64.decode(b64, android.util.Base64.DEFAULT)
+                writeChunks(out, bytes)
+                writeFinalization(out)
+                
+                showToast("Alt Print sent")
+            } catch (e: Exception) {
+                Log.e(TAG, "Alt Print failed", e)
+                showToast("Alt Print failed: ${e.message}")
+            } finally {
+                try { socket?.close() } catch (_: IOException) {}
             }
         }.start()
     }
