@@ -107,7 +107,7 @@ class _EmployeeCardState extends State<_EmployeeCard> {
     final card = AnimatedContainer(
       duration: const Duration(milliseconds: 150),
       curve: Curves.easeOut,
-      transform: Matrix4.identity()..scale(_hover ? 1.02 : 1.0),
+      transform: Matrix4.identity()..scaleByDouble(_hover ? 1.02 : 1.0),
       padding: EdgeInsets.all(12 * scale),
       decoration: BoxDecoration(
         color: const Color(0xFF18181B),

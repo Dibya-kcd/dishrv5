@@ -22,9 +22,6 @@ class _MenuScreenState extends State<MenuScreen> {
       final selectedCategory = provider.selectedCategory;
       final menuItems = selectedCategory == 'All' ? provider.menuItems : provider.menuItems.where((m) => m.category == selectedCategory).toList();
 
-      final isMobile = width < 600;
-      final isTablet = width >= 600 && width <= 1024;
-      final isDesktop = width > 1024;
       final cross = width >= 1024 ? 4 : (width >= 640 ? 3 : 2);
       final cardAspect = 1.0;
       
@@ -322,7 +319,7 @@ class _MenuScreenState extends State<MenuScreen> {
                                           TextField(decoration: const InputDecoration(hintText: 'Price'), controller: priceController, keyboardType: TextInputType.number),
                                           const SizedBox(height: 8),
                                           DropdownButtonFormField<String>(
-                                            value: selected,
+                                            initialValue: selected,
                                             items: categories.where((c) => c != 'All').map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
                                             onChanged: (v) { if (v != null) setLocal(() => selected = v); },
                                             decoration: const InputDecoration(hintText: 'Category'),
@@ -336,7 +333,7 @@ class _MenuScreenState extends State<MenuScreen> {
                                             value: v,
                                             onChanged: (val) => soldOut.value = val,
                                             title: const Text('Sold Out', style: TextStyle(color: Colors.white)),
-                                            activeColor: const Color(0xFFEF4444),
+                                            activeThumbColor: const Color(0xFFEF4444),
                                           ),
                                         ),
                                         const SizedBox(height: 8),
@@ -638,7 +635,7 @@ class _MenuScreenState extends State<MenuScreen> {
                         Switch(
                           value: item.soldOut,
                           onChanged: (v) => context.read<RestaurantProvider>().toggleSoldOut(item.id, v),
-                          activeColor: const Color(0xFFEF4444),
+                          activeThumbColor: const Color(0xFFEF4444),
                         ),
                       ],
                     ),

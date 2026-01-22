@@ -125,7 +125,7 @@ class KitchenScreen extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               DropdownButtonFormField<String>(
-                value: selectedReason,
+                initialValue: selectedReason,
                 items: reasons.map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
                 onChanged: (v) => setState(() => selectedReason = v!),
                 decoration: const InputDecoration(labelText: 'Reason'),

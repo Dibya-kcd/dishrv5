@@ -27,7 +27,7 @@ class TakeoutScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: selectedReason,
+                initialValue: selectedReason,
                 items: reasons.map((r) => DropdownMenuItem(value: r, child: Text(r, style: const TextStyle(color: Colors.white)))).toList(),
                 onChanged: (v) => setState(() => selectedReason = v!),
                 dropdownColor: const Color(0xFF27272A),
