@@ -40,6 +40,13 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> with Sing
     return Scaffold(
       appBar: AppBar(
         title: const Text('Printer Settings'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.monitor_heart),
+            tooltip: 'Run Diagnostics',
+            onPressed: _runDiagnostics,
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
