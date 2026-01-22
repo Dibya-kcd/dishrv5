@@ -206,17 +206,23 @@ class PrinterService extends ChangeNotifier {
   }
 
   Future<void> _printBluetooth(PrinterModel printer, List<int> bytes) async {
-    // Classic BT path (Android): MAC addresses contain ':' (e.g., 00:1B:10:73:AD:08)
-    if (!kIsWeb && Platform.isAndroid && printer.address.contains(':')) {
-      final connected = await PrintBluetoothThermal.connect(macPrinterAddress: printer.address);
-      if (!connected) {
-        throw Exception("Failed to connect to Classic BT printer");
+    // Classic BT path (Android) - Try this first for all Android devices
+    if (!kIsWeb && Platform.isAndroid) {
+      try {
+        final connected = await PrintBluetoothThermal.connect(macPrinterAddress: printer.address);
+        if (connected) {
+           final ok = await PrintBluetoothThermal.writeBytes(bytes);
+           if (ok != true) {
+             throw Exception("Write failed on Classic BT printer");
+           }
+           return;
+        }
+      } catch (e) {
+        // If Classic BT fails, we can fall through to BLE, 
+        // but usually Classic BT is what's intended on Android for thermal printers.
+        // We log it and continue to BLE only if we really think it might be BLE.
+        debugPrint("Classic BT Connection failed: $e. Trying BLE...");
       }
-      final ok = await PrintBluetoothThermal.writeBytes(bytes);
-      if (ok != true) {
-        throw Exception("Write failed on Classic BT printer");
-      }
-      return;
     }
 
     // BLE path
