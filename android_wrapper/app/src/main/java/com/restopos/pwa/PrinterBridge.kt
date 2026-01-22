@@ -13,6 +13,11 @@ import android.util.Log
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import android.widget.Toast
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.Typeface
+import android.graphics.Color
 import java.io.IOException
 import java.io.OutputStream
 import java.util.UUID
@@ -202,20 +207,31 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
 
                 // Test 2: Raw Text
                 Log.i(TAG, "Diagnostic: Sending Raw Text 'TEST START'")
-                out.write("TEST START\n".toByteArray())
+                out.write("TEST START\r\n".toByteArray())
                 out.flush()
                 Thread.sleep(200)
 
                 // Test 3: Line Feeds
                 Log.i(TAG, "Diagnostic: Sending Line Feeds")
-                out.write("\n\n\n".toByteArray())
+                out.write("\r\n\r\n\r\n".toByteArray())
                 out.flush()
                 Thread.sleep(200)
 
                 // Test 4: Multiple Characters
                 Log.i(TAG, "Diagnostic: Sending Character Set")
-                out.write("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789\n".toByteArray())
+                out.write(byteArrayOf(0x1B, 0x45, 0x01)) // Bold ON
+                out.write("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789\r\n".toByteArray())
+                out.write(byteArrayOf(0x1B, 0x45, 0x00)) // Bold OFF
                 out.flush()
+                Thread.sleep(200)
+
+                // Page Mode flush, if printer was in page mode
+                Log.i(TAG, "Diagnostic: Sending Form Feed (ESC FF)")
+                out.write(byteArrayOf(0x1B, 0x0C))
+                out.flush()
+                Thread.sleep(200)
+
+                sendRasterText(out, "RASTER TEST")
                 Thread.sleep(200)
 
                 // Test 5: Paper Cut
@@ -291,6 +307,9 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
 
                 val bytes = android.util.Base64.decode(b64, android.util.Base64.DEFAULT)
                 writeChunks(out, bytes)
+                // Page Mode flush, if printer buffered content
+                out.write(byteArrayOf(0x1B, 0x0C))
+                out.flush()
                 writeFinalization(out)
                 
                 showToast("Alt Print sent")
@@ -401,5 +420,62 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
         private const val TAG = "PrinterBridge"
         private const val PREF_PRINTER_MAC = "printer_mac"
         private val SPP_UUID: UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
+    }
+
+    private fun sendRasterText(out: OutputStream, text: String) {
+        val width = 576
+        val height = 120
+        val bmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bmp)
+        canvas.drawColor(Color.WHITE)
+        val paint = Paint()
+        paint.color = Color.BLACK
+        paint.isAntiAlias = true
+        paint.textSize = 48f
+        paint.typeface = Typeface.DEFAULT_BOLD
+        val fm = paint.fontMetrics
+        val baseline = ((height - (fm.bottom - fm.top)) / 2f) - fm.top
+        canvas.drawRect(0f, 0f, width.toFloat(), 20f, paint)
+        canvas.drawText(text, 10f, baseline, paint)
+        val bytes = bitmapToRasterBytes(bmp)
+        out.write(bytes)
+        out.flush()
+    }
+
+    private fun bitmapToRasterBytes(bitmap: Bitmap): ByteArray {
+        val w = bitmap.width
+        val h = bitmap.height
+        val bytesPerRow = (w + 7) / 8
+        val xL = (bytesPerRow and 0xFF).toByte()
+        val xH = ((bytesPerRow shr 8) and 0xFF).toByte()
+        val yL = (h and 0xFF).toByte()
+        val yH = ((h shr 8) and 0xFF).toByte()
+        val data = ByteArray(bytesPerRow * h)
+        var idx = 0
+        for (y in 0 until h) {
+            var b = 0
+            var bitCount = 0
+            for (x in 0 until w) {
+                val c = bitmap.getPixel(x, y)
+                val r = Color.red(c)
+                val g = Color.green(c)
+                val bch = Color.blue(c)
+                val lum = (0.299 * r + 0.587 * g + 0.114 * bch).toInt()
+                val bit = if (lum < 128) 1 else 0
+                b = (b shl 1) or bit
+                bitCount++
+                if (bitCount == 8) {
+                    data[idx++] = b.toByte()
+                    b = 0
+                    bitCount = 0
+                }
+            }
+            if (bitCount > 0) {
+                b = b shl (8 - bitCount)
+                data[idx++] = b.toByte()
+            }
+        }
+        val header = byteArrayOf(0x1D, 0x76, 0x30, 0x00, xL, xH, yL, yH)
+        return header + data
     }
 }
