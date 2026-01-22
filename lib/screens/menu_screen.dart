@@ -123,7 +123,8 @@ class _MenuScreenState extends State<MenuScreen> {
                               TextField(decoration: const InputDecoration(hintText: 'Price'), controller: priceController, keyboardType: TextInputType.number),
                               const SizedBox(height: 8),
                               DropdownButtonFormField<String>(
-                                initialValue: selected,
+                                // ignore: deprecated_member_use
+                                value: selected,
                                 items: categories.where((c) => c != 'All').map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
                                 onChanged: (v) { if (v != null) setLocal(() => selected = v); },
                                 decoration: const InputDecoration(hintText: 'Category'),
@@ -319,7 +320,8 @@ class _MenuScreenState extends State<MenuScreen> {
                                           TextField(decoration: const InputDecoration(hintText: 'Price'), controller: priceController, keyboardType: TextInputType.number),
                                           const SizedBox(height: 8),
                                           DropdownButtonFormField<String>(
-                                            initialValue: selected,
+                                            // ignore: deprecated_member_use
+                                            value: selected,
                                             items: categories.where((c) => c != 'All').map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
                                             onChanged: (v) { if (v != null) setLocal(() => selected = v); },
                                             decoration: const InputDecoration(hintText: 'Category'),
@@ -333,7 +335,8 @@ class _MenuScreenState extends State<MenuScreen> {
                                             value: v,
                                             onChanged: (val) => soldOut.value = val,
                                             title: const Text('Sold Out', style: TextStyle(color: Colors.white)),
-                                            activeThumbColor: const Color(0xFFEF4444),
+                                            // ignore: deprecated_member_use
+                                            activeColor: const Color(0xFFEF4444),
                                           ),
                                         ),
                                         const SizedBox(height: 8),
@@ -635,7 +638,8 @@ class _MenuScreenState extends State<MenuScreen> {
                         Switch(
                           value: item.soldOut,
                           onChanged: (v) => context.read<RestaurantProvider>().toggleSoldOut(item.id, v),
-                          activeThumbColor: const Color(0xFFEF4444),
+                          // ignore: deprecated_member_use
+                          activeColor: const Color(0xFFEF4444),
                         ),
                       ],
                     ),

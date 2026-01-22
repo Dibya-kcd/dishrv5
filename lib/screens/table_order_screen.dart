@@ -29,7 +29,8 @@ class TableOrderScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                initialValue: selectedReason,
+                // ignore: deprecated_member_use
+                value: selectedReason,
                 items: reasons.map((r) => DropdownMenuItem(value: r, child: Text(r, style: const TextStyle(color: Colors.white)))).toList(),
                 onChanged: (v) => setState(() => selectedReason = v!),
                 dropdownColor: const Color(0xFF27272A),

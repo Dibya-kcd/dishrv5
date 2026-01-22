@@ -341,19 +341,17 @@ class _InventoryScreenState extends State<InventoryScreen> {
               if (batches.isNotEmpty)
                 Container(
                   decoration: BoxDecoration(color: const Color(0xFF0B0B0E), borderRadius: BorderRadius.circular(8), border: Border.all(color: const Color(0xFF27272A))),
-                  child: RadioGroup<int>(
-                    value: selectedIdx,
-                    onChanged: (v) => setLocal(() => selectedIdx = v),
-                    child: Column(children: batches.asMap().entries.map((e) {
+                  child: Column(children: batches.asMap().entries.map((e) {
                       final idx = e.key;
                       final b = e.value;
                       final ts = DateTime.fromMillisecondsSinceEpoch((b['timestamp'] as int?) ?? DateTime.now().millisecondsSinceEpoch).toLocal().toString();
                       return RadioListTile<int>(
                         value: idx,
+                        groupValue: selectedIdx,
+                        onChanged: (v) => setLocal(() => selectedIdx = v),
                         title: Text('Batch ${idx + 1} • $ts', style: const TextStyle(color: Colors.white)),
                       );
                     }).toList()),
-                  ),
                 ),
             ]),
           ),
