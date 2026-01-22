@@ -92,7 +92,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> with Sing
                         Expanded(
                           child: ElevatedButton(
                             onPressed: () {
-                              PrinterService.instance.runAndroidDiagnostic();
+                              PrinterService.instance.runDiagnosticBridge();
                             },
                             child: const Text('Run Diagnostic'),
                           ),

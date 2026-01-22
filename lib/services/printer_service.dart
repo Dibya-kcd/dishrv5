@@ -187,7 +187,7 @@ class PrinterService extends ChangeNotifier {
     await _printBytes(printer, bytes);
   }
 
-  Future<void> runAndroidDiagnostic() async {
+  Future<void> runDiagnosticBridge() async {
     if (kIsWeb) {
       runAndroidDiagnostic();
     }
