@@ -9,8 +9,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/printer_model.dart';
 import '../utils/ticket_generator.dart';
 
-import 'web_bridge.dart' if (dart.library.io) 'android_printer_stub.dart';
-
 class PrinterService extends ChangeNotifier {
   static final PrinterService instance = PrinterService._();
   PrinterService._();
@@ -49,16 +47,7 @@ class PrinterService extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _setConnectionStatus(String id, bool isConnected) {
-    final index = _savedPrinters.indexWhere((p) => p.id == id);
-    if (index != -1) {
-      _savedPrinters[index].isConnected = isConnected;
-      _savePrinters();
-    }
-  }
-
   Future<void> loadPairedBluetooths() async {
-    if (kIsWeb) return; // Not supported on Web/PWA
     try {
       final list = await PrintBluetoothThermal.pairedBluetooths;
       _pairedBluetooths = list;
@@ -119,7 +108,6 @@ class PrinterService extends ChangeNotifier {
 
   // Bluetooth Scanning
   Future<void> startScan() async {
-    if (kIsWeb) return; // Scanning not supported on PWA
     if (_isScanning) return;
     _scanResults.clear();
     _isScanning = true;
@@ -187,27 +175,6 @@ class PrinterService extends ChangeNotifier {
     await _printBytes(printer, bytes);
   }
 
-  Future<void> runDiagnosticBridge() async {
-    if (kIsWeb) {
-      runAndroidDiagnostic();
-    }
-  }
-
-  Future<void> testAlternativePrint(PrinterModel printer) async {
-    final profile = await CapabilityProfile.load();
-    final generator = Generator(PaperSize.mm80, profile);
-    List<int> bytes = [];
-    bytes += generator.text('ALTERNATIVE TEST', styles: const PosStyles(align: PosAlign.center, bold: true));
-    bytes += generator.feed(2);
-    bytes += generator.cut();
-    final dataB64 = base64.encode(bytes);
-    if (kIsWeb) {
-      printToAndroidPrinterAlternativeBase64(dataB64);
-    } else {
-      await _printBluetooth(printer, bytes);
-    }
-  }
-
   Future<void> _printBytes(PrinterModel printer, List<int> bytes) async {
     try {
       if (printer.type == PrinterType.network) {
@@ -220,9 +187,7 @@ class PrinterService extends ChangeNotifier {
       } else {
         throw Exception("USB Printing not fully implemented yet");
       }
-      _setConnectionStatus(printer.id, true);
     } catch (e) {
-      _setConnectionStatus(printer.id, false);
       rethrow;
     }
   }
@@ -241,23 +206,6 @@ class PrinterService extends ChangeNotifier {
   }
 
   Future<void> _printBluetooth(PrinterModel printer, List<int> bytes) async {
-    if (kIsWeb) {
-      try {
-        connectToAndroidPrinter(printer.address);
-        final dataB64 = base64.encode(bytes);
-        try {
-          printToAndroidPrinterBase64(dataB64);
-          return;
-        } catch (_) {
-          final data = utf8.decode(bytes, allowMalformed: true);
-          printToAndroidPrinter(data);
-          return;
-        }
-      } catch (e) {
-        throw Exception("Failed to print via Android Bridge: $e");
-      }
-    }
-
     // Classic BT path (Android): MAC addresses contain ':' (e.g., 00:1B:10:73:AD:08)
     if (!kIsWeb && Platform.isAndroid && printer.address.contains(':')) {
       final connected = await PrintBluetoothThermal.connect(macPrinterAddress: printer.address);

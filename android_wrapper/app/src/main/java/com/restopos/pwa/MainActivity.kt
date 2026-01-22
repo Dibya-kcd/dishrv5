@@ -7,24 +7,19 @@ import android.webkit.WebChromeClient
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
-import android.widget.Toast
 
 class MainActivity : AppCompatActivity() {
     private lateinit var webView: WebView
-    private val requestPerms = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
-        val allGranted = permissions.entries.all { it.value }
-        if (!allGranted) {
-            Toast.makeText(this, "Bluetooth permissions required for printer", Toast.LENGTH_LONG).show()
-        }
-    }
+    private val requestPerms = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { _ -> }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         ensureBtPermissions()
-        WebView.setWebContentsDebuggingEnabled(true)
         webView = findViewById(R.id.webview)
         val s: WebSettings = webView.settings
         s.javaScriptEnabled = true
@@ -41,7 +36,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun ensureBtPermissions() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            requestPerms.launch(arrayOf(Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.BLUETOOTH_SCAN))
+            requestPerms.launch(arrayOf(Manifest.permission.BLUETOOTH_CONNECT))
         }
     }
 }

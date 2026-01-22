@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import '../models/printer_model.dart';
 import '../services/printer_service.dart';
 
@@ -66,107 +65,6 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> with Sing
       animation: PrinterService.instance,
       builder: (context, child) {
         final service = PrinterService.instance;
-
-        // Web/PWA specific UI
-        if (kIsWeb) {
-             return ListView(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Card(
-                      color: Colors.orangeAccent.withValues(alpha: 0.2), 
-                      child: const Padding(
-                        padding: EdgeInsets.all(16.0),
-                        child: Text(
-                          "PWA Mode: Bluetooth scanning is not supported in the browser/webview.\n"
-                          "Please add your printer manually using its MAC Address (e.g., 00:1B:10:73:AD:08).",
-                          style: TextStyle(fontSize: 14),
-                        ),
-                      )
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () {
-                              PrinterService.instance.runDiagnosticBridge();
-                            },
-                            child: const Text('Run Diagnostic'),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () async {
-                              final printers = service.savedPrinters.where((p) => p.type == PrinterType.bluetooth).toList();
-                              if (printers.isEmpty) {
-                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Add a Bluetooth printer first')));
-                                return;
-                              }
-                              await PrinterService.instance.testAlternativePrint(printers.first);
-                            },
-                            child: const Text('Alt Test Print'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (service.savedPrinters.any((p) => p.type == PrinterType.bluetooth)) ...[
-                    const ListTile(title: Text('Saved Printers', style: TextStyle(fontWeight: FontWeight.bold))),
-                    ...service.savedPrinters.where((p) => p.type == PrinterType.bluetooth).map((p) => _buildSavedPrinterTile(p)),
-                    const Divider(),
-                  ],
-                  const ListTile(title: Text('Add Manual Bluetooth Printer', style: TextStyle(fontWeight: FontWeight.bold))),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Column(
-                      children: [
-                        TextField(
-                          controller: _macController,
-                          decoration: const InputDecoration(labelText: 'MAC Address', hintText: '00:1B:10:73:AD:08'),
-                        ),
-                        const SizedBox(height: 10),
-                        TextField(
-                          controller: _btManualNameController,
-                          decoration: const InputDecoration(labelText: 'Printer Name', hintText: 'BT Printer'),
-                        ),
-                        const SizedBox(height: 12),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              final mac = _macController.text.trim();
-                              final name = _btManualNameController.text.trim();
-                              final macRegex = RegExp(r'^[0-9A-Fa-f]{2}(:[0-9A-Fa-f]{2}){5}$');
-                              if (mac.isEmpty || name.isEmpty) return;
-                              if (!macRegex.hasMatch(mac)) {
-                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Invalid MAC Address')));
-                                return;
-                              }
-                              final printer = PrinterModel(
-                                id: mac,
-                                name: name,
-                                type: PrinterType.bluetooth,
-                                address: mac,
-                              );
-                              PrinterService.instance.addPrinter(printer);
-                              _macController.clear();
-                              _btManualNameController.clear();
-                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Bluetooth Printer Added')));
-                            },
-                            child: const Text('Save'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-             );
-        }
-
         return Column(
           children: [
             Padding(
@@ -265,19 +163,12 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> with Sing
                           alignment: Alignment.centerRight,
                           child: ElevatedButton(
                             onPressed: () {
-                              final mac = _macController.text.trim();
-                              final name = _btManualNameController.text.trim();
-                              final macRegex = RegExp(r'^[0-9A-Fa-f]{2}(:[0-9A-Fa-f]{2}){5}$');
-                              if (mac.isEmpty || name.isEmpty) return;
-                              if (!macRegex.hasMatch(mac)) {
-                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Invalid MAC Address')));
-                                return;
-                              }
+                              if (_macController.text.isEmpty || _btManualNameController.text.isEmpty) return;
                               final printer = PrinterModel(
-                                id: mac,
-                                name: name,
+                                id: _macController.text,
+                                name: _btManualNameController.text,
                                 type: PrinterType.bluetooth,
-                                address: mac,
+                                address: _macController.text,
                               );
                               PrinterService.instance.addPrinter(printer);
                               _macController.clear();
@@ -400,7 +291,6 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> with Sing
   Widget _buildSavedPrinterTile(PrinterModel printer) {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      color: printer.isConnected ? Colors.green.withValues(alpha: 0.12) : null,
       child: ExpansionTile(
         title: Text(printer.name, style: const TextStyle(fontWeight: FontWeight.bold)),
         subtitle: Column(

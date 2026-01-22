@@ -28,20 +28,16 @@ class TableOrderScreen extends StatelessWidget {
                 style: TextStyle(color: Colors.white70),
               ),
               const SizedBox(height: 16),
-              DropdownButtonHideUnderline(
-                child: InputDecorator(
-                  decoration: const InputDecoration(
-                    labelText: 'Reason',
-                    labelStyle: TextStyle(color: Colors.grey),
-                    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
-                  ),
-                  child: DropdownButton<String>(
-                    value: selectedReason,
-                    items: reasons.map((r) => DropdownMenuItem(value: r, child: Text(r, style: const TextStyle(color: Colors.white)))).toList(),
-                    onChanged: (v) => setState(() => selectedReason = v!),
-                    dropdownColor: const Color(0xFF27272A),
-                    style: const TextStyle(color: Colors.white),
-                  ),
+              DropdownButtonFormField<String>(
+                value: selectedReason,
+                items: reasons.map((r) => DropdownMenuItem(value: r, child: Text(r, style: const TextStyle(color: Colors.white)))).toList(),
+                onChanged: (v) => setState(() => selectedReason = v!),
+                dropdownColor: const Color(0xFF27272A),
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(
+                  labelText: 'Reason',
+                  labelStyle: TextStyle(color: Colors.grey),
+                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
                 ),
               ),
               const SizedBox(height: 16),

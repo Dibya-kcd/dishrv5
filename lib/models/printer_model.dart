@@ -8,7 +8,6 @@ class PrinterModel {
   final int? port; // For Network
   bool isKOT;
   bool isBill;
-  bool isConnected;
 
   PrinterModel({
     required this.id,
@@ -18,7 +17,6 @@ class PrinterModel {
     this.port,
     this.isKOT = false,
     this.isBill = false,
-    this.isConnected = false,
   });
 
   Map<String, dynamic> toJson() {
@@ -30,7 +28,6 @@ class PrinterModel {
       'port': port,
       'isKOT': isKOT,
       'isBill': isBill,
-      'isConnected': isConnected,
     };
   }
 
@@ -43,7 +40,6 @@ class PrinterModel {
       port: json['port'],
       isKOT: json['isKOT'] ?? false,
       isBill: json['isBill'] ?? false,
-      isConnected: json['isConnected'] ?? false,
     );
   }
 }

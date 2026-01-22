@@ -104,9 +104,10 @@ class _EmployeeCardState extends State<_EmployeeCard> {
       avatar = _fallbackAvatar(scale);
     }
 
-    final cardContent = AnimatedContainer(
+    final card = AnimatedContainer(
       duration: const Duration(milliseconds: 150),
       curve: Curves.easeOut,
+      transform: Matrix4.identity()..scale(_hover ? 1.02 : 1.0),
       padding: EdgeInsets.all(12 * scale),
       decoration: BoxDecoration(
         color: const Color(0xFF18181B),
@@ -194,12 +195,6 @@ class _EmployeeCardState extends State<_EmployeeCard> {
           ),
         ],
       ),
-    );
-
-    final card = AnimatedScale(
-      duration: const Duration(milliseconds: 150),
-      scale: _hover ? 1.02 : 1.0,
-      child: cardContent,
     );
 
     return MouseRegion(

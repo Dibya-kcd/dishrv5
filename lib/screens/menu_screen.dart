@@ -22,9 +22,9 @@ class _MenuScreenState extends State<MenuScreen> {
       final selectedCategory = provider.selectedCategory;
       final menuItems = selectedCategory == 'All' ? provider.menuItems : provider.menuItems.where((m) => m.category == selectedCategory).toList();
 
-      // final isMobile = width < 600;
-      // final isTablet = width >= 600 && width <= 1024;
-      // final isDesktop = width > 1024;
+      final isMobile = width < 600;
+      final isTablet = width >= 600 && width <= 1024;
+      final isDesktop = width > 1024;
       final cross = width >= 1024 ? 4 : (width >= 640 ? 3 : 2);
       final cardAspect = 1.0;
       
@@ -125,16 +125,11 @@ class _MenuScreenState extends State<MenuScreen> {
                               const SizedBox(height: 8),
                               TextField(decoration: const InputDecoration(hintText: 'Price'), controller: priceController, keyboardType: TextInputType.number),
                               const SizedBox(height: 8),
-                              DropdownButtonHideUnderline(
-                                child: InputDecorator(
-                                  decoration: const InputDecoration(hintText: 'Category'),
-                                  child: DropdownButton<String>(
-                                    value: selected,
-                                    items: categories.where((c) => c != 'All').map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
-                                    onChanged: (v) { if (v != null) setLocal(() => selected = v); },
-                                    dropdownColor: const Color(0xFF18181B),
-                                  ),
-                                ),
+                              DropdownButtonFormField<String>(
+                                value: selected,
+                                items: categories.where((c) => c != 'All').map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                                onChanged: (v) { if (v != null) setLocal(() => selected = v); },
+                                decoration: const InputDecoration(hintText: 'Category'),
                               ),
                             ],
                           ),
@@ -326,31 +321,22 @@ class _MenuScreenState extends State<MenuScreen> {
                                           const SizedBox(height: 8),
                                           TextField(decoration: const InputDecoration(hintText: 'Price'), controller: priceController, keyboardType: TextInputType.number),
                                           const SizedBox(height: 8),
-                                          DropdownButtonHideUnderline(
-                                            child: InputDecorator(
-                                              decoration: const InputDecoration(hintText: 'Category'),
-                                              child: DropdownButton<String>(
-                                                value: selected,
-                                                items: categories.where((c) => c != 'All').map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
-                                                onChanged: (v) { if (v != null) setLocal(() => selected = v); },
-                                                dropdownColor: const Color(0xFF18181B),
-                                              ),
-                                            ),
+                                          DropdownButtonFormField<String>(
+                                            value: selected,
+                                            items: categories.where((c) => c != 'All').map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                                            onChanged: (v) { if (v != null) setLocal(() => selected = v); },
+                                            decoration: const InputDecoration(hintText: 'Category'),
                                           ),
                                           const SizedBox(height: 8),
                                           TextField(decoration: const InputDecoration(hintText: 'Emoji/Image'), controller: emojiController),
                                           const SizedBox(height: 8),
                                         ValueListenableBuilder<bool>(
                                           valueListenable: soldOut,
-                                          builder: (_, v, __) => ListTile(
+                                          builder: (_, v, __) => SwitchListTile(
+                                            value: v,
+                                            onChanged: (val) => soldOut.value = val,
                                             title: const Text('Sold Out', style: TextStyle(color: Colors.white)),
-                                            trailing: Switch(
-                                              value: v,
-                                              onChanged: (val) => soldOut.value = val,
-                                              thumbColor: WidgetStateProperty.resolveWith<Color?>(
-                                                (states) => states.contains(WidgetState.selected) ? const Color(0xFFEF4444) : null,
-                                              ),
-                                            ),
+                                            activeColor: const Color(0xFFEF4444),
                                           ),
                                         ),
                                         const SizedBox(height: 8),
@@ -652,9 +638,7 @@ class _MenuScreenState extends State<MenuScreen> {
                         Switch(
                           value: item.soldOut,
                           onChanged: (v) => context.read<RestaurantProvider>().toggleSoldOut(item.id, v),
-                          thumbColor: WidgetStateProperty.resolveWith<Color?>(
-                            (states) => states.contains(WidgetState.selected) ? const Color(0xFFEF4444) : null,
-                          ),
+                          activeColor: const Color(0xFFEF4444),
                         ),
                       ],
                     ),

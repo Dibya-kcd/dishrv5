@@ -640,7 +640,11 @@ class RestaurantProvider extends ChangeNotifier {
         if (res.statusCode != 200) {
           remaining.add(job);
         }
-      } catch (_) {
+      } catch (e) {
+        // If server is definitely not running, stop retrying this job
+        if (e.toString().contains('Connection refused') || e.toString().contains('ERR_CONNECTION_REFUSED')) {
+           continue;
+        }
         remaining.add(job);
       }
     }
@@ -1831,7 +1835,7 @@ class RestaurantProvider extends ChangeNotifier {
         'Order'
       );
     } catch (e) {
-      showToast('KOT printer error: $e', icon: '❌');
+      // debugPrint("KOT Print Error: $e");
     }
     
     showKOTPreview = false;
@@ -1988,7 +1992,7 @@ class RestaurantProvider extends ChangeNotifier {
         recalculatedTotal
       );
     } catch (e) {
-      showToast('Bill printer error: $e', icon: '❌');
+      // debugPrint("Bill Print Error: $e");
     }
     
     showBillPreview = false;

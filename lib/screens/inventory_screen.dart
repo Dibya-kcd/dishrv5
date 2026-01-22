@@ -340,29 +340,18 @@ class _InventoryScreenState extends State<InventoryScreen> {
               const SizedBox(height: 8),
               if (batches.isNotEmpty)
                 Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF0B0B0E),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFF27272A)),
-                  ),
-                  child: Column(
-                    children: batches.asMap().entries.map((e) {
-                      final idx = e.key;
-                      final b = e.value;
-                      final ts = DateTime.fromMillisecondsSinceEpoch(
-                        (b['timestamp'] as int?) ?? DateTime.now().millisecondsSinceEpoch,
-                      ).toLocal().toString();
-                      final selected = selectedIdx == idx;
-                      return ListTile(
-                        leading: Icon(
-                          selected ? Icons.radio_button_checked : Icons.radio_button_off,
-                          color: Colors.white,
-                        ),
-                        title: Text('Batch ${idx + 1} • $ts', style: const TextStyle(color: Colors.white)),
-                        onTap: () => setLocal(() => selectedIdx = idx),
-                      );
-                    }).toList(),
-                  ),
+                  decoration: BoxDecoration(color: const Color(0xFF0B0B0E), borderRadius: BorderRadius.circular(8), border: Border.all(color: const Color(0xFF27272A))),
+                  child: Column(children: batches.asMap().entries.map((e) {
+                    final idx = e.key;
+                    final b = e.value;
+                    final ts = DateTime.fromMillisecondsSinceEpoch((b['timestamp'] as int?) ?? DateTime.now().millisecondsSinceEpoch).toLocal().toString();
+                    return RadioListTile<int>(
+                      value: idx,
+                      groupValue: selectedIdx,
+                      onChanged: (v) => setLocal(() => selectedIdx = v),
+                      title: Text('Batch ${idx + 1} • $ts', style: const TextStyle(color: Colors.white)),
+                    );
+                  }).toList()),
                 ),
             ]),
           ),
@@ -690,13 +679,12 @@ window.onload = function(){ setTimeout(function(){ window.print(); }, 500); }
     );
   }
 
-  // Unused method kept for future utility
-  // Future<void> _fixDuplicates() async {
-  //   final rp = context.read<RestaurantProvider>();
-  //   await Repository.instance.ingredients.fixInventoryDuplicates();
-  //   await _refresh();
-  //   rp.showToast('Inventory duplicates cleaned.', icon: '✨');
-  // }
+  Future<void> _fixDuplicates() async {
+    final rp = context.read<RestaurantProvider>();
+    await Repository.instance.ingredients.fixInventoryDuplicates();
+    await _refresh();
+    rp.showToast('Inventory duplicates cleaned.', icon: '✨');
+  }
 
   Future<void> _showCreateIngredientDialog() async {
     String name = '';
