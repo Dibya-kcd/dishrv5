@@ -123,7 +123,7 @@ class _MenuScreenState extends State<MenuScreen> {
                               TextField(decoration: const InputDecoration(hintText: 'Price'), controller: priceController, keyboardType: TextInputType.number),
                               const SizedBox(height: 8),
                               DropdownButtonFormField<String>(
-                                value: selected,
+                                initialValue: selected,
                                 items: categories.where((c) => c != 'All').map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
                                 onChanged: (v) { if (v != null) setLocal(() => selected = v); },
                                 decoration: const InputDecoration(hintText: 'Category'),
