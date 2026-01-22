@@ -85,6 +85,35 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> with Sing
                       )
                     ),
                   ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () {
+                              PrinterService.instance.runAndroidDiagnostic();
+                            },
+                            child: const Text('Run Diagnostic'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () async {
+                              final printers = service.savedPrinters.where((p) => p.type == PrinterType.bluetooth).toList();
+                              if (printers.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Add a Bluetooth printer first')));
+                                return;
+                              }
+                              await PrinterService.instance.testAlternativePrint(printers.first);
+                            },
+                            child: const Text('Alt Test Print'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                   if (service.savedPrinters.any((p) => p.type == PrinterType.bluetooth)) ...[
                     const ListTile(title: Text('Saved Printers', style: TextStyle(fontWeight: FontWeight.bold))),
                     ...service.savedPrinters.where((p) => p.type == PrinterType.bluetooth).map((p) => _buildSavedPrinterTile(p)),

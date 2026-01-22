@@ -56,8 +56,15 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
                 }
                 socket = createSocket(device)
                 adapter.cancelDiscovery()
-                socket.connect()
-                val out = socket!!.outputStream
+                try {
+                    socket.connect()
+                } catch (e: Exception) {
+                    Log.w(TAG, "Secure connect failed, trying insecure", e)
+                    try { socket.close() } catch (_: IOException) {}
+                    socket = createInsecureSocket(device)
+                    socket.connect()
+                }
+                val out = socket?.outputStream ?: throw IOException("No output stream")
                 Thread.sleep(150)
                 val init = byteArrayOf(0x1B, 0x40)
                 val std = byteArrayOf(0x1B, 0x53) // Standard mode
@@ -127,24 +134,12 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
                     socket = createInsecureSocket(device)
                     socket.connect()
                 }
-                val out = socket!!.outputStream
-                Thread.sleep(150)
-                val init = byteArrayOf(0x1B, 0x40)
-                val std = byteArrayOf(0x1B, 0x53) // Standard mode
-                val cancelReverse = byteArrayOf(0x1D, 0x42, 0x00) // Cancel white/black reverse
-                val alignLeft = byteArrayOf(0x1B, 0x61, 0x00) // Align left
-                val lineDefault = byteArrayOf(0x1B, 0x32) // Default line spacing
-                val cp = byteArrayOf(0x1D, 0x74, 0x00) // Code page 0 (PC437)
-                out.write(init)
-                Thread.sleep(50)
-                out.write(std)
-                out.write(cancelReverse)
-                out.write(alignLeft)
-                out.write(lineDefault)
-                out.write(cp)
+                val out = socket?.outputStream ?: throw IOException("No output stream")
+                Thread.sleep(100)
                 val bytes = android.util.Base64.decode(b64, android.util.Base64.DEFAULT)
                 writeChunks(out, bytes)
-                writeFinalization(out)
+                out.flush()
+                Thread.sleep(300)
                 showToast("Print sent")
             } catch (e: Exception) {
                 Log.e(TAG, "Print failed", e)
@@ -191,7 +186,7 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
                     createInsecureSocket(device).also { it.connect() }
                 }
 
-                val out = socket!!.outputStream
+                val out = socket?.outputStream ?: throw IOException("No output stream")
                 
                 // Test 1: Initialization
                 Log.i(TAG, "Diagnostic: Sending ESC @ (Init)")
@@ -274,7 +269,7 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
                     createInsecureSocket(device).also { it.connect() }
                 }
 
-                val out = socket!!.outputStream
+                val out = socket?.outputStream ?: throw IOException("No output stream")
                 
                 // Alternative Init Sequence
                 // Wake up (Null bytes)

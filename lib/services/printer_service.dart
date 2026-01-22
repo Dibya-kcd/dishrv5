@@ -187,6 +187,27 @@ class PrinterService extends ChangeNotifier {
     await _printBytes(printer, bytes);
   }
 
+  Future<void> runAndroidDiagnostic() async {
+    if (kIsWeb) {
+      runAndroidDiagnostic();
+    }
+  }
+
+  Future<void> testAlternativePrint(PrinterModel printer) async {
+    final profile = await CapabilityProfile.load();
+    final generator = Generator(PaperSize.mm80, profile);
+    List<int> bytes = [];
+    bytes += generator.text('ALTERNATIVE TEST', styles: const PosStyles(align: PosAlign.center, bold: true));
+    bytes += generator.feed(2);
+    bytes += generator.cut();
+    final dataB64 = base64.encode(bytes);
+    if (kIsWeb) {
+      printToAndroidPrinterAlternativeBase64(dataB64);
+    } else {
+      await _printBluetooth(printer, bytes);
+    }
+  }
+
   Future<void> _printBytes(PrinterModel printer, List<int> bytes) async {
     try {
       if (printer.type == PrinterType.network) {
