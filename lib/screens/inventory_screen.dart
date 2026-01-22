@@ -347,7 +347,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
                       final ts = DateTime.fromMillisecondsSinceEpoch((b['timestamp'] as int?) ?? DateTime.now().millisecondsSinceEpoch).toLocal().toString();
                       return RadioListTile<int>(
                         value: idx,
+                        // ignore: deprecated_member_use
                         groupValue: selectedIdx,
+                        // ignore: deprecated_member_use
                         onChanged: (v) => setLocal(() => selectedIdx = v),
                         title: Text('Batch ${idx + 1} • $ts', style: const TextStyle(color: Colors.white)),
                       );
