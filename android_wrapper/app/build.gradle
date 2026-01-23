@@ -3,6 +3,9 @@ plugins {
     id 'org.jetbrains.kotlin.android'
 }
 
+// Use a separate build directory to avoid stale file locks
+buildDir = 'build_debug'
+
 android {
     namespace 'com.restopos.pwa'
     compileSdk 34

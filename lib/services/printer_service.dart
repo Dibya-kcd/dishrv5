@@ -218,7 +218,11 @@ class PrinterService extends ChangeNotifier {
       // Use unified dual scan for better UX; keep internal scanResults for BLE view
       final merged = await scanForAllPrinters();
       // Update paired list for classic display
-      _pairedBluetooths = await PrintBluetoothThermal.pairedBluetooths;
+      if (!kIsWeb) {
+        _pairedBluetooths = await PrintBluetoothThermal.pairedBluetooths;
+      } else {
+        _pairedBluetooths = [];
+      }
       // Also keep BLE scanResults so existing UI shows raw BLE results
       // (already updated by _scanBLE listener)
       // Expose merged printers to saved list preview if needed
@@ -284,8 +288,11 @@ class PrinterService extends ChangeNotifier {
     debugPrint('Route: Android bridge (Classic BT)');
     try {
       if (kIsWeb) {
+        setAndroidPrinterMac(printer.address);
         connectToAndroidPrinter(printer.address);
-        return true;
+        final ok = checkAndroidPrinterConnection();
+        debugPrint('Classic connect (web bridge) result: $ok');
+        return ok;
       }
       final ok = await PrintBluetoothThermal.connect(macPrinterAddress: printer.address);
       debugPrint('Classic connect result: $ok');
@@ -354,6 +361,7 @@ class PrinterService extends ChangeNotifier {
 
   Future<void> _printViaAndroidBridgeBase64(PrinterModel printer, String base64Data) async {
     if (kIsWeb) {
+      setAndroidPrinterMac(printer.address);
       printToAndroidPrinterBase64(base64Data);
       return;
     }
