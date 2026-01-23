@@ -8,6 +8,8 @@ import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/printer_model.dart';
 import '../utils/ticket_generator.dart';
+import 'package:dishr/web/web_bridge_stub.dart'
+    if (dart.library.js_interop) 'package:dishr/web/web_bridge.dart';
 
 class PrinterService extends ChangeNotifier {
   static final PrinterService instance = PrinterService._();
@@ -121,6 +123,19 @@ class PrinterService extends ChangeNotifier {
   Future<List<PrinterModel>> _scanClassicBluetooth() async {
     debugPrint('=== Scanning Classic Bluetooth (paired devices) ===');
     try {
+      if (kIsWeb) {
+        final list = getAndroidPairedPrinters();
+        final printers = list
+            .map((info) => PrinterModel(
+                  id: info['address'] ?? '',
+                  name: info['name'] ?? '',
+                  type: PrinterType.bluetooth,
+                  address: info['address'] ?? '',
+                ))
+            .toList();
+        debugPrint('Classic scan (web bridge) found: ${printers.length} devices');
+        return printers;
+      }
       final list = await PrintBluetoothThermal.pairedBluetooths;
       final printers = list
           .map((info) => PrinterModel(
@@ -268,6 +283,10 @@ class PrinterService extends ChangeNotifier {
   Future<bool> _connectClassicBluetooth(PrinterModel printer) async {
     debugPrint('Route: Android bridge (Classic BT)');
     try {
+      if (kIsWeb) {
+        connectToAndroidPrinter(printer.address);
+        return true;
+      }
       final ok = await PrintBluetoothThermal.connect(macPrinterAddress: printer.address);
       debugPrint('Classic connect result: $ok');
       return ok == true;
@@ -335,7 +354,8 @@ class PrinterService extends ChangeNotifier {
 
   Future<void> _printViaAndroidBridgeBase64(PrinterModel printer, String base64Data) async {
     if (kIsWeb) {
-      throw Exception("Android bridge printing not available on Web");
+      printToAndroidPrinterBase64(base64Data);
+      return;
     }
     try {
       final connected = await PrintBluetoothThermal.connect(macPrinterAddress: printer.address);
