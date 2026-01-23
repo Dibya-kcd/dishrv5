@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io' show Platform, Socket;
+import 'dart:io' show Socket;
 import 'package:esc_pos_utils_plus/esc_pos_utils_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
@@ -25,6 +25,7 @@ class PrinterService extends ChangeNotifier {
   bool get isScanning => _isScanning;
 
   final TicketGenerator _ticketGenerator = TicketGenerator();
+  static final RegExp _classicMacRegex = RegExp(r'^[0-9A-F]{2}:[0-9A-F]{2}:[0-9A-F]{2}:[0-9A-F]{2}:[0-9A-F]{2}:[0-9A-F]{2}$');
 
   Future<void> init() async {
     await _loadPrinters();
@@ -106,7 +107,92 @@ class PrinterService extends ChangeNotifier {
     Guid("0000ff02-0000-1000-8000-00805f9b34fb"), // Another common POS variant
   ];
 
-  // Bluetooth Scanning
+  PrinterType _detectPrinterType(String address) {
+    final upper = address.toUpperCase();
+    debugPrint('=== Detecting printer type ===');
+    debugPrint('Address: $upper');
+    final isClassic = _classicMacRegex.hasMatch(upper);
+    final detected = isClassic ? PrinterType.bluetooth : PrinterType.ble;
+    debugPrint('Detected type: ${isClassic ? "Classic Bluetooth" : "BLE"}');
+    debugPrint('Will use: ${isClassic ? "Android bridge" : "flutter_blue_plus"}');
+    return detected;
+  }
+
+  Future<List<PrinterModel>> _scanClassicBluetooth() async {
+    debugPrint('=== Scanning Classic Bluetooth (paired devices) ===');
+    try {
+      final list = await PrintBluetoothThermal.pairedBluetooths;
+      final printers = list
+          .map((info) => PrinterModel(
+                id: info.macAdress,
+                name: info.name,
+                type: PrinterType.bluetooth,
+                address: info.macAdress,
+              ))
+          .toList();
+      debugPrint('Classic scan found: ${printers.length} devices');
+      return printers;
+    } catch (e) {
+      debugPrint('Classic scan error: $e');
+      return [];
+    }
+  }
+
+  Future<List<PrinterModel>> _scanBLE() async {
+    debugPrint('=== Scanning BLE via flutter_blue_plus ===');
+    final List<PrinterModel> result = [];
+    try {
+      if (await FlutterBluePlus.isSupported == false) {
+        debugPrint('BLE not supported on this platform');
+        return [];
+      }
+      await FlutterBluePlus.startScan(
+        withServices: kIsWeb ? _printerServices : [],
+        timeout: const Duration(seconds: 8),
+      );
+      final sub = FlutterBluePlus.scanResults.listen((results) {
+        _scanResults = results;
+        notifyListeners();
+      });
+      await Future.delayed(const Duration(seconds: 8));
+      await FlutterBluePlus.stopScan();
+      await sub.cancel();
+      for (final r in _scanResults) {
+        final name = r.device.platformName;
+        final id = r.device.remoteId.str;
+        if (name.isEmpty) continue;
+        // Treat as BLE route by address format (non classic MAC)
+        if (!_classicMacRegex.hasMatch(id.toUpperCase())) {
+          result.add(PrinterModel(
+            id: id,
+            name: name,
+            type: PrinterType.ble,
+            address: id,
+          ));
+        }
+      }
+      debugPrint('BLE scan found: ${result.length} devices');
+    } catch (e) {
+      debugPrint('BLE scan error: $e');
+    }
+    return result;
+  }
+
+  Future<List<PrinterModel>> scanForAllPrinters() async {
+    debugPrint('=== Dual scanning: Classic + BLE ===');
+    final classic = await _scanClassicBluetooth();
+    final ble = await _scanBLE();
+    final merged = [...classic];
+    // Avoid duplicates: prefer classic entries for MAC-matching addresses
+    for (final p in ble) {
+      final isDup = classic.any((c) => c.address == p.address);
+      if (!isDup) merged.add(p);
+    }
+    debugPrint('Merged scan total: ${merged.length}');
+    return merged;
+  }
+
+  // Bluetooth Scanning (kept for UI compatibility)
   Future<void> startScan() async {
     if (_isScanning) return;
     _scanResults.clear();
@@ -114,30 +200,16 @@ class PrinterService extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Check if Bluetooth is supported/on
-      if (await FlutterBluePlus.isSupported == false) {
-        _isScanning = false;
-        notifyListeners();
-        return;
-      }
-
-      // Start scanning
-      // On Web, we MUST provide withServices to access them later
-      await FlutterBluePlus.startScan(
-        withServices: kIsWeb ? _printerServices : [],
-        timeout: const Duration(seconds: 10)
-      );
-      
-      FlutterBluePlus.scanResults.listen((results) {
-        _scanResults = results;
-        notifyListeners();
-      });
-
-      // Stop after timeout
-      await Future.delayed(const Duration(seconds: 10));
-      await FlutterBluePlus.stopScan();
+      // Use unified dual scan for better UX; keep internal scanResults for BLE view
+      final merged = await scanForAllPrinters();
+      // Update paired list for classic display
+      _pairedBluetooths = await PrintBluetoothThermal.pairedBluetooths;
+      // Also keep BLE scanResults so existing UI shows raw BLE results
+      // (already updated by _scanBLE listener)
+      // Expose merged printers to saved list preview if needed
+      debugPrint('Dual scan completed. classic=${_pairedBluetooths.length}, ble=${_scanResults.length}, merged=${merged.length}');
     } catch (e) {
-      // Error scanning
+      debugPrint('startScan error: $e');
     } finally {
       _isScanning = false;
       notifyListeners();
@@ -153,17 +225,6 @@ class PrinterService extends ChangeNotifier {
   }
 
   // Printing Logic
-  Future<void> printKOT(Map<String, dynamic> order, String tableId, String type) async {
-    final printer = _savedPrinters.firstWhere((p) => p.isKOT, orElse: () => throw Exception("No KOT Printer Assigned"));
-    final bytes = await _ticketGenerator.generateKOT(order, tableId, type);
-    await _printBytes(printer, bytes);
-  }
-
-  Future<void> printBill(Map<String, dynamic> order, String tableId, double sub, double tax, double total) async {
-    final printer = _savedPrinters.firstWhere((p) => p.isBill, orElse: () => throw Exception("No Bill Printer Assigned"));
-    final bytes = await _ticketGenerator.generateBill(order, tableId, sub, tax, total);
-    await _printBytes(printer, bytes);
-  }
 
   Future<void> testPrint(PrinterModel printer) async {
     final profile = await CapabilityProfile.load();
@@ -175,6 +236,61 @@ class PrinterService extends ChangeNotifier {
     await _printBytes(printer, bytes);
   }
 
+  // Unified byte generation wrappers
+  Future<List<int>> _generateKOTBytes(Map<String, dynamic> order, String tableId, String type) async {
+    debugPrint('=== Generating KOT bytes ===');
+    return await _ticketGenerator.generateKOT(order, tableId, type);
+  }
+
+  Future<List<int>> _generateBillBytes(Map<String, dynamic> order, String tableId, double sub, double tax, double total) async {
+    debugPrint('=== Generating Bill bytes ===');
+    return await _ticketGenerator.generateBill(order, tableId, sub, tax, total);
+  }
+
+  Future<bool> connectToPrinter(PrinterModel printer) async {
+    debugPrint('=== Connecting to printer ===');
+    debugPrint('Name: ${printer.name}');
+    debugPrint('Address: ${printer.address}');
+    final detected = _detectPrinterType(printer.address);
+    debugPrint('Printer.type: ${printer.type} • Detected: $detected');
+    if (printer.type == PrinterType.bluetooth) {
+      return await _connectClassicBluetooth(printer);
+    } else if (printer.type == PrinterType.ble) {
+      return await _connectBLE(printer);
+    } else if (printer.type == PrinterType.network) {
+      // network connection is done during print
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  Future<bool> _connectClassicBluetooth(PrinterModel printer) async {
+    debugPrint('Route: Android bridge (Classic BT)');
+    try {
+      final ok = await PrintBluetoothThermal.connect(macPrinterAddress: printer.address);
+      debugPrint('Classic connect result: $ok');
+      return ok == true;
+    } catch (e) {
+      debugPrint('Classic connect error: $e');
+      return false;
+    }
+  }
+
+  Future<bool> _connectBLE(PrinterModel printer) async {
+    debugPrint('Route: flutter_blue_plus (BLE)');
+    try {
+      final device = BluetoothDevice.fromId(printer.address);
+      await device.connect();
+      final connected = device.isConnected;
+      debugPrint('BLE connect result: $connected');
+      return connected;
+    } catch (e) {
+      debugPrint('BLE connect error: $e');
+      return false;
+    }
+  }
+
   Future<void> _printBytes(PrinterModel printer, List<int> bytes) async {
     try {
       if (printer.type == PrinterType.network) {
@@ -183,11 +299,23 @@ class PrinterService extends ChangeNotifier {
         }
         await _printNetwork(printer, bytes);
       } else if (printer.type == PrinterType.bluetooth) {
-        await _printBluetooth(printer, bytes);
+        debugPrint('=== Printing (Classic Bluetooth) ===');
+        debugPrint('Data length: ${bytes.length} bytes');
+        debugPrint('Printer address: ${printer.address}');
+        final b64 = base64Encode(bytes);
+        debugPrint('Using Android bridge • payload (base64) size: ${b64.length}');
+        await _printViaAndroidBridgeBase64(printer, b64);
+      } else if (printer.type == PrinterType.ble) {
+        debugPrint('=== Printing (BLE) ===');
+        debugPrint('Data length: ${bytes.length} bytes');
+        debugPrint('Printer address: ${printer.address}');
+        debugPrint('Using flutter_blue_plus');
+        await _printViaBLE(printer, bytes);
       } else {
         throw Exception("USB Printing not fully implemented yet");
       }
     } catch (e) {
+      debugPrint('Print error: $e');
       rethrow;
     }
   }
@@ -205,63 +333,71 @@ class PrinterService extends ChangeNotifier {
     }
   }
 
-  Future<void> _printBluetooth(PrinterModel printer, List<int> bytes) async {
-    // Classic BT path (Android) - Try this first for all Android devices
-    if (!kIsWeb && Platform.isAndroid) {
-      try {
-        final connected = await PrintBluetoothThermal.connect(macPrinterAddress: printer.address);
-        if (connected) {
-           final ok = await PrintBluetoothThermal.writeBytes(bytes);
-           if (ok != true) {
-             throw Exception("Write failed on Classic BT printer");
-           }
-           return;
-        }
-      } catch (e) {
-        // If Classic BT fails, we can fall through to BLE, 
-        // but usually Classic BT is what's intended on Android for thermal printers.
-        // We log it and continue to BLE only if we really think it might be BLE.
-        debugPrint("Classic BT Connection failed: $e. Trying BLE...");
-      }
+  Future<void> _printViaAndroidBridgeBase64(PrinterModel printer, String base64Data) async {
+    if (kIsWeb) {
+      throw Exception("Android bridge printing not available on Web");
     }
+    try {
+      final connected = await PrintBluetoothThermal.connect(macPrinterAddress: printer.address);
+      if (connected != true) {
+        throw Exception("Classic BT connect failed");
+      }
+      final bytes = base64Decode(base64Data);
+      final ok = await PrintBluetoothThermal.writeBytes(bytes);
+      if (ok != true) {
+        throw Exception("Classic BT write failed");
+      }
+    } catch (e) {
+      throw Exception("Android bridge print error: $e");
+    }
+  }
 
-    // BLE path
+  Future<void> _printViaBLE(PrinterModel printer, List<int> bytes) async {
     final device = BluetoothDevice.fromId(printer.address);
     try {
       await device.connect();
+      debugPrint('BLE connected: ${device.isConnected}');
     } catch (e) {
-      // If we can't connect, we can't discover services.
       throw Exception("Could not connect to BLE printer: $e");
     }
-
-    if (device.isConnected == false) {
-       // Double check connection status
-       try {
-          await device.connect();
-       } catch (e) {
-          throw Exception("Could not connect to BLE printer (retry failed): $e");
-       }
-    }
-    
-    List<BluetoothService> services = await device.discoverServices();
-    BluetoothCharacteristic? targetChar;
-    for (var service in services) {
-      for (var char in service.characteristics) {
-        if (char.properties.write || char.properties.writeWithoutResponse) {
-          targetChar = char;
-          break;
+    try {
+      List<BluetoothService> services = await device.discoverServices();
+      debugPrint('BLE services discovered: ${services.length}');
+      BluetoothCharacteristic? targetChar;
+      for (var service in services) {
+        for (var char in service.characteristics) {
+          if (char.properties.write || char.properties.writeWithoutResponse) {
+            targetChar = char;
+            break;
+          }
         }
+        if (targetChar != null) break;
       }
-      if (targetChar != null) break;
+      if (targetChar == null) {
+        throw Exception("No writable characteristic found on printer");
+      }
+      const int chunkSize = 20;
+      for (var i = 0; i < bytes.length; i += chunkSize) {
+        var end = (i + chunkSize < bytes.length) ? i + chunkSize : bytes.length;
+        final chunk = bytes.sublist(i, end);
+        await targetChar.write(chunk, withoutResponse: targetChar.properties.writeWithoutResponse);
+      }
+    } finally {
+      try {
+        await device.disconnect();
+      } catch (_) {}
     }
-    if (targetChar == null) {
-      throw Exception("No writable characteristic found on printer");
-    }
-    const int chunkSize = 20;
-    for (var i = 0; i < bytes.length; i += chunkSize) {
-      var end = (i + chunkSize < bytes.length) ? i + chunkSize : bytes.length;
-      await targetChar.write(bytes.sublist(i, end), withoutResponse: targetChar.properties.writeWithoutResponse);
-    }
-    try { await device.disconnect(); } catch (_) {}
+  }
+
+  Future<void> printKOT(Map<String, dynamic> order, String tableId, String type) async {
+    final printer = _savedPrinters.firstWhere((p) => p.isKOT, orElse: () => throw Exception("No KOT Printer Assigned"));
+    final bytes = await _generateKOTBytes(order, tableId, type);
+    await _printBytes(printer, bytes);
+  }
+
+  Future<void> printBill(Map<String, dynamic> order, String tableId, double sub, double tax, double total) async {
+    final printer = _savedPrinters.firstWhere((p) => p.isBill, orElse: () => throw Exception("No Bill Printer Assigned"));
+    final bytes = await _generateBillBytes(order, tableId, sub, tax, total);
+    await _printBytes(printer, bytes);
   }
 }

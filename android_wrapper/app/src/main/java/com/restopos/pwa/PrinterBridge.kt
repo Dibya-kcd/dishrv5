@@ -40,6 +40,110 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
         return BluetoothAdapter.checkBluetoothAddress(mac)
     }
 
+    private fun connectSocket(device: BluetoothDevice): BluetoothSocket? {
+        adapter?.cancelDiscovery() // CRITICAL: Cancel discovery first
+        
+        var socket: BluetoothSocket? = null
+        try {
+            socket = device.createRfcommSocketToServiceRecord(SPP_UUID)
+            socket.connect()
+            Log.d(TAG, "Secure connection successful")
+        } catch (e: IOException) {
+            Log.w(TAG, "Secure connect failed, trying insecure", e)
+            try {
+                socket?.close()
+            } catch (_: IOException) {}
+            
+            try {
+                socket = device.createInsecureRfcommSocketToServiceRecord(SPP_UUID)
+                socket.connect()
+                Log.d(TAG, "Insecure connection successful")
+            } catch (e2: IOException) {
+                Log.e(TAG, "Both connection methods failed", e2)
+                try {
+                    socket?.close()
+                } catch (_: IOException) {}
+                return null
+            }
+        }
+        return socket
+    }
+
+    private fun writeChunks(out: OutputStream, bytes: ByteArray) {
+        val chunkSize = 512
+        var offset = 0
+        while (offset < bytes.size) {
+            val length = min(chunkSize, bytes.size - offset)
+            out.write(bytes, offset, length)
+            out.flush()
+            offset += length
+            Thread.sleep(20) // Small delay between chunks
+        }
+    }
+
+    // JavaScript Interface Methods
+
+    @JavascriptInterface
+    fun connect(macAddress: String) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (context.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                showToast("Bluetooth permission not granted")
+                return
+            }
+        }
+        if (!isValidMac(macAddress)) {
+            showToast("Invalid MAC address")
+            return
+        }
+        if (adapter == null || !adapter.isEnabled) {
+            showToast("Bluetooth not available")
+            return
+        }
+        
+        // Save the MAC address
+        prefs.edit().putString(PREF_PRINTER_MAC, macAddress).apply()
+        
+        Thread {
+            var socket: BluetoothSocket? = null
+            try {
+                val device = adapter.getRemoteDevice(macAddress)
+                if (device.bondState != BluetoothDevice.BOND_BONDED) {
+                    showToast("Pair printer in Bluetooth settings first")
+                    return@Thread
+                }
+                
+                socket = connectSocket(device)
+                if (socket == null) {
+                    showToast("Connection failed")
+                    return@Thread
+                }
+                
+                // Test print on connect
+                val out = socket.outputStream
+                Thread.sleep(100)
+                
+                out.write(byteArrayOf(0x1B, 0x40)) // ESC @ (Init)
+                Thread.sleep(50)
+                out.write("Printer Connected!\n".toByteArray(Charsets.UTF_8))
+                out.write("Ready to print.\n\n\n\n".toByteArray(Charsets.UTF_8))
+                out.flush()
+                
+                Thread.sleep(200)
+                showToast("Printer connected successfully")
+                
+            } catch (e: Exception) {
+                Log.e(TAG, "Connection failed", e)
+                showToast("Connection failed: ${e.message}")
+            } finally {
+                try {
+                    Thread.sleep(100)
+                    socket?.close()
+                } catch (_: IOException) {
+                }
+            }
+        }.start()
+    }
+
     @JavascriptInterface
     fun setPrinterMac(mac: String): Boolean {
         if (!isValidMac(mac)) return false
@@ -69,7 +173,7 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
         var first = true
         for (d in set) {
             if (!first) arr.append(",")
-            arr.append("{\"name\":\"").append(d.name ?: "").append("\",\"address\":\"").append(d.address).append("\"}")
+            arr.append("{\"name\":\"").append(d.name ?: "Unknown").append("\",\"address\":\"").append(d.address).append("\"}")
             first = false
         }
         arr.append("]")
@@ -96,46 +200,6 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
             false
         } finally {
             try { socket?.close() } catch (_: IOException) {}
-        }
-    }
-
-    private fun connectSocket(device: BluetoothDevice): BluetoothSocket? {
-        var socket: BluetoothSocket? = null
-        try {
-            adapter?.cancelDiscovery()
-            // Secure socket is preferred, but insecure might be needed for some printers
-            // Try secure first
-            socket = device.createRfcommSocketToServiceRecord(SPP_UUID)
-            socket.connect()
-        } catch (e: IOException) {
-            Log.e(TAG, "Secure socket connect failed, trying insecure", e)
-            try {
-                try { socket?.close() } catch (_: IOException) {}
-                adapter?.cancelDiscovery()
-                socket = device.createInsecureRfcommSocketToServiceRecord(SPP_UUID)
-                socket.connect()
-            } catch (e2: IOException) {
-                Log.e(TAG, "Insecure socket connect also failed", e2)
-                try { socket?.close() } catch (_: IOException) {}
-                return null
-            }
-        }
-        return socket
-    }
-
-    private fun writeChunks(out: OutputStream, bytes: ByteArray) {
-        val chunkSize = 1024
-        var offset = 0
-        while (offset < bytes.size) {
-            val length = min(chunkSize, bytes.size - offset)
-            out.write(bytes, offset, length)
-            out.flush()
-            offset += length
-            try {
-                Thread.sleep(50) // Small delay between chunks to avoid buffer overflow
-            } catch (e: InterruptedException) {
-                e.printStackTrace()
-            }
         }
     }
 
@@ -181,13 +245,11 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
                 
                 Log.d(TAG, "Print: Data length = ${data.length}")
                 
-                // Simple approach for text data
                 val bytes = data.toByteArray(Charsets.UTF_8)
                 out.write(bytes)
                 out.flush()
                 Thread.sleep(100)
                 
-                // Add line feeds
                 repeat(6) {
                     out.write(0x0A)
                 }
@@ -252,13 +314,23 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
                 val bytes = android.util.Base64.decode(b64, android.util.Base64.DEFAULT)
                 Log.d(TAG, "PrintBase64: Decoded ${bytes.size} bytes")
                 
-                // CRITICAL: Flutter's esc_pos_utils already includes ALL ESC/POS commands 
-                // including INIT, formatting, and CUT. We should NOT add anything extra. 
-                // Just send the bytes as-is. 
+                // Log first 30 bytes for debugging
+                if (bytes.size >= 30) {
+                    Log.d(TAG, "First 30 bytes: ${bytes.take(30).joinToString(", ") { it.toString() }}")
+                }
                 
+                // Check if data starts with ESC @ (init)
+                if (bytes.size >= 2 && bytes[0] == 0x1B.toByte() && bytes[1] == 0x40.toByte()) {
+                    Log.d(TAG, "Data starts with ESC @ - Good!")
+                } else {
+                    Log.w(TAG, "Data does NOT start with ESC @")
+                }
+                
+                // Flutter's esc_pos_utils already includes ALL commands
+                // Just send the bytes as-is
                 writeChunks(out, bytes)
                 
-                Thread.sleep(300) // Wait for printer to finish
+                Thread.sleep(300)
                 showToast("Print sent")
                 
             } catch (e: Exception) {
@@ -293,37 +365,70 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
         }
         
         Thread {
-             var socket: BluetoothSocket? = null
-             try {
-                 val device = adapter?.getRemoteDevice(mac)
-                 if (device?.bondState != BluetoothDevice.BOND_BONDED) {
-                     showToast("Pair printer in system settings")
-                     return@Thread
-                 }
-                 
-                 socket = connectSocket(device)
-                 if (socket == null) {
-                     showToast("Connection failed")
-                     return@Thread
-                 }
-                 
-                 val out = socket.outputStream
-                 Thread.sleep(100)
-                 
-                 val msg = "\n\nDiagnostic Test\nSuccessful!\n\n\n\n"
-                 out.write(msg.toByteArray(Charsets.UTF_8))
-                 out.flush()
-                 
-                 showToast("Diagnostic sent")
-                 
-             } catch (e: Exception) {
-                 Log.e(TAG, "Diagnostic failed", e)
-                 showToast("Diagnostic failed: ${e.message}")
-             } finally {
-                 try {
-                     socket?.close()
-                 } catch (_: IOException) {}
-             }
+            var socket: BluetoothSocket? = null
+            try {
+                val device = adapter?.getRemoteDevice(mac)
+                if (device == null) {
+                    showToast("Device not found")
+                    return@Thread
+                }
+                
+                if (device.bondState != BluetoothDevice.BOND_BONDED) {
+                    showToast("Pair printer in system settings")
+                    return@Thread
+                }
+                
+                Log.i(TAG, "Diagnostic: Connecting to $mac")
+                
+                socket = connectSocket(device)
+                if (socket == null) {
+                    showToast("Connection failed")
+                    return@Thread
+                }
+
+                val out = socket.outputStream
+                Thread.sleep(100)
+                
+                // Test 1: Init
+                Log.i(TAG, "Test 1: ESC @ (Init)")
+                out.write(byteArrayOf(0x1B, 0x40))
+                out.flush()
+                Thread.sleep(100)
+                
+                // Test 2: Simple text
+                Log.i(TAG, "Test 2: Raw text")
+                out.write("DIAGNOSTIC TEST\n".toByteArray(Charsets.UTF_8))
+                out.flush()
+                Thread.sleep(200)
+                
+                // Test 3: Bold
+                Log.i(TAG, "Test 3: Bold text")
+                out.write(byteArrayOf(0x1B, 0x45, 0x01))
+                out.write("BOLD TEXT\n".toByteArray(Charsets.UTF_8))
+                out.write(byteArrayOf(0x1B, 0x45, 0x00))
+                out.flush()
+                Thread.sleep(200)
+                
+                // Test 4: Line feeds
+                Log.i(TAG, "Test 4: Line feeds")
+                repeat(8) {
+                    out.write(0x0A)
+                }
+                out.flush()
+                
+                Thread.sleep(300)
+                Log.i(TAG, "Diagnostic completed")
+                showToast("Diagnostic test sent - check printer")
+
+            } catch (e: Exception) {
+                Log.e(TAG, "Diagnostic failed: ${e.message}", e)
+                showToast("Diagnostic failed: ${e.message}")
+            } finally {
+                try {
+                    Thread.sleep(100)
+                    socket?.close()
+                } catch (e: Exception) {}
+            }
         }.start()
     }
 }
