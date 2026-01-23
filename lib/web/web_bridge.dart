@@ -1,12 +1,14 @@
 import 'dart:convert';
 import 'dart:js_interop';
-import 'package:js/js.dart';
 
 @JS('AndroidPrinter')
 external AndroidPrinterInterface? get androidPrinter;
 
 @JS()
-extension type AndroidPrinterInterface._(JSObject _) implements JSObject {
+@staticInterop
+class AndroidPrinterInterface {}
+
+extension AndroidPrinterInterfaceExt on AndroidPrinterInterface {
   external void connect(JSString macAddress);
   external void print(JSString data);
   external void printBase64(JSString dataB64);
