@@ -40,19 +40,85 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
         return BluetoothAdapter.checkBluetoothAddress(mac)
     }
 
+    @JavascriptInterface
+    fun setPrinterMac(mac: String): Boolean {
+        if (!isValidMac(mac)) return false
+        prefs.edit().putString(PREF_PRINTER_MAC, mac).apply()
+        return true
+    }
+
+    @JavascriptInterface
+    fun getPrinterMac(): String? {
+        return prefs.getString(PREF_PRINTER_MAC, null)
+    }
+
+    @JavascriptInterface
+    fun clearPrinterMac() {
+        prefs.edit().remove(PREF_PRINTER_MAC).apply()
+    }
+
+    @JavascriptInterface
+    fun listPaired(): String {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (context.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                return "[]"
+            }
+        }
+        val set = adapter?.bondedDevices ?: emptySet()
+        val arr = StringBuilder("[")
+        var first = true
+        for (d in set) {
+            if (!first) arr.append(",")
+            arr.append("{\"name\":\"").append(d.name ?: "").append("\",\"address\":\"").append(d.address).append("\"}")
+            first = false
+        }
+        arr.append("]")
+        return arr.toString()
+    }
+
+    @JavascriptInterface
+    fun checkConnection(): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (context.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                return false
+            }
+        }
+        val mac = prefs.getString(PREF_PRINTER_MAC, null) ?: return false
+        if (!isValidMac(mac)) return false
+        if (adapter == null || !adapter.isEnabled) return false
+        var socket: BluetoothSocket? = null
+        return try {
+            val device = adapter.getRemoteDevice(mac)
+            if (device.bondState != BluetoothDevice.BOND_BONDED) return false
+            socket = connectSocket(device)
+            socket != null
+        } catch (_: Exception) {
+            false
+        } finally {
+            try { socket?.close() } catch (_: IOException) {}
+        }
+    }
+
     private fun connectSocket(device: BluetoothDevice): BluetoothSocket? {
         var socket: BluetoothSocket? = null
         try {
+            adapter?.cancelDiscovery()
             // Secure socket is preferred, but insecure might be needed for some printers
             // Try secure first
             socket = device.createRfcommSocketToServiceRecord(SPP_UUID)
             socket.connect()
         } catch (e: IOException) {
-            Log.e(TAG, "Socket connection failed", e)
+            Log.e(TAG, "Secure socket connect failed, trying insecure", e)
             try {
-                socket?.close()
-            } catch (_: IOException) {}
-            return null
+                try { socket?.close() } catch (_: IOException) {}
+                adapter?.cancelDiscovery()
+                socket = device.createInsecureRfcommSocketToServiceRecord(SPP_UUID)
+                socket.connect()
+            } catch (e2: IOException) {
+                Log.e(TAG, "Insecure socket connect also failed", e2)
+                try { socket?.close() } catch (_: IOException) {}
+                return null
+            }
         }
         return socket
     }
