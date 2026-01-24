@@ -370,7 +370,28 @@ class PrinterService extends ChangeNotifier {
         final hasGsV = _containsSequence(bytes, const [0x1D, 0x56]);
         final asciiPrintable = bytes.where((b) => b >= 32 && b <= 126).length;
         debugPrint('Contains ESC @: $hasEscAt • Contains GS V: $hasGsV • ASCII printable count: $asciiPrintable');
-        final b64 = base64Encode(bytes);
+        // Ensure preamble/power-on + sane defaults before sending to Android bridge
+        final prepared = _withClassicPreamble(bytes);
+        // Real-time connection verification on web bridge
+        if (kIsWeb) {
+          if (!isAndroidPrinterAvailable()) {
+            throw Exception("AndroidPrinter bridge not available");
+          }
+          setAndroidPrinterMac(printer.address);
+          final ok0 = checkAndroidPrinterConnection();
+          debugPrint('Classic connection check (pre-print): $ok0');
+          if (!ok0) {
+            debugPrint('Classic connection not ready, invoking Android connect...');
+            connectToAndroidPrinter(printer.address);
+            await Future.delayed(const Duration(milliseconds: 350));
+            final ok1 = checkAndroidPrinterConnection();
+            debugPrint('Classic connection re-check: $ok1');
+            if (!ok1) {
+              throw Exception("Classic Bluetooth connection failed");
+            }
+          }
+        }
+        final b64 = base64Encode(prepared);
         debugPrint('Using Android bridge • payload (base64) size: ${b64.length}');
         await _printViaAndroidBridgeBase64(printer, b64);
       } else if (printer.type == PrinterType.ble) {
@@ -428,6 +449,9 @@ class PrinterService extends ChangeNotifier {
         throw Exception("AndroidPrinter bridge not available");
       }
       setAndroidPrinterMac(printer.address);
+      // Send once; if larger payloads occasionally fail, a short second attempt helps recover broken pipes
+      printToAndroidPrinterBase64(base64Data);
+      await Future.delayed(const Duration(milliseconds: 150));
       printToAndroidPrinterBase64(base64Data);
       return;
     }
@@ -444,6 +468,24 @@ class PrinterService extends ChangeNotifier {
     } catch (e) {
       throw Exception("Android bridge print error: $e");
     }
+  }
+
+  // Ensure Classic BT printers get a robust preamble before data
+  List<int> _withClassicPreamble(List<int> payload) {
+    final hasInit = _containsSequence(payload, const [0x1B, 0x40]);
+    final preamble = <int>[
+      0x00, 0x00,               // Wake
+      0x1B, 0x40,               // ESC @ init
+      0x1B, 0x53,               // ESC S Standard mode
+      0x1D, 0x42, 0x00,         // GS B 0 cancel reverse
+      0x1B, 0x61, 0x00,         // ESC a 0 left align
+      0x1B, 0x32,               // ESC 2 default line spacing
+      0x1B, 0x74, 0x00,         // ESC t 0 codepage 437
+      0x1B, 0x21, 0x00,         // ESC ! 0 reset mode
+    ];
+    // If payload already contains ESC @ near the start, keep it as-is
+    if (hasInit) return payload;
+    return [...preamble, ...payload];
   }
 
   Future<void> _printViaBLE(PrinterModel printer, List<int> bytes) async {
