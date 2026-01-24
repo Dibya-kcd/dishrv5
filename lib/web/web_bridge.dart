@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:js_interop';
+import 'package:js/js.dart';
 
 @JS('AndroidPrinter')
 external AndroidPrinterInterface? get androidPrinter;

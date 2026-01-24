@@ -89,7 +89,8 @@ class MainActivity : AppCompatActivity() {
                       const body = await readBody(init);
                       if (body) AndroidPrinter.setPrinterMac(body);
                       AndroidPrinter.connect(body || AndroidPrinter.getPrinterMac());
-                      return new Response(JSON.stringify({ok:true}), {status:200, headers:{'Content-Type':'application/json'}});
+                      const ok = AndroidPrinter.checkConnection();
+                      return new Response(JSON.stringify({ok: !!ok}), {status:200, headers:{'Content-Type':'application/json'}});
                     } else if (path === '/print') {
                       const data = await readBody(init);
                       if (/^[A-Za-z0-9+/=]+$/.test(data || '')) {

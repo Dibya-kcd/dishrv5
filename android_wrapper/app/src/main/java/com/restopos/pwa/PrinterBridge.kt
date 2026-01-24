@@ -70,15 +70,25 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
     }
 
     private fun writeChunks(out: OutputStream, bytes: ByteArray) {
-        val chunkSize = 512
+        val chunkSize = 256
         var offset = 0
         while (offset < bytes.size) {
             val length = min(chunkSize, bytes.size - offset)
             out.write(bytes, offset, length)
             out.flush()
             offset += length
-            Thread.sleep(20) // Small delay between chunks
+            Thread.sleep(10)
         }
+    }
+
+    private fun writeFinalization(out: OutputStream) {
+        val lf = 0x0A
+        repeat(6) { out.write(lf) }
+        out.flush()
+        val cut = byteArrayOf(0x1D, 0x56, 0x01)
+        out.write(cut)
+        out.flush()
+        Thread.sleep(200)
     }
 
     // JavaScript Interface Methods
@@ -243,19 +253,25 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
                 val out = socket.outputStream
                 Thread.sleep(100)
                 
-                Log.d(TAG, "Print: Data length = ${data.length}")
-                
-                val bytes = data.toByteArray(Charsets.UTF_8)
-                out.write(bytes)
-                out.flush()
-                Thread.sleep(100)
-                
-                repeat(6) {
-                    out.write(0x0A)
-                }
-                out.flush()
-                
+                val wake = byteArrayOf(0x00, 0x00)
+                val init = byteArrayOf(0x1B, 0x40)
+                val std = byteArrayOf(0x1B, 0x53)
+                val cancelReverse = byteArrayOf(0x1D, 0x42, 0x00)
+                val alignLeft = byteArrayOf(0x1B, 0x61, 0x00)
+                val lineDefault = byteArrayOf(0x1B, 0x32)
+                val cp437 = byteArrayOf(0x1D, 0x74, 0x00)
+                out.write(wake)
+                Thread.sleep(50)
+                out.write(init)
                 Thread.sleep(200)
+                out.write(std)
+                out.write(cancelReverse)
+                out.write(alignLeft)
+                out.write(lineDefault)
+                out.write(cp437)
+                val bytes = data.toByteArray(Charsets.UTF_8)
+                writeChunks(out, bytes)
+                writeFinalization(out)
                 showToast("Print sent")
                 
             } catch (e: Exception) {
@@ -310,27 +326,25 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
                 
                 val out = socket.outputStream
                 Thread.sleep(100)
-                
+                val wake = byteArrayOf(0x00, 0x00)
+                val init = byteArrayOf(0x1B, 0x40)
+                val std = byteArrayOf(0x1B, 0x53)
+                val cancelReverse = byteArrayOf(0x1D, 0x42, 0x00)
+                val alignLeft = byteArrayOf(0x1B, 0x61, 0x00)
+                val lineDefault = byteArrayOf(0x1B, 0x32)
+                val cp437 = byteArrayOf(0x1D, 0x74, 0x00)
+                out.write(wake)
+                Thread.sleep(50)
+                out.write(init)
+                Thread.sleep(200)
+                out.write(std)
+                out.write(cancelReverse)
+                out.write(alignLeft)
+                out.write(lineDefault)
+                out.write(cp437)
                 val bytes = android.util.Base64.decode(b64, android.util.Base64.DEFAULT)
-                Log.d(TAG, "PrintBase64: Decoded ${bytes.size} bytes")
-                
-                // Log first 30 bytes for debugging
-                if (bytes.size >= 30) {
-                    Log.d(TAG, "First 30 bytes: ${bytes.take(30).joinToString(", ") { it.toString() }}")
-                }
-                
-                // Check if data starts with ESC @ (init)
-                if (bytes.size >= 2 && bytes[0] == 0x1B.toByte() && bytes[1] == 0x40.toByte()) {
-                    Log.d(TAG, "Data starts with ESC @ - Good!")
-                } else {
-                    Log.w(TAG, "Data does NOT start with ESC @")
-                }
-                
-                // Flutter's esc_pos_utils already includes ALL commands
-                // Just send the bytes as-is
                 writeChunks(out, bytes)
-                
-                Thread.sleep(300)
+                writeFinalization(out)
                 showToast("Print sent")
                 
             } catch (e: Exception) {
