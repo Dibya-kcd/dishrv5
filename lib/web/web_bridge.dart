@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:js_interop';
 import 'package:js/js.dart';
+import 'package:flutter/foundation.dart';
 
 @JS('AndroidPrinter')
 external AndroidPrinterInterface? get androidPrinter;
@@ -29,7 +30,16 @@ void printToAndroidPrinter(String data) {
 }
 
 void printToAndroidPrinterBase64(String dataB64) {
-  androidPrinter?.printBase64(dataB64.toJS);
+  debugPrint('web_bridge: printToAndroidPrinterBase64 called');
+  debugPrint('web_bridge: data length=${dataB64.length}');
+  debugPrint('web_bridge: androidPrinter is null? ${androidPrinter == null}');
+  if (androidPrinter == null) {
+    debugPrint('web_bridge: AndroidPrinter NULL - bridge not connected');
+    return;
+  }
+  debugPrint('web_bridge: calling AndroidPrinter.printBase64');
+  androidPrinter!.printBase64(dataB64.toJS);
+  debugPrint('web_bridge: bridge call sent');
 }
 
 String? getAndroidPrinterMac() {
