@@ -1821,13 +1821,7 @@ class RestaurantProvider extends ChangeNotifier {
       menuItems: menuItems,
     );
 
-    final url = 'data:text/html;charset=utf-8,${Uri.encodeComponent(doc)}';
-    if (kIsWeb && !isAndroidPrinterAvailable()) {
-      web.openNewTab(url, features: 'width=800,height=600');
-    }
-    if (!kIsWeb) {
-      _sendToPrinter('kot', doc);
-    }
+    // Skip HTML preview/server printing; rely solely on ESC/POS via PrinterService
     
     // Dual Printer Integration
     try {
@@ -1978,13 +1972,7 @@ class RestaurantProvider extends ChangeNotifier {
       billData: currentBill!,
     );
 
-    final url = 'data:text/html;charset=utf-8,${Uri.encodeComponent(doc)}';
-    if (kIsWeb && !isAndroidPrinterAvailable()) {
-      web.openNewTab(url, features: 'width=800,height=600');
-    }
-    if (!kIsWeb) {
-      _sendToPrinter('bill', doc);
-    }
+    // Skip HTML preview/server printing; rely solely on ESC/POS via PrinterService
 
     // Dual Printer Integration
     try {
