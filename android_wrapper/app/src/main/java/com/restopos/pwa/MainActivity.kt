@@ -52,6 +52,22 @@ class MainActivity : AppCompatActivity() {
               if (window.__androidPrinterShimInstalled) return;
               window.__androidPrinterShimInstalled = true;
               const origFetch = window.fetch;
+              const origOpen = window.open;
+              try {
+                window.open = function(url, name, specs) {
+                  try {
+                    if (typeof url === 'string' && url.startsWith('data:text/html')) {
+                      console.warn('[Shim] Blocking window.open to data URL for security');
+                      return null;
+                    }
+                  } catch (e) {
+                    console.warn('[Shim] window.open wrapper error:', e);
+                  }
+                  return origOpen.call(window, url, name, specs);
+                };
+              } catch (e) {
+                console.warn('[Shim] Failed to wrap window.open:', e);
+              }
               try {
                 if (typeof AndroidPrinter !== 'undefined' && AndroidPrinter) {
                   const __orig = AndroidPrinter;

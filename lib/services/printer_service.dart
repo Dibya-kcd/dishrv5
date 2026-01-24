@@ -249,8 +249,41 @@ class PrinterService extends ChangeNotifier {
     final profile = await CapabilityProfile.load();
     final generator = Generator(PaperSize.mm80, profile);
     List<int> bytes = [];
-    bytes += generator.text('TEST PRINT SUCCESS', styles: const PosStyles(align: PosAlign.center, bold: true, height: PosTextSize.size2));
-    bytes += generator.feed(2);
+    bytes += generator.text('RESTOPOS TEST PRINT', styles: const PosStyles(align: PosAlign.center, bold: true, height: PosTextSize.size2, width: PosTextSize.size2));
+    bytes += generator.hr();
+    bytes += generator.text('Date: ${DateTime.now().toString().substring(0, 16)}', styles: const PosStyles(align: PosAlign.center));
+    bytes += generator.hr();
+    bytes += generator.row([
+      PosColumn(text: 'Item', width: 6, styles: const PosStyles(bold: true)),
+      PosColumn(text: 'Qty', width: 2, styles: const PosStyles(align: PosAlign.center, bold: true)),
+      PosColumn(text: 'Price', width: 4, styles: const PosStyles(align: PosAlign.right, bold: true)),
+    ]);
+    bytes += generator.row([
+      PosColumn(text: 'Coffee', width: 6),
+      PosColumn(text: '2', width: 2, styles: const PosStyles(align: PosAlign.center)),
+      PosColumn(text: '5.00', width: 4, styles: const PosStyles(align: PosAlign.right)),
+    ]);
+    bytes += generator.row([
+      PosColumn(text: 'Burger', width: 6),
+      PosColumn(text: '1', width: 2, styles: const PosStyles(align: PosAlign.center)),
+      PosColumn(text: '8.50', width: 4, styles: const PosStyles(align: PosAlign.right)),
+    ]);
+    bytes += generator.hr();
+    bytes += generator.row([
+      PosColumn(text: 'Subtotal:', width: 8),
+      PosColumn(text: '18.50', width: 4, styles: const PosStyles(align: PosAlign.right)),
+    ]);
+    bytes += generator.row([
+      PosColumn(text: 'Tax (5%):', width: 8),
+      PosColumn(text: '0.93', width: 4, styles: const PosStyles(align: PosAlign.right)),
+    ]);
+    bytes += generator.row([
+      PosColumn(text: 'Total:', width: 8, styles: const PosStyles(bold: true)),
+      PosColumn(text: '19.43', width: 4, styles: const PosStyles(align: PosAlign.right, bold: true)),
+    ]);
+    bytes += generator.feed(1);
+    bytes += generator.text('OK', styles: const PosStyles(align: PosAlign.center, bold: true));
+    bytes += generator.feed(3);
     bytes += generator.cut();
     await _printBytes(printer, bytes);
   }
