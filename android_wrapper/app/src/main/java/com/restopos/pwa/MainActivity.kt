@@ -52,6 +52,42 @@ class MainActivity : AppCompatActivity() {
               if (window.__androidPrinterShimInstalled) return;
               window.__androidPrinterShimInstalled = true;
               const origFetch = window.fetch;
+              try {
+                if (typeof AndroidPrinter !== 'undefined' && AndroidPrinter) {
+                  const __orig = AndroidPrinter;
+                  const wrap = (fnName, fn) => {
+                    return function() {
+                      try {
+                        const args = Array.prototype.slice.call(arguments);
+                        console.log('[AndroidPrinter]', fnName, 'args:', args.map(a => (typeof a === 'string' ? a.length : a)));
+                        return fn.apply(__orig, args);
+                      } catch (e) {
+                        console.error('[AndroidPrinter]', fnName, 'error:', e);
+                        throw e;
+                      }
+                    }
+                  };
+                  try {
+                    window.AndroidPrinter = {
+                      connect: wrap('connect', __orig.connect),
+                      print: wrap('print', __orig.print),
+                      printBase64: wrap('printBase64', __orig.printBase64),
+                      getPrinterMac: wrap('getPrinterMac', __orig.getPrinterMac),
+                      setPrinterMac: wrap('setPrinterMac', __orig.setPrinterMac),
+                      listPaired: wrap('listPaired', __orig.listPaired),
+                      checkConnection: wrap('checkConnection', __orig.checkConnection),
+                      diagnosticTest: wrap('diagnosticTest', __orig.diagnosticTest),
+                    };
+                    console.log('[AndroidPrinter] wrapper installed');
+                  } catch (e) {
+                    console.warn('[AndroidPrinter] wrapper install failed:', e);
+                  }
+                } else {
+                  console.warn('[AndroidPrinter] not available on window');
+                }
+              } catch (e) {
+                console.warn('[AndroidPrinter] availability check failed:', e);
+              }
               async function readBody(init) {
                 try {
                   if (!init || !init.body) return '';

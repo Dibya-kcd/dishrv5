@@ -289,6 +289,7 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
 
     @JavascriptInterface
     fun printBase64(b64: String) {
+        Log.i(TAG, "printBase64 invoked")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             if (context.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
                 showToast("Bluetooth permission not granted")
@@ -343,6 +344,7 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
                 out.write(lineDefault)
                 out.write(cp437)
                 val bytes = android.util.Base64.decode(b64, android.util.Base64.DEFAULT)
+                Log.i(TAG, "Decoded base64 length: ${bytes.size}")
                 writeChunks(out, bytes)
                 writeFinalization(out)
                 showToast("Print sent")

@@ -288,6 +288,10 @@ class PrinterService extends ChangeNotifier {
     debugPrint('Route: Android bridge (Classic BT)');
     try {
       if (kIsWeb) {
+        if (!isAndroidPrinterAvailable()) {
+          debugPrint('Android bridge not available');
+          return false;
+        }
         setAndroidPrinterMac(printer.address);
         connectToAndroidPrinter(printer.address);
         final ok = checkAndroidPrinterConnection();
@@ -361,6 +365,9 @@ class PrinterService extends ChangeNotifier {
 
   Future<void> _printViaAndroidBridgeBase64(PrinterModel printer, String base64Data) async {
     if (kIsWeb) {
+      if (!isAndroidPrinterAvailable()) {
+        throw Exception("AndroidPrinter bridge not available");
+      }
       setAndroidPrinterMac(printer.address);
       printToAndroidPrinterBase64(base64Data);
       return;

@@ -60,3 +60,7 @@ List<Map<String, String>> getAndroidPairedPrinters() {
     return [];
   }
 }
+
+bool isAndroidPrinterAvailable() {
+  return androidPrinter != null;
+}
