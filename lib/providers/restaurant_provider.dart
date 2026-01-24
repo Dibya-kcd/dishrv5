@@ -13,9 +13,6 @@ import '../models/table_info.dart';
 import '../data/repository.dart';
 import '../data/sync_service.dart';
 import '../services/printer_service.dart';
-import '../utils/html_ticket_generator.dart';
-import 'package:dishr/web/web_bridge_stub.dart'
-    if (dart.library.js_interop) 'package:dishr/web/web_bridge.dart';
 
 class RestaurantProvider extends ChangeNotifier {
   String _currentView = 'dashboard';
