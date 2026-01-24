@@ -536,6 +536,11 @@ class PrinterService extends ChangeNotifier {
       orElse: () => throw Exception("No KOT Printer Assigned or available"),
     );
     debugPrint('KOT printer selected: ${printer.name} • ${printer.address} • ${printer.type}');
+    final connected = await connectToPrinter(printer);
+    debugPrint('KOT pre-connect result: $connected');
+    if (!connected) {
+      throw Exception('KOT printer connection failed');
+    }
     final bytes = await _generateKOTBytes(order, tableId, type);
     await _printBytes(printer, bytes);
   }
@@ -551,6 +556,11 @@ class PrinterService extends ChangeNotifier {
       orElse: () => throw Exception("No Bill Printer Assigned or available"),
     );
     debugPrint('Bill printer selected: ${printer.name} • ${printer.address} • ${printer.type}');
+    final connected = await connectToPrinter(printer);
+    debugPrint('Bill pre-connect result: $connected');
+    if (!connected) {
+      throw Exception('Bill printer connection failed');
+    }
     final bytes = await _generateBillBytes(order, tableId, sub, tax, total);
     await _printBytes(printer, bytes);
   }
