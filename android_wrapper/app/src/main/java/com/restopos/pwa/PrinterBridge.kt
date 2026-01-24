@@ -91,6 +91,36 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
         Thread.sleep(200)
     }
 
+    private fun hexPreview(bytes: ByteArray, count: Int): String {
+        val n = kotlin.math.min(count, bytes.size)
+        val sb = StringBuilder()
+        for (i in 0 until n) {
+            val b = bytes[i].toInt() and 0xFF
+            if (i > 0) sb.append(" ")
+            sb.append(String.format("%02X", b))
+        }
+        return sb.toString()
+    }
+
+    private fun containsSeq(bytes: ByteArray, seq: ByteArray): Boolean {
+        if (seq.isEmpty() || bytes.size < seq.size) return false
+        var i = 0
+        while (i <= bytes.size - seq.size) {
+            var match = true
+            var j = 0
+            while (j < seq.size) {
+                if (bytes[i + j] != seq[j]) {
+                    match = false
+                    break
+                }
+                j++
+            }
+            if (match) return true
+            i++
+        }
+        return false
+    }
+
     // JavaScript Interface Methods
 
     @JavascriptInterface
@@ -259,7 +289,8 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
                 val cancelReverse = byteArrayOf(0x1D, 0x42, 0x00)
                 val alignLeft = byteArrayOf(0x1B, 0x61, 0x00)
                 val lineDefault = byteArrayOf(0x1B, 0x32)
-                val cp437 = byteArrayOf(0x1D, 0x74, 0x00)
+                val resetMode = byteArrayOf(0x1B, 0x21, 0x00)
+                val escT0 = byteArrayOf(0x1B, 0x74, 0x00) // ESC t 0 (codepage 0 / CP437)
                 out.write(wake)
                 Thread.sleep(50)
                 out.write(init)
@@ -268,8 +299,12 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
                 out.write(cancelReverse)
                 out.write(alignLeft)
                 out.write(lineDefault)
-                out.write(cp437)
+                out.write(resetMode)
+                out.write(escT0)
+                Thread.sleep(50)
                 val bytes = data.toByteArray(Charsets.UTF_8)
+                Log.i(TAG, "Hex preview: ${hexPreview(bytes, 64)}")
+                Log.i(TAG, "Has ESC @: ${containsSeq(bytes, byteArrayOf(0x1B, 0x40))} • Has GS V: ${containsSeq(bytes, byteArrayOf(0x1D, 0x56))}")
                 writeChunks(out, bytes)
                 writeFinalization(out)
                 showToast("Print sent")
@@ -333,7 +368,8 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
                 val cancelReverse = byteArrayOf(0x1D, 0x42, 0x00)
                 val alignLeft = byteArrayOf(0x1B, 0x61, 0x00)
                 val lineDefault = byteArrayOf(0x1B, 0x32)
-                val cp437 = byteArrayOf(0x1D, 0x74, 0x00)
+                val resetMode = byteArrayOf(0x1B, 0x21, 0x00)
+                val escT0 = byteArrayOf(0x1B, 0x74, 0x00) // ESC t 0 (codepage 0 / CP437)
                 out.write(wake)
                 Thread.sleep(50)
                 out.write(init)
@@ -342,9 +378,13 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
                 out.write(cancelReverse)
                 out.write(alignLeft)
                 out.write(lineDefault)
-                out.write(cp437)
+                out.write(resetMode)
+                out.write(escT0)
+                Thread.sleep(50)
                 val bytes = android.util.Base64.decode(b64, android.util.Base64.DEFAULT)
                 Log.i(TAG, "Decoded base64 length: ${bytes.size}")
+                Log.i(TAG, "Hex preview: ${hexPreview(bytes, 64)}")
+                Log.i(TAG, "Has ESC @: ${containsSeq(bytes, byteArrayOf(0x1B, 0x40))} • Has GS V: ${containsSeq(bytes, byteArrayOf(0x1D, 0x56))}")
                 writeChunks(out, bytes)
                 writeFinalization(out)
                 showToast("Print sent")

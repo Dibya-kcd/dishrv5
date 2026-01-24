@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import '../models/printer_model.dart';
 import '../services/printer_service.dart';
+import 'package:dishr/web/web_bridge_stub.dart'
+    if (dart.library.js_interop) 'package:dishr/web/web_bridge.dart';
 
 class PrinterSettingsScreen extends StatefulWidget {
   const PrinterSettingsScreen({super.key});
@@ -355,6 +358,39 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> with Sing
                               actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
                             ),
                          );
+                      }
+                    },
+                  ),
+                if (printer.type == PrinterType.bluetooth && kIsWeb)
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.build),
+                    label: const Text('Android Diagnostic'),
+                    onPressed: () async {
+                      try {
+                        // Trigger Android-side diagnostic print via Web bridge
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sending Android Diagnostic...')));
+                        // Uses web bridge method; safe on WebView wrapper
+                        // If not available, PrinterService guards already log availability
+                        await Future<void>.delayed(const Duration(milliseconds: 100));
+                        // Call diagnostic through service-side bridge helper
+                        // Directly use the web bridge function to avoid payload generation
+                        // ignore: deprecated_member_use
+                        // The function is exposed in web_bridge.dart
+                        // We call through PrinterService to keep imports minimal in this screen
+                        // But since it's a UI only action, import kIsWeb and call the bridge API.
+                        runAndroidPrinterDiagnostic();
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Diagnostic Sent')));
+                      } catch (e) {
+                        if (!mounted) return;
+                        showDialog(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Diagnostic Error', style: TextStyle(letterSpacing: 0.5)),
+                            content: Text(e.toString()),
+                            actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
+                          ),
+                        );
                       }
                     },
                   ),

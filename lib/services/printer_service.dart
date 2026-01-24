@@ -365,6 +365,11 @@ class PrinterService extends ChangeNotifier {
         debugPrint('=== Printing (Classic Bluetooth) ===');
         debugPrint('Data length: ${bytes.length} bytes');
         debugPrint('Printer address: ${printer.address}');
+        debugPrint('Bytes hex preview: ${_hexPreview(bytes, 64)}');
+        final hasEscAt = _containsSequence(bytes, const [0x1B, 0x40]);
+        final hasGsV = _containsSequence(bytes, const [0x1D, 0x56]);
+        final asciiPrintable = bytes.where((b) => b >= 32 && b <= 126).length;
+        debugPrint('Contains ESC @: $hasEscAt • Contains GS V: $hasGsV • ASCII printable count: $asciiPrintable');
         final b64 = base64Encode(bytes);
         debugPrint('Using Android bridge • payload (base64) size: ${b64.length}');
         await _printViaAndroidBridgeBase64(printer, b64);
@@ -381,6 +386,27 @@ class PrinterService extends ChangeNotifier {
       debugPrint('Print error: $e');
       rethrow;
     }
+  }
+
+  String _hexPreview(List<int> bytes, int count) {
+    final n = bytes.length < count ? bytes.length : count;
+    final b = bytes.take(n).map((v) => v.toRadixString(16).padLeft(2, '0').toUpperCase()).join(' ');
+    return b;
+  }
+
+  bool _containsSequence(List<int> bytes, List<int> seq) {
+    if (seq.isEmpty || bytes.length < seq.length) return false;
+    for (int i = 0; i <= bytes.length - seq.length; i++) {
+      bool match = true;
+      for (int j = 0; j < seq.length; j++) {
+        if (bytes[i + j] != seq[j]) {
+          match = false;
+          break;
+        }
+      }
+      if (match) return true;
+    }
+    return false;
   }
 
   Future<void> _printNetwork(PrinterModel printer, List<int> bytes) async {
