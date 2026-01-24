@@ -1822,10 +1822,12 @@ class RestaurantProvider extends ChangeNotifier {
     );
 
     final url = 'data:text/html;charset=utf-8,${Uri.encodeComponent(doc)}';
-    if (kIsWeb) {
+    if (kIsWeb && !isAndroidPrinterAvailable()) {
       web.openNewTab(url, features: 'width=800,height=600');
     }
-    _sendToPrinter('kot', doc);
+    if (!kIsWeb) {
+      _sendToPrinter('kot', doc);
+    }
     
     // Dual Printer Integration
     try {
@@ -1977,10 +1979,12 @@ class RestaurantProvider extends ChangeNotifier {
     );
 
     final url = 'data:text/html;charset=utf-8,${Uri.encodeComponent(doc)}';
-    if (kIsWeb) {
+    if (kIsWeb && !isAndroidPrinterAvailable()) {
       web.openNewTab(url, features: 'width=800,height=600');
     }
-    _sendToPrinter('bill', doc);
+    if (!kIsWeb) {
+      _sendToPrinter('bill', doc);
+    }
 
     // Dual Printer Integration
     try {
