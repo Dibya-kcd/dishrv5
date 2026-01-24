@@ -70,14 +70,19 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
     }
 
     private fun writeChunks(out: OutputStream, bytes: ByteArray) {
-        val chunkSize = 256
+        val chunkSize = 128
         var offset = 0
         while (offset < bytes.size) {
             val length = min(chunkSize, bytes.size - offset)
-            out.write(bytes, offset, length)
-            out.flush()
-            offset += length
-            Thread.sleep(10)
+            try {
+                out.write(bytes, offset, length)
+                out.flush()
+                offset += length
+                Thread.sleep(15)
+            } catch (e: IOException) {
+                Log.e(TAG, "Write failed at offset $offset/${bytes.size}: ${e.message}")
+                throw e
+            }
         }
     }
 
@@ -346,57 +351,74 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
         }
         
         Thread {
-            var socket: BluetoothSocket? = null
-            try {
-                val device = adapter.getRemoteDevice(mac)
-                if (device.bondState != BluetoothDevice.BOND_BONDED) {
-                    showToast("Pair printer in system settings")
-                    return@Thread
-                }
+            var attempt = 0
+            val maxRetries = 2
+            var success = false
+            
+            while (!success && attempt < maxRetries) {
+                attempt++
+                Log.i(TAG, "Print attempt $attempt of $maxRetries")
+                var socket: BluetoothSocket? = null
                 
-                socket = connectSocket(device)
-                if (socket == null) {
-                    showToast("Connection failed")
-                    return@Thread
-                }
-                
-                val out = socket.outputStream
-                Thread.sleep(100)
-                val wake = byteArrayOf(0x00, 0x00)
-                val init = byteArrayOf(0x1B, 0x40)
-                val std = byteArrayOf(0x1B, 0x53)
-                val cancelReverse = byteArrayOf(0x1D, 0x42, 0x00)
-                val alignLeft = byteArrayOf(0x1B, 0x61, 0x00)
-                val lineDefault = byteArrayOf(0x1B, 0x32)
-                val resetMode = byteArrayOf(0x1B, 0x21, 0x00)
-                val escT0 = byteArrayOf(0x1B, 0x74, 0x00) // ESC t 0 (codepage 0 / CP437)
-                out.write(wake)
-                Thread.sleep(50)
-                out.write(init)
-                Thread.sleep(200)
-                out.write(std)
-                out.write(cancelReverse)
-                out.write(alignLeft)
-                out.write(lineDefault)
-                out.write(resetMode)
-                out.write(escT0)
-                Thread.sleep(50)
-                val bytes = android.util.Base64.decode(b64, android.util.Base64.DEFAULT)
-                Log.i(TAG, "Decoded base64 length: ${bytes.size}")
-                Log.i(TAG, "Hex preview: ${hexPreview(bytes, 64)}")
-                Log.i(TAG, "Has ESC @: ${containsSeq(bytes, byteArrayOf(0x1B, 0x40))} • Has GS V: ${containsSeq(bytes, byteArrayOf(0x1D, 0x56))}")
-                writeChunks(out, bytes)
-                writeFinalization(out)
-                showToast("Print sent")
-                
-            } catch (e: Exception) {
-                Log.e(TAG, "PrintBase64 failed", e)
-                showToast("Print failed: ${e.message}")
-            } finally {
                 try {
+                    val device = adapter.getRemoteDevice(mac)
+                    if (device.bondState != BluetoothDevice.BOND_BONDED) {
+                        showToast("Pair printer in system settings")
+                        return@Thread
+                    }
+                    
+                    socket = connectSocket(device)
+                    if (socket == null) {
+                        Log.w(TAG, "Connection failed on attempt $attempt")
+                        if (attempt == maxRetries) showToast("Connection failed")
+                        continue
+                    }
+                    
+                    val out = socket.outputStream
                     Thread.sleep(100)
-                    socket?.close()
-                } catch (_: IOException) {
+                    
+                    val wake = byteArrayOf(0x00, 0x00)
+                    val init = byteArrayOf(0x1B, 0x40)
+                    val std = byteArrayOf(0x1B, 0x53)
+                    val cancelReverse = byteArrayOf(0x1D, 0x42, 0x00)
+                    val alignLeft = byteArrayOf(0x1B, 0x61, 0x00)
+                    val lineDefault = byteArrayOf(0x1B, 0x32)
+                    val resetMode = byteArrayOf(0x1B, 0x21, 0x00)
+                    val escT0 = byteArrayOf(0x1B, 0x74, 0x00) // ESC t 0 (codepage 0 / CP437)
+                    out.write(wake)
+                    Thread.sleep(50)
+                    out.write(init)
+                    Thread.sleep(200)
+                    out.write(std)
+                    out.write(cancelReverse)
+                    out.write(alignLeft)
+                    out.write(lineDefault)
+                    out.write(resetMode)
+                    out.write(escT0)
+                    Thread.sleep(50)
+                    val bytes = android.util.Base64.decode(b64, android.util.Base64.DEFAULT)
+                    Log.i(TAG, "Decoded base64 length: ${bytes.size}")
+                    Log.i(TAG, "Hex preview: ${hexPreview(bytes, 64)}")
+                    Log.i(TAG, "Has ESC @: ${containsSeq(bytes, byteArrayOf(0x1B, 0x40))} • Has GS V: ${containsSeq(bytes, byteArrayOf(0x1D, 0x56))}")
+                    writeChunks(out, bytes)
+                    writeFinalization(out)
+                    
+                    success = true
+                    showToast("Print sent")
+                    
+                } catch (e: Exception) {
+                    Log.e(TAG, "Print attempt $attempt failed: ${e.message}", e)
+                    try { socket?.close() } catch (_: IOException) {}
+                    if (attempt < maxRetries) {
+                        Thread.sleep(1000)
+                    } else {
+                        showToast("Print failed: ${e.message}")
+                    }
+                } finally {
+                    try {
+                        Thread.sleep(100)
+                        socket?.close()
+                    } catch (_: IOException) {}
                 }
             }
         }.start()

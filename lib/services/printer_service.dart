@@ -449,9 +449,6 @@ class PrinterService extends ChangeNotifier {
         throw Exception("AndroidPrinter bridge not available");
       }
       setAndroidPrinterMac(printer.address);
-      // Send once; if larger payloads occasionally fail, a short second attempt helps recover broken pipes
-      printToAndroidPrinterBase64(base64Data);
-      await Future.delayed(const Duration(milliseconds: 150));
       printToAndroidPrinterBase64(base64Data);
       return;
     }
