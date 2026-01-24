@@ -526,13 +526,31 @@ class PrinterService extends ChangeNotifier {
   }
 
   Future<void> printKOT(Map<String, dynamic> order, String tableId, String type) async {
-    final printer = _savedPrinters.firstWhere((p) => p.isKOT, orElse: () => throw Exception("No KOT Printer Assigned"));
+    debugPrint('=== KOT print request ===');
+    PrinterModel? printer;
+    try {
+      printer = _savedPrinters.firstWhere((p) => p.isKOT);
+    } catch (_) {}
+    printer ??= _savedPrinters.firstWhere(
+      (p) => p.type == PrinterType.bluetooth || p.type == PrinterType.ble,
+      orElse: () => throw Exception("No KOT Printer Assigned or available"),
+    );
+    debugPrint('KOT printer selected: ${printer.name} • ${printer.address} • ${printer.type}');
     final bytes = await _generateKOTBytes(order, tableId, type);
     await _printBytes(printer, bytes);
   }
 
   Future<void> printBill(Map<String, dynamic> order, String tableId, double sub, double tax, double total) async {
-    final printer = _savedPrinters.firstWhere((p) => p.isBill, orElse: () => throw Exception("No Bill Printer Assigned"));
+    debugPrint('=== Bill print request ===');
+    PrinterModel? printer;
+    try {
+      printer = _savedPrinters.firstWhere((p) => p.isBill);
+    } catch (_) {}
+    printer ??= _savedPrinters.firstWhere(
+      (p) => p.type == PrinterType.bluetooth || p.type == PrinterType.ble,
+      orElse: () => throw Exception("No Bill Printer Assigned or available"),
+    );
+    debugPrint('Bill printer selected: ${printer.name} • ${printer.address} • ${printer.type}');
     final bytes = await _generateBillBytes(order, tableId, sub, tax, total);
     await _printBytes(printer, bytes);
   }
