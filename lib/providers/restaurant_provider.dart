@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 import '../utils/web_adapter.dart' as web;
+import 'package:dishr/web/web_bridge_stub.dart'
+    if (dart.library.js_interop) 'package:dishr/web/web_bridge.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -606,6 +608,9 @@ class RestaurantProvider extends ChangeNotifier {
 
   Future<void> _sendToPrinter(String kind, String htmlDoc) async {
     try {
+      if (kIsWeb && isAndroidPrinterAvailable()) {
+        return;
+      }
       final res = await http.post(Uri.parse(_printerEndpoint), 
         headers: {'Content-Type': 'application/json'}, 
         body: jsonEncode({'type': kind, 'html': htmlDoc})
