@@ -340,14 +340,10 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> with Sing
                     label: const Text('Connect Check'),
                     onPressed: () async {
                       try {
-                        // Attempt a dummy print or just connect check
-                        // Since we don't have a pure 'connect' method exposed easily for all types,
-                        // we can try a test print or add a specific connect method.
-                        // For now, let's use test print as the verification or just show a toast.
                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Checking connection...')));
-                        await PrinterService.instance.testPrint(printer);
+                        final ok = await PrinterService.instance.connectToPrinter(printer);
                         if (!mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Connection Successful!')));
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(ok ? 'Connection Successful!' : 'Connection Failed')));
                       } catch (e) {
                          if (!mounted) return;
                           showDialog(

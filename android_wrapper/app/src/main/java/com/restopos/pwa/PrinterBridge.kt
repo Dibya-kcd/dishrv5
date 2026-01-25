@@ -162,19 +162,9 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
                     showToast("Connection failed")
                     return@Thread
                 }
-                
-                // Test print on connect
-                val out = socket.outputStream
-                Thread.sleep(100)
-                
-                out.write(byteArrayOf(0x1B, 0x40)) // ESC @ (Init)
-                Thread.sleep(50)
-                out.write("Printer Connected!\n".toByteArray(Charsets.UTF_8))
-                out.write("Ready to print.\n\n\n\n".toByteArray(Charsets.UTF_8))
-                out.flush()
-                
-                Thread.sleep(200)
-                showToast("Printer connected successfully")
+                // Only check connectivity; do not print anything here
+                Thread.sleep(150)
+                showToast("Printer connection OK")
                 
             } catch (e: Exception) {
                 Log.e(TAG, "Connection failed", e)
@@ -235,16 +225,12 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
         val mac = prefs.getString(PREF_PRINTER_MAC, null) ?: return false
         if (!isValidMac(mac)) return false
         if (adapter == null || !adapter.isEnabled) return false
-        var socket: BluetoothSocket? = null
+        // Lightweight check: ensure device exists and is bonded; do not open a socket
         return try {
             val device = adapter.getRemoteDevice(mac)
-            if (device.bondState != BluetoothDevice.BOND_BONDED) return false
-            socket = connectSocket(device)
-            socket != null
+            device.bondState == BluetoothDevice.BOND_BONDED
         } catch (_: Exception) {
             false
-        } finally {
-            try { socket?.close() } catch (_: IOException) {}
         }
     }
 
