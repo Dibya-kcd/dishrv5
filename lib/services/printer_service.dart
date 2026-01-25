@@ -249,7 +249,7 @@ class PrinterService extends ChangeNotifier {
     final profile = await CapabilityProfile.load();
     final generator = Generator(PaperSize.mm80, profile);
     List<int> bytes = [];
-    bytes += generator.text('RESTOPOS TEST PRINT', styles: const PosStyles(align: PosAlign.center, bold: true, height: PosTextSize.size2, width: PosTextSize.size2));
+    bytes += generator.text('The Dish TEST PRINT', styles: const PosStyles(align: PosAlign.center, bold: true, height: PosTextSize.size2, width: PosTextSize.size2));
     bytes += generator.hr();
     bytes += generator.text('Date: ${DateTime.now().toString().substring(0, 16)}', styles: const PosStyles(align: PosAlign.center));
     bytes += generator.hr();

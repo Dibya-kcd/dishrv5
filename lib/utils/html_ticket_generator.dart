@@ -92,9 +92,8 @@ body { font-family: Courier New, monospace; width: 80mm; margin: 0 auto; padding
 .footer { margin-top: 20px; text-align: center; font-size: 12px; }
 </style>
 <div class="header">
-<div class="title">RESTOPOS</div>
-<div>123 Main Street, City</div>
-<div>Phone: +91 9876543210</div>
+<div class="title">The Dish</div>
+<div>Pallahara, Odisha, India</div>
 </div>
 <div class="bill-info">
 <div>Bill #$billNumber</div>
