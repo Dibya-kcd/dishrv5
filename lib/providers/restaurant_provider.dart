@@ -4,8 +4,6 @@ import '../utils/web_adapter.dart' as web;
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-import 'package:dishr/web/web_bridge_stub.dart'
-    if (dart.library.js_interop) 'package:dishr/web/web_bridge.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/cart_item.dart';
@@ -607,10 +605,6 @@ class RestaurantProvider extends ChangeNotifier {
   static const String _printerEndpoint = 'http://localhost:3001/print';
 
   Future<void> _sendToPrinter(String kind, String htmlDoc) async {
-    // Avoid double-printing on Android WebView wrapper: we already print via PrinterService (ESC/POS).
-    if (kIsWeb && isAndroidPrinterAvailable()) {
-      return;
-    }
     try {
       final res = await http.post(Uri.parse(_printerEndpoint), 
         headers: {'Content-Type': 'application/json'}, 
