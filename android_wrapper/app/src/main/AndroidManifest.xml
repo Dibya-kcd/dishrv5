@@ -9,7 +9,7 @@
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" />
 
     <application
-        android:label="RestoPOS"
+        android:label="@string/app_name"
         android:usesCleartextTraffic="true"
         android:theme="@style/Theme.RestoPOS">
         <activity

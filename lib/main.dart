@@ -35,7 +35,7 @@ class RestoPOSApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'RestoPOS',
+      title: 'The Dish',
       debugShowCheckedModeBanner: false,
       onGenerateRoute: (settings) => MaterialPageRoute(builder: (_) => const HomeScreen()),
       initialRoute: '/',
