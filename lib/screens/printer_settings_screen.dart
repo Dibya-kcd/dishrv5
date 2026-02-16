@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import '../models/printer_model.dart';
 import '../services/printer_service.dart';
-import 'package:dishr/web/web_bridge_stub.dart'
-    if (dart.library.js_interop) 'package:dishr/web/web_bridge.dart';
 
 class PrinterSettingsScreen extends StatefulWidget {
-  const PrinterSettingsScreen({super.key});
+  final bool embed;
+  const PrinterSettingsScreen({super.key, this.embed = false});
 
   @override
   State<PrinterSettingsScreen> createState() => _PrinterSettingsScreenState();
@@ -40,33 +38,49 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> with Sing
 
   @override
   Widget build(BuildContext context) {
+    final content = Column(
+      children: [
+        if (!widget.embed)
+          TabBar(
+            controller: _tabController,
+            tabs: const [
+              Tab(icon: Icon(Icons.bluetooth), text: 'Bluetooth'),
+              Tab(icon: Icon(Icons.wifi), text: 'Network (LAN)'),
+              Tab(icon: Icon(Icons.usb), text: 'USB'),
+            ],
+          )
+        else
+          Container(
+            color: const Color(0xFF18181B),
+            child: TabBar(
+              controller: _tabController,
+              tabs: const [
+                Tab(icon: Icon(Icons.bluetooth), text: 'BT'),
+                Tab(icon: Icon(Icons.wifi), text: 'WiFi'),
+                Tab(icon: Icon(Icons.usb), text: 'USB'),
+              ],
+            ),
+          ),
+        Expanded(
+          child: TabBarView(
+            controller: _tabController,
+            children: [
+              _buildBluetoothTab(),
+              _buildNetworkTab(),
+              _buildUSBTab(),
+            ],
+          ),
+        ),
+      ],
+    );
+
+    if (widget.embed) return content;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Printer Settings'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.monitor_heart),
-            tooltip: 'Run Diagnostics',
-            onPressed: _runDiagnostics,
-          ),
-        ],
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(icon: Icon(Icons.bluetooth), text: 'Bluetooth'),
-            Tab(icon: Icon(Icons.wifi), text: 'Network (LAN)'),
-            Tab(icon: Icon(Icons.usb), text: 'USB'),
-          ],
-        ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildBluetoothTab(),
-          _buildNetworkTab(),
-          _buildUSBTab(),
-        ],
-      ),
+      body: content,
     );
   }
 
@@ -361,39 +375,6 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> with Sing
                       }
                     },
                   ),
-                if (printer.type == PrinterType.bluetooth && kIsWeb)
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.build),
-                    label: const Text('Android Diagnostic'),
-                    onPressed: () async {
-                      try {
-                        // Trigger Android-side diagnostic print via Web bridge
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sending Android Diagnostic...')));
-                        // Uses web bridge method; safe on WebView wrapper
-                        // If not available, PrinterService guards already log availability
-                        await Future<void>.delayed(const Duration(milliseconds: 100));
-                        // Call diagnostic through service-side bridge helper
-                        // Directly use the web bridge function to avoid payload generation
-                        // ignore: deprecated_member_use
-                        // The function is exposed in web_bridge.dart
-                        // We call through PrinterService to keep imports minimal in this screen
-                        // But since it's a UI only action, import kIsWeb and call the bridge API.
-                        runAndroidPrinterDiagnostic();
-                        if (!mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Diagnostic Sent')));
-                      } catch (e) {
-                        if (!mounted) return;
-                        showDialog(
-                          context: context,
-                          builder: (context) => AlertDialog(
-                            title: const Text('Diagnostic Error', style: TextStyle(letterSpacing: 0.5)),
-                            content: Text(e.toString()),
-                            actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
-                          ),
-                        );
-                      }
-                    },
-                  ),
                 ElevatedButton.icon(
                   icon: const Icon(Icons.print),
                   label: const Text('Test Print'),
@@ -460,63 +441,6 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> with Sing
           actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
         ),
       );
-    }
-  }
-
-  Future<void> _runDiagnostics() async {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('System Diagnostics', style: TextStyle(letterSpacing: 0.5)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Checking Connectivity...', style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 10),
-            FutureBuilder<bool>(
-              future: _checkLocalServer(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Row(children: [SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)), SizedBox(width: 8), Text('Checking Local Server...')]);
-                }
-                final success = snapshot.data ?? false;
-                return Row(children: [
-                  Icon(success ? Icons.check_circle : Icons.error, color: success ? Colors.green : Colors.red),
-                  const SizedBox(width: 8),
-                  Text(success ? 'Local Server (Print Service) OK' : 'Local Server Offline (Expected on Mobile)'),
-                ]);
-              },
-            ),
-            const SizedBox(height: 10),
-            const Text('Bluetooth Status:', style: TextStyle(fontWeight: FontWeight.bold)),
-             FutureBuilder<List<dynamic>>(
-              future: PrinterService.instance.pairedBluetooths.isEmpty ? PrinterService.instance.loadPairedBluetooths().then((_) => PrinterService.instance.pairedBluetooths) : Future.value(PrinterService.instance.pairedBluetooths),
-              builder: (context, snapshot) {
-                 if (snapshot.connectionState == ConnectionState.waiting) {
-                   return const Text('Loading paired devices...');
-                 }
-                 final list = snapshot.data ?? [];
-                 return Text('${list.length} Paired Devices Found');
-              },
-            ),
-          ],
-        ),
-        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))],
-      ),
-    );
-  }
-
-  Future<bool> _checkLocalServer() async {
-    // This is just a placeholder check as the user was seeing errors related to localhost:3001
-    // On a real mobile device, localhost refers to the device itself.
-    try {
-       // We can't easily check localhost:3001 from here without http package imported in this file
-       // But assuming the PrinterService might have a check, or we just return false for now 
-       // since we know it's missing on mobile.
-       return false; 
-    } catch (_) {
-      return false;
     }
   }
 }

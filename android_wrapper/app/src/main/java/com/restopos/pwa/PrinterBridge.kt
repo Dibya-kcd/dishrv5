@@ -70,60 +70,15 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
     }
 
     private fun writeChunks(out: OutputStream, bytes: ByteArray) {
-        val chunkSize = 128
+        val chunkSize = 512
         var offset = 0
         while (offset < bytes.size) {
             val length = min(chunkSize, bytes.size - offset)
-            try {
-                out.write(bytes, offset, length)
-                out.flush()
-                offset += length
-                Thread.sleep(15)
-            } catch (e: IOException) {
-                Log.e(TAG, "Write failed at offset $offset/${bytes.size}: ${e.message}")
-                throw e
-            }
+            out.write(bytes, offset, length)
+            out.flush()
+            offset += length
+            Thread.sleep(20) // Small delay between chunks
         }
-    }
-
-    private fun writeFinalization(out: OutputStream) {
-        val lf = 0x0A
-        repeat(6) { out.write(lf) }
-        out.flush()
-        val cut = byteArrayOf(0x1D, 0x56, 0x01)
-        out.write(cut)
-        out.flush()
-        Thread.sleep(200)
-    }
-
-    private fun hexPreview(bytes: ByteArray, count: Int): String {
-        val n = kotlin.math.min(count, bytes.size)
-        val sb = StringBuilder()
-        for (i in 0 until n) {
-            val b = bytes[i].toInt() and 0xFF
-            if (i > 0) sb.append(" ")
-            sb.append(String.format("%02X", b))
-        }
-        return sb.toString()
-    }
-
-    private fun containsSeq(bytes: ByteArray, seq: ByteArray): Boolean {
-        if (seq.isEmpty() || bytes.size < seq.size) return false
-        var i = 0
-        while (i <= bytes.size - seq.size) {
-            var match = true
-            var j = 0
-            while (j < seq.size) {
-                if (bytes[i + j] != seq[j]) {
-                    match = false
-                    break
-                }
-                j++
-            }
-            if (match) return true
-            i++
-        }
-        return false
     }
 
     // JavaScript Interface Methods
@@ -288,30 +243,19 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
                 val out = socket.outputStream
                 Thread.sleep(100)
                 
-                val wake = byteArrayOf(0x00, 0x00)
-                val init = byteArrayOf(0x1B, 0x40)
-                val std = byteArrayOf(0x1B, 0x53)
-                val cancelReverse = byteArrayOf(0x1D, 0x42, 0x00)
-                val alignLeft = byteArrayOf(0x1B, 0x61, 0x00)
-                val lineDefault = byteArrayOf(0x1B, 0x32)
-                val resetMode = byteArrayOf(0x1B, 0x21, 0x00)
-                val escT0 = byteArrayOf(0x1B, 0x74, 0x00) // ESC t 0 (codepage 0 / CP437)
-                out.write(wake)
-                Thread.sleep(50)
-                out.write(init)
-                Thread.sleep(200)
-                out.write(std)
-                out.write(cancelReverse)
-                out.write(alignLeft)
-                out.write(lineDefault)
-                out.write(resetMode)
-                out.write(escT0)
-                Thread.sleep(50)
+                Log.d(TAG, "Print: Data length = ${data.length}")
+                
                 val bytes = data.toByteArray(Charsets.UTF_8)
-                Log.i(TAG, "Hex preview: ${hexPreview(bytes, 64)}")
-                Log.i(TAG, "Has ESC @: ${containsSeq(bytes, byteArrayOf(0x1B, 0x40))} • Has GS V: ${containsSeq(bytes, byteArrayOf(0x1D, 0x56))}")
-                writeChunks(out, bytes)
-                writeFinalization(out)
+                out.write(bytes)
+                out.flush()
+                Thread.sleep(100)
+                
+                repeat(6) {
+                    out.write(0x0A)
+                }
+                out.flush()
+                
+                Thread.sleep(200)
                 showToast("Print sent")
                 
             } catch (e: Exception) {
@@ -329,7 +273,6 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
 
     @JavascriptInterface
     fun printBase64(b64: String) {
-        Log.i(TAG, "printBase64 invoked")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             if (context.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
                 showToast("Bluetooth permission not granted")
@@ -351,74 +294,53 @@ class PrinterBridge(private val context: Context, private val webView: WebView) 
         }
         
         Thread {
-            var attempt = 0
-            val maxRetries = 2
-            var success = false
-            
-            while (!success && attempt < maxRetries) {
-                attempt++
-                Log.i(TAG, "Print attempt $attempt of $maxRetries")
-                var socket: BluetoothSocket? = null
+            var socket: BluetoothSocket? = null
+            try {
+                val device = adapter.getRemoteDevice(mac)
+                if (device.bondState != BluetoothDevice.BOND_BONDED) {
+                    showToast("Pair printer in system settings")
+                    return@Thread
+                }
                 
+                socket = connectSocket(device)
+                if (socket == null) {
+                    showToast("Connection failed")
+                    return@Thread
+                }
+                
+                val out = socket.outputStream
+                Thread.sleep(100)
+                
+                val bytes = android.util.Base64.decode(b64, android.util.Base64.DEFAULT)
+                Log.d(TAG, "PrintBase64: Decoded ${bytes.size} bytes")
+                
+                // Log first 30 bytes for debugging
+                if (bytes.size >= 30) {
+                    Log.d(TAG, "First 30 bytes: ${bytes.take(30).joinToString(", ") { it.toString() }}")
+                }
+                
+                // Check if data starts with ESC @ (init)
+                if (bytes.size >= 2 && bytes[0] == 0x1B.toByte() && bytes[1] == 0x40.toByte()) {
+                    Log.d(TAG, "Data starts with ESC @ - Good!")
+                } else {
+                    Log.w(TAG, "Data does NOT start with ESC @")
+                }
+                
+                // Flutter's esc_pos_utils already includes ALL commands
+                // Just send the bytes as-is
+                writeChunks(out, bytes)
+                
+                Thread.sleep(300)
+                showToast("Print sent")
+                
+            } catch (e: Exception) {
+                Log.e(TAG, "PrintBase64 failed", e)
+                showToast("Print failed: ${e.message}")
+            } finally {
                 try {
-                    val device = adapter.getRemoteDevice(mac)
-                    if (device.bondState != BluetoothDevice.BOND_BONDED) {
-                        showToast("Pair printer in system settings")
-                        return@Thread
-                    }
-                    
-                    socket = connectSocket(device)
-                    if (socket == null) {
-                        Log.w(TAG, "Connection failed on attempt $attempt")
-                        if (attempt == maxRetries) showToast("Connection failed")
-                        continue
-                    }
-                    
-                    val out = socket.outputStream
                     Thread.sleep(100)
-                    
-                    val wake = byteArrayOf(0x00, 0x00)
-                    val init = byteArrayOf(0x1B, 0x40)
-                    val std = byteArrayOf(0x1B, 0x53)
-                    val cancelReverse = byteArrayOf(0x1D, 0x42, 0x00)
-                    val alignLeft = byteArrayOf(0x1B, 0x61, 0x00)
-                    val lineDefault = byteArrayOf(0x1B, 0x32)
-                    val resetMode = byteArrayOf(0x1B, 0x21, 0x00)
-                    val escT0 = byteArrayOf(0x1B, 0x74, 0x00) // ESC t 0 (codepage 0 / CP437)
-                    out.write(wake)
-                    Thread.sleep(50)
-                    out.write(init)
-                    Thread.sleep(200)
-                    out.write(std)
-                    out.write(cancelReverse)
-                    out.write(alignLeft)
-                    out.write(lineDefault)
-                    out.write(resetMode)
-                    out.write(escT0)
-                    Thread.sleep(50)
-                    val bytes = android.util.Base64.decode(b64, android.util.Base64.DEFAULT)
-                    Log.i(TAG, "Decoded base64 length: ${bytes.size}")
-                    Log.i(TAG, "Hex preview: ${hexPreview(bytes, 64)}")
-                    Log.i(TAG, "Has ESC @: ${containsSeq(bytes, byteArrayOf(0x1B, 0x40))} • Has GS V: ${containsSeq(bytes, byteArrayOf(0x1D, 0x56))}")
-                    writeChunks(out, bytes)
-                    writeFinalization(out)
-                    
-                    success = true
-                    showToast("Print sent")
-                    
-                } catch (e: Exception) {
-                    Log.e(TAG, "Print attempt $attempt failed: ${e.message}", e)
-                    try { socket?.close() } catch (_: IOException) {}
-                    if (attempt < maxRetries) {
-                        Thread.sleep(1000)
-                    } else {
-                        showToast("Print failed: ${e.message}")
-                    }
-                } finally {
-                    try {
-                        Thread.sleep(100)
-                        socket?.close()
-                    } catch (_: IOException) {}
+                    socket?.close()
+                } catch (_: IOException) {
                 }
             }
         }.start()

@@ -28,9 +28,10 @@ class BillPreviewModal extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 12),
                 decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: Colors.black87))),
                 child: Column(children: [
-                  const Text('The Dish', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: Colors.black)),
+                  const Text('RESTOPOS', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: Colors.black)),
                   const SizedBox(height: 4),
-                  const Text('Pallahara, Odisha, India', style: TextStyle(color: Colors.black)),
+                  const Text('123 Main Street, City', style: TextStyle(color: Colors.black)),
+                  const Text('Phone: +91 9876543210', style: TextStyle(color: Colors.black)),
                   const Divider(color: Colors.black26),
                   Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                     Text('Bill #${provider.currentBill!['billNumber']}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),

@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
@@ -5,6 +6,8 @@ import 'package:provider/provider.dart';
 import '../providers/restaurant_provider.dart';
 import '../providers/employee_provider.dart';
 import '../providers/expense_provider.dart';
+import '../data/repository.dart';
+import '../utils/auth_helper.dart';
 import '../widgets/page_scaffold.dart';
 
 class EmployeeScreen extends StatelessWidget {
@@ -13,6 +16,8 @@ class EmployeeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, constraints) {
       final width = constraints.maxWidth;
+      final outerPadding = 32.0; // PageScaffold adds 16 px padding on each side
+      final usableViewport = math.max(240.0, width - outerPadding);
       final isMobile = width < 768;
       final isTablet = width >= 768 && width < 1024;
       final isLaptop = width >= 1024 && width < 1440;
@@ -20,16 +25,25 @@ class EmployeeScreen extends StatelessWidget {
       final scale = width < 360 ? 0.85 : width > 1728 ? 1.2 : (width / 1024).clamp(0.85, 1.2);
       final provider = context.watch<EmployeeProvider>();
       final employees = provider.employees;
+      final currentRole = (Repository.instance.clientMeta?['role']?.toString() ?? '').toLowerCase();
+      final isAdmin = currentRole == 'admin';
 
-      final maxContentWidth = isLaptop || !isDesktop(width) ? width : 1280.0;
-      final horizontalPadding = 16.0 * scale;
+      final maxContentWidth = isLaptop || !isDesktop(width) ? usableViewport : math.min(usableViewport, 1280.0);
+      final verticalPadding = 16.0 * scale;
       final gutter = 12.0 * scale;
-      final usableWidth = (maxContentWidth - (horizontalPadding * 2));
-      final cardWidth = cols == 1 ? usableWidth : ((usableWidth - gutter * (cols - 1)) / cols).floorToDouble();
+      final totalGutters = gutter * (cols - 1);
+      final usableWidth = maxContentWidth;
+      double cardWidth;
+      if (cols <= 1) {
+        cardWidth = usableWidth;
+      } else {
+        cardWidth = ((usableWidth - totalGutters) / cols).floorToDouble();
+      }
+      cardWidth = cardWidth.clamp(220.0, usableWidth).toDouble();
 
       return PageScaffold(
         title: 'Employees',
-        actions: [
+        actions: isAdmin ? [
           ElevatedButton.icon(
             onPressed: () => _showAddEmployeeDialog(context, scale),
             icon: Icon(Icons.add, size: 16 * scale),
@@ -42,12 +56,12 @@ class EmployeeScreen extends StatelessWidget {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
           ),
-        ],
+        ] : [],
         child: Center(
           child: ConstrainedBox(
             constraints: BoxConstraints(maxWidth: maxContentWidth),
             child: Padding(
-              padding: EdgeInsets.all(horizontalPadding),
+              padding: EdgeInsets.symmetric(vertical: verticalPadding),
               child: Column(
                 children: [
                   SizedBox(height: 12 * scale),
@@ -107,7 +121,7 @@ class _EmployeeCardState extends State<_EmployeeCard> {
     final card = AnimatedContainer(
       duration: const Duration(milliseconds: 150),
       curve: Curves.easeOut,
-      transform: Matrix4.diagonal3Values(_hover ? 1.02 : 1.0, _hover ? 1.02 : 1.0, 1.0),
+      transform: Matrix4.identity()..scale(_hover && MediaQuery.of(context).size.width >= 768 ? 1.02 : 1.0),
       padding: EdgeInsets.all(12 * scale),
       decoration: BoxDecoration(
         color: const Color(0xFF18181B),
@@ -123,12 +137,20 @@ class _EmployeeCardState extends State<_EmployeeCard> {
               SizedBox(width: 12 * scale),
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(name, style: TextStyle(color: Colors.white, fontSize: 14 * scale, fontWeight: FontWeight.w700)),
+                  Text(name, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: Colors.white, fontSize: 14 * scale, fontWeight: FontWeight.w700)),
                   SizedBox(height: 2 * scale),
-                  Text('$role • $code', style: TextStyle(color: const Color(0xFFA1A1AA), fontSize: 11 * scale)),
+                  Text('$role • $code', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: const Color(0xFFA1A1AA), fontSize: 11 * scale)),
                 ]),
               ),
-              Text('₹${net.toStringAsFixed(2)}', style: TextStyle(color: color, fontSize: 16 * scale, fontWeight: FontWeight.bold)),
+              Flexible(
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text('₹${net.toStringAsFixed(2)}', style: TextStyle(color: color, fontSize: 16 * scale, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ),
             ],
           ),
           SizedBox(height: 10 * scale),
@@ -168,30 +190,84 @@ class _EmployeeCardState extends State<_EmployeeCard> {
               children: [
                 Icon(Icons.event, color: Colors.white, size: 16 * scale),
                 SizedBox(width: 6 * scale),
-                Expanded(child: Text('Next Pay: $y-$m-$d${salaryType == 'monthly' ? '' : ' • $salaryType'}', style: TextStyle(color: const Color(0xFFA1A1AA), fontSize: 11 * scale))),
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 10 * scale, vertical: 6 * scale),
-                  decoration: BoxDecoration(color: pillColor.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(999), border: Border.all(color: pillColor)),
-                  child: Text(pillText, style: TextStyle(color: pillColor, fontSize: 11 * scale, fontWeight: FontWeight.w600)),
+                Expanded(
+                  child: Text(
+                    'Next Pay: $y-$m-$d${salaryType == 'monthly' ? '' : ' • $salaryType'}',
+                    style: TextStyle(color: const Color(0xFFA1A1AA), fontSize: 11 * scale),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                SizedBox(width: 6 * scale),
+                Flexible(
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Container(
+                        padding: EdgeInsets.symmetric(horizontal: 10 * scale, vertical: 6 * scale),
+                        decoration: BoxDecoration(
+                          color: pillColor.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(color: pillColor),
+                        ),
+                        child: Text(
+                          pillText,
+                          style: TextStyle(color: pillColor, fontSize: 11 * scale, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ],
             );
           }),
           SizedBox(height: 10 * scale),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              _ActionButton(label: 'View', icon: Icons.visibility_outlined, scale: scale, onTap: () => _showViewEmployee(context, e, scale)),
-              SizedBox(width: 8 * scale),
-              _ActionButton(label: 'Edit', icon: Icons.edit_outlined, scale: scale, onTap: () => _showAddEmployeeDialog(context, scale, existing: e)),
-              SizedBox(width: 8 * scale),
-              _ActionButton(label: 'Pay', icon: Icons.payments_outlined, scale: scale, onTap: () async {
-                final res = await context.read<ExpenseProvider>().recordEmployeeSalary(e);
-                if (context.mounted) {
-                  context.read<RestaurantProvider>().showToast(res, icon: res.contains('recorded') ? '✅' : '⚠️');
-                }
-              }),
-            ],
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final spacing = 8.0 * scale;
+              return Align(
+                alignment: Alignment.centerRight,
+                child: Wrap(
+                  spacing: spacing,
+                  runSpacing: spacing,
+                  alignment: WrapAlignment.end,
+                  children: [
+                    _ActionButton(
+                      label: 'View',
+                      icon: Icons.visibility_outlined,
+                      scale: scale,
+                      onTap: () => _showViewEmployee(context, e, scale),
+                    ),
+                    _ActionButton(
+                      label: 'Edit',
+                      icon: Icons.edit_outlined,
+                      scale: scale,
+                      onTap: () => _showAddEmployeeDialog(context, scale, existing: e),
+                    ),
+                    _ActionButton(
+                      label: 'Pay',
+                      icon: Icons.payments_outlined,
+                      scale: scale,
+                      onTap: () async {
+                        final res = await context.read<ExpenseProvider>().recordEmployeeSalary(e);
+                        if (context.mounted) {
+                          context.read<RestaurantProvider>().showToast(
+                            res,
+                            icon: res.contains('recorded') ? '✅' : '⚠️',
+                          );
+                        }
+                      },
+                    ),
+                    _ActionButton(
+                      label: 'Delete',
+                      icon: Icons.delete_outlined,
+                      scale: scale,
+                      onTap: () => _showDeleteEmployeeDialog(context, e, scale),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
         ],
       ),
@@ -217,6 +293,46 @@ class _EmployeeCardState extends State<_EmployeeCard> {
       alignment: Alignment.center,
       child: Icon(Icons.person, color: Colors.white, size: 24 * scale),
     );
+  }
+}
+
+Future<void> _showDeleteEmployeeDialog(BuildContext context, Map<String, dynamic> employee, double scale) async {
+  final provider = context.read<EmployeeProvider>();
+  final name = employee['name']?.toString() ?? 'Unknown';
+  final id = employee['id']?.toString() ?? '';
+  
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      backgroundColor: const Color(0xFF18181B),
+      title: Text('Delete Employee', style: TextStyle(color: Colors.white, fontSize: 16 * scale)),
+      content: Text('Are you sure you want to delete $name? This action cannot be undone.', 
+        style: TextStyle(color: const Color(0xFFA1A1AA), fontSize: 14 * scale)),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(ctx).pop(false),
+          child: Text('Cancel', style: TextStyle(color: Colors.white, fontSize: 12 * scale)),
+        ),
+        ElevatedButton(
+          onPressed: () => Navigator.of(ctx).pop(true),
+          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444)),
+          child: Text('Delete', style: TextStyle(color: Colors.white, fontSize: 12 * scale)),
+        ),
+      ],
+    ),
+  );
+  
+  if (confirmed == true && context.mounted) {
+    try {
+      await provider.deleteEmployee(id);
+      if (context.mounted) {
+        context.read<RestaurantProvider>().showToast('Employee $name deleted successfully', icon: '✅');
+      }
+    } catch (e) {
+      if (context.mounted) {
+        context.read<RestaurantProvider>().showToast('Failed to delete employee: $e', icon: '⚠️');
+      }
+    }
   }
 }
 
@@ -277,7 +393,7 @@ Future<void> _showAddEmployeeDialog(BuildContext context, double scale, {Map<Str
   final rp = context.read<RestaurantProvider>();
   final nameCtrl = TextEditingController(text: existing?['name']?.toString() ?? '');
   final codeCtrl = TextEditingController(text: existing?['employee_code']?.toString() ?? '');
-  final roleCtrl = ValueNotifier<String>(existing?['role']?.toString() ?? 'Staff');
+  final roleCtrl = ValueNotifier<String>(existing?['role']?.toString() ?? 'staff');
   final statusCtrl = ValueNotifier<String>(existing?['status']?.toString() ?? 'Active');
   final paymentMethodCtrl = ValueNotifier<String>((existing?['payment']?['method']?.toString()) ?? 'Cash');
   final salaryTypeCtrl = ValueNotifier<String>((existing?['employment']?['salary_type']?.toString()) ?? 'Monthly');
@@ -317,6 +433,7 @@ Future<void> _showAddEmployeeDialog(BuildContext context, double scale, {Map<Str
 
   await showDialog(context: context, builder: (_) {
     return StatefulBuilder(builder: (context, setLocal) {
+      final isNarrow = MediaQuery.of(context).size.width < 480;
       void recompute() {
         gross = _sumCtrls(salaryFields.values);
         net = gross - _sumCtrls(dedFields.values);
@@ -329,29 +446,68 @@ Future<void> _showAddEmployeeDialog(BuildContext context, double scale, {Map<Str
         backgroundColor: const Color(0xFF18181B),
         title: Text('Add Employee', style: TextStyle(color: Colors.white, fontSize: 16 * scale, letterSpacing: 0.5)),
         content: SizedBox(
-          width: 720 * scale,
+          width: math.min(720 * scale, MediaQuery.of(context).size.width - 32),
           child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _Section(title: 'Personal Information', scale: scale, child: Column(children: [
-                  Row(children: [
-                    Expanded(child: _LabeledField(label: 'Full Name', ctrl: nameCtrl, required: true, scale: scale)),
-                    SizedBox(width: 8 * scale),
-                    Expanded(child: _LabeledField(label: 'Employee ID', ctrl: codeCtrl, scale: scale, hint: 'Auto/Manual')),
-                  ]),
+                  if (isNarrow)
+                    Column(children: [
+                      _LabeledField(label: 'Full Name', ctrl: nameCtrl, required: true, scale: scale),
+                      SizedBox(height: 8 * scale),
+                      _LabeledField(label: 'Employee ID', ctrl: codeCtrl, scale: scale, hint: 'Auto/Manual'),
+                    ])
+                  else
+                    Row(children: [
+                      Expanded(child: _LabeledField(label: 'Full Name', ctrl: nameCtrl, required: true, scale: scale)),
+                      SizedBox(width: 8 * scale),
+                      Expanded(child: _LabeledField(label: 'Employee ID', ctrl: codeCtrl, scale: scale, hint: 'Auto/Manual')),
+                    ]),
                   SizedBox(height: 8 * scale),
-                  Row(children: [
-                    Expanded(child: _DropdownField(label: 'Role/Designation', valueList: const ['Staff','Chef','Server','Manager','Cashier'], value: roleCtrl, scale: scale)),
-                    SizedBox(width: 8 * scale),
-                    Expanded(child: _DateField(label: 'Date of Birth', ctrl: dobCtrl, scale: scale)),
-                  ]),
+                  if (isNarrow)
+                    Column(children: [
+                      FutureBuilder<List<Map<String, dynamic>>>(
+                        future: AuthHelper.refreshRoles().then((_) => Repository.instance.roles.listRoles()),
+                        builder: (context, snap) {
+                          final roleList = snap.data?.map((r) => r['name'].toString().toLowerCase()).toList() ?? ['staff'];
+                          if (!roleList.contains(roleCtrl.value)) {
+                            roleList.add(roleCtrl.value);
+                          }
+                          return _DropdownField(label: 'Role/Designation', valueList: roleList, value: roleCtrl, scale: scale);
+                        },
+                      ),
+                      SizedBox(height: 8 * scale),
+                      _DateField(label: 'Date of Birth', ctrl: dobCtrl, scale: scale),
+                    ])
+                  else
+                    Row(children: [
+                      Expanded(child: FutureBuilder<List<Map<String, dynamic>>>(
+                        future: AuthHelper.refreshRoles().then((_) => Repository.instance.roles.listRoles()),
+                        builder: (context, snap) {
+                          final roleList = snap.data?.map((r) => r['name'].toString().toLowerCase()).toList() ?? ['staff'];
+                          if (!roleList.contains(roleCtrl.value)) {
+                            roleList.add(roleCtrl.value);
+                          }
+                          return _DropdownField(label: 'Role/Designation', valueList: roleList, value: roleCtrl, scale: scale);
+                        },
+                      )),
+                      SizedBox(width: 8 * scale),
+                      Expanded(child: _DateField(label: 'Date of Birth', ctrl: dobCtrl, scale: scale)),
+                    ]),
                   SizedBox(height: 8 * scale),
-                  Row(children: [
-                    Expanded(child: _LabeledField(label: 'Contact Number', ctrl: phoneCtrl, scale: scale)),
-                    SizedBox(width: 8 * scale),
-                    Expanded(child: _LabeledField(label: 'Email', ctrl: emailCtrl, scale: scale)),
-                  ]),
+                  if (isNarrow)
+                    Column(children: [
+                      _LabeledField(label: 'Contact Number', ctrl: phoneCtrl, scale: scale),
+                      SizedBox(height: 8 * scale),
+                      _LabeledField(label: 'Email', ctrl: emailCtrl, scale: scale),
+                    ])
+                  else
+                    Row(children: [
+                      Expanded(child: _LabeledField(label: 'Contact Number', ctrl: phoneCtrl, scale: scale)),
+                      SizedBox(width: 8 * scale),
+                      Expanded(child: _LabeledField(label: 'Email', ctrl: emailCtrl, scale: scale)),
+                    ]),
                   SizedBox(height: 8 * scale),
                   _LabeledField(label: 'Current Address', ctrl: addressCtrl, scale: scale, multiline: true),
                   SizedBox(height: 8 * scale),
@@ -359,23 +515,44 @@ Future<void> _showAddEmployeeDialog(BuildContext context, double scale, {Map<Str
                 ])),
                 SizedBox(height: 12 * scale),
                 _Section(title: 'Salary Information', scale: scale, child: Column(children: [
-                  Row(children: [
-                    Expanded(child: _AmountField(label: 'Basic', ctrl: salaryFields['basic']!, scale: scale)),
-                    SizedBox(width: 8 * scale),
-                    Expanded(child: _AmountField(label: 'HRA', ctrl: salaryFields['hra']!, scale: scale)),
-                  ]),
+                  if (isNarrow)
+                    Column(children: [
+                      _AmountField(label: 'Basic', ctrl: salaryFields['basic']!, scale: scale),
+                      SizedBox(height: 8 * scale),
+                      _AmountField(label: 'HRA', ctrl: salaryFields['hra']!, scale: scale),
+                    ])
+                  else
+                    Row(children: [
+                      Expanded(child: _AmountField(label: 'Basic', ctrl: salaryFields['basic']!, scale: scale)),
+                      SizedBox(width: 8 * scale),
+                      Expanded(child: _AmountField(label: 'HRA', ctrl: salaryFields['hra']!, scale: scale)),
+                    ]),
                   SizedBox(height: 8 * scale),
-                  Row(children: [
-                    Expanded(child: _AmountField(label: 'Transport', ctrl: salaryFields['transport']!, scale: scale)),
-                    SizedBox(width: 8 * scale),
-                    Expanded(child: _AmountField(label: 'Meal', ctrl: salaryFields['meal']!, scale: scale)),
-                  ]),
+                  if (isNarrow)
+                    Column(children: [
+                      _AmountField(label: 'Transport', ctrl: salaryFields['transport']!, scale: scale),
+                      SizedBox(height: 8 * scale),
+                      _AmountField(label: 'Meal', ctrl: salaryFields['meal']!, scale: scale),
+                    ])
+                  else
+                    Row(children: [
+                      Expanded(child: _AmountField(label: 'Transport', ctrl: salaryFields['transport']!, scale: scale)),
+                      SizedBox(width: 8 * scale),
+                      Expanded(child: _AmountField(label: 'Meal', ctrl: salaryFields['meal']!, scale: scale)),
+                    ]),
                   SizedBox(height: 8 * scale),
-                  Row(children: [
-                    Expanded(child: _AmountField(label: 'Special Allowance', ctrl: salaryFields['special']!, scale: scale)),
-                    SizedBox(width: 8 * scale),
-                    Expanded(child: _AmountField(label: 'Performance Bonus', ctrl: salaryFields['bonus']!, scale: scale)),
-                  ]),
+                  if (isNarrow)
+                    Column(children: [
+                      _AmountField(label: 'Special Allowance', ctrl: salaryFields['special']!, scale: scale),
+                      SizedBox(height: 8 * scale),
+                      _AmountField(label: 'Performance Bonus', ctrl: salaryFields['bonus']!, scale: scale),
+                    ])
+                  else
+                    Row(children: [
+                      Expanded(child: _AmountField(label: 'Special Allowance', ctrl: salaryFields['special']!, scale: scale)),
+                      SizedBox(width: 8 * scale),
+                      Expanded(child: _AmountField(label: 'Performance Bonus', ctrl: salaryFields['bonus']!, scale: scale)),
+                    ]),
                   SizedBox(height: 8 * scale),
                   Align(
                     alignment: Alignment.centerRight,
@@ -384,23 +561,44 @@ Future<void> _showAddEmployeeDialog(BuildContext context, double scale, {Map<Str
                 ])),
                 SizedBox(height: 12 * scale),
                 _Section(title: 'Deductions', scale: scale, child: Column(children: [
-                  Row(children: [
-                    Expanded(child: _AmountField(label: 'PF', ctrl: dedFields['pf']!, scale: scale)),
-                    SizedBox(width: 8 * scale),
-                    Expanded(child: _AmountField(label: 'ESI', ctrl: dedFields['esi']!, scale: scale)),
-                  ]),
+                  if (isNarrow)
+                    Column(children: [
+                      _AmountField(label: 'PF', ctrl: dedFields['pf']!, scale: scale),
+                      SizedBox(height: 8 * scale),
+                      _AmountField(label: 'ESI', ctrl: dedFields['esi']!, scale: scale),
+                    ])
+                  else
+                    Row(children: [
+                      Expanded(child: _AmountField(label: 'PF', ctrl: dedFields['pf']!, scale: scale)),
+                      SizedBox(width: 8 * scale),
+                      Expanded(child: _AmountField(label: 'ESI', ctrl: dedFields['esi']!, scale: scale)),
+                    ]),
                   SizedBox(height: 8 * scale),
-                  Row(children: [
-                    Expanded(child: _AmountField(label: 'Professional Tax', ctrl: dedFields['ptax']!, scale: scale)),
-                    SizedBox(width: 8 * scale),
-                    Expanded(child: _AmountField(label: 'TDS', ctrl: dedFields['tds']!, scale: scale)),
-                  ]),
+                  if (isNarrow)
+                    Column(children: [
+                      _AmountField(label: 'Professional Tax', ctrl: dedFields['ptax']!, scale: scale),
+                      SizedBox(height: 8 * scale),
+                      _AmountField(label: 'TDS', ctrl: dedFields['tds']!, scale: scale),
+                    ])
+                  else
+                    Row(children: [
+                      Expanded(child: _AmountField(label: 'Professional Tax', ctrl: dedFields['ptax']!, scale: scale)),
+                      SizedBox(width: 8 * scale),
+                      Expanded(child: _AmountField(label: 'TDS', ctrl: dedFields['tds']!, scale: scale)),
+                    ]),
                   SizedBox(height: 8 * scale),
-                  Row(children: [
-                    Expanded(child: _AmountField(label: 'Loan/Advance', ctrl: dedFields['loan']!, scale: scale)),
-                    SizedBox(width: 8 * scale),
-                    Expanded(child: _AmountField(label: 'Other deductions', ctrl: dedFields['other']!, scale: scale)),
-                  ]),
+                  if (isNarrow)
+                    Column(children: [
+                      _AmountField(label: 'Loan/Advance', ctrl: dedFields['loan']!, scale: scale),
+                      SizedBox(height: 8 * scale),
+                      _AmountField(label: 'Other deductions', ctrl: dedFields['other']!, scale: scale),
+                    ])
+                  else
+                    Row(children: [
+                      Expanded(child: _AmountField(label: 'Loan/Advance', ctrl: dedFields['loan']!, scale: scale)),
+                      SizedBox(width: 8 * scale),
+                      Expanded(child: _AmountField(label: 'Other deductions', ctrl: dedFields['other']!, scale: scale)),
+                    ]),
                   SizedBox(height: 8 * scale),
                   Align(
                     alignment: Alignment.centerRight,
@@ -408,46 +606,87 @@ Future<void> _showAddEmployeeDialog(BuildContext context, double scale, {Map<Str
                   ),
                 ])),
                 SizedBox(height: 12 * scale),
-                _Section(title: 'Salary Type', scale: scale, child: Row(children: [
-                  _RadioChip(value: 'Monthly', group: salaryTypeCtrl, scale: scale),
-                  SizedBox(width: 8 * scale),
-                  _RadioChip(value: 'Daily Wage', group: salaryTypeCtrl, scale: scale),
-                  SizedBox(width: 8 * scale),
-                  _RadioChip(value: 'Hourly', group: salaryTypeCtrl, scale: scale),
-                ])),
+                _Section(
+                  title: 'Salary Type',
+                  scale: scale,
+                  child: Wrap(
+                    spacing: 8 * scale,
+                    runSpacing: 8 * scale,
+                    children: [
+                      _RadioChip(value: 'Monthly', group: salaryTypeCtrl, scale: scale),
+                      _RadioChip(value: 'Daily Wage', group: salaryTypeCtrl, scale: scale),
+                      _RadioChip(value: 'Hourly', group: salaryTypeCtrl, scale: scale),
+                    ],
+                  ),
+                ),
                 SizedBox(height: 12 * scale),
                 _Section(title: 'Payment Details', scale: scale, child: Column(children: [
-                  Row(children: [
-                    Expanded(child: _DropdownField(label: 'Method', valueList: const ['Cash','Bank','UPI','Cheque'], value: paymentMethodCtrl, scale: scale)),
-                    SizedBox(width: 8 * scale),
-                    Expanded(child: _LabeledField(label: 'Payment Day', ctrl: paymentDayCtrl, scale: scale, hint: 'e.g., 30')),
-                  ]),
+                  if (isNarrow)
+                    Column(children: [
+                      _DropdownField(label: 'Method', valueList: const ['Cash','Bank','Bank Transfer','UPI','Cheque'], value: paymentMethodCtrl, scale: scale),
+                      SizedBox(height: 8 * scale),
+                      _LabeledField(label: 'Payment Day', ctrl: paymentDayCtrl, scale: scale, hint: 'e.g., 30'),
+                    ])
+                  else
+                    Row(children: [
+                      Expanded(child: _DropdownField(label: 'Method', valueList: const ['Cash','Bank','Bank Transfer','UPI','Cheque'], value: paymentMethodCtrl, scale: scale)),
+                      SizedBox(width: 8 * scale),
+                      Expanded(child: _LabeledField(label: 'Payment Day', ctrl: paymentDayCtrl, scale: scale, hint: 'e.g., 30')),
+                    ]),
                   SizedBox(height: 8 * scale),
-                  Row(children: [
-                    Expanded(child: _LabeledField(label: 'Account No', ctrl: bankAccCtrl, scale: scale)),
-                    SizedBox(width: 8 * scale),
-                    Expanded(child: _LabeledField(label: 'IFSC', ctrl: bankIfscCtrl, scale: scale)),
-                  ]),
+                  if (isNarrow)
+                    Column(children: [
+                      _LabeledField(label: 'Account No', ctrl: bankAccCtrl, scale: scale),
+                      SizedBox(height: 8 * scale),
+                      _LabeledField(label: 'IFSC', ctrl: bankIfscCtrl, scale: scale),
+                    ])
+                  else
+                    Row(children: [
+                      Expanded(child: _LabeledField(label: 'Account No', ctrl: bankAccCtrl, scale: scale)),
+                      SizedBox(width: 8 * scale),
+                      Expanded(child: _LabeledField(label: 'IFSC', ctrl: bankIfscCtrl, scale: scale)),
+                    ]),
                   SizedBox(height: 8 * scale),
-                  Row(children: [
-                    Expanded(child: _LabeledField(label: 'Bank Name', ctrl: bankNameCtrl, scale: scale)),
-                    SizedBox(width: 8 * scale),
-                    Expanded(child: _LabeledField(label: 'Holder Name', ctrl: holderCtrl, scale: scale)),
-                  ]),
+                  if (isNarrow)
+                    Column(children: [
+                      _LabeledField(label: 'Bank Name', ctrl: bankNameCtrl, scale: scale),
+                      SizedBox(height: 8 * scale),
+                      _LabeledField(label: 'Holder Name', ctrl: holderCtrl, scale: scale),
+                    ])
+                  else
+                    Row(children: [
+                      Expanded(child: _LabeledField(label: 'Bank Name', ctrl: bankNameCtrl, scale: scale)),
+                      SizedBox(width: 8 * scale),
+                      Expanded(child: _LabeledField(label: 'Holder Name', ctrl: holderCtrl, scale: scale)),
+                    ]),
                 ])),
                 SizedBox(height: 12 * scale),
                 _Section(title: 'Employment Details', scale: scale, child: Column(children: [
-                  Row(children: [
-                    Expanded(child: _DateField(label: 'Joining Date', ctrl: joinDateCtrl, scale: scale)),
-                    SizedBox(width: 8 * scale),
-                    Expanded(child: _LabeledField(label: 'Probation Period', ctrl: probationCtrl, scale: scale, hint: 'in months')),
-                  ]),
+                  if (isNarrow)
+                    Column(children: [
+                      _DateField(label: 'Joining Date', ctrl: joinDateCtrl, scale: scale),
+                      SizedBox(height: 8 * scale),
+                      _LabeledField(label: 'Probation Period', ctrl: probationCtrl, scale: scale, hint: 'in months'),
+                    ])
+                  else
+                    Row(children: [
+                      Expanded(child: _DateField(label: 'Joining Date', ctrl: joinDateCtrl, scale: scale)),
+                      SizedBox(width: 8 * scale),
+                      Expanded(child: _LabeledField(label: 'Probation Period', ctrl: probationCtrl, scale: scale, hint: 'in months')),
+                    ]),
                   SizedBox(height: 8 * scale),
-                  Row(children: [
-                    Expanded(child: _DateField(label: 'Contract End Date', ctrl: contractEndCtrl, scale: scale)),
-                    SizedBox(width: 8 * scale),
-                    Expanded(child: _DropdownField(label: 'Status', valueList: const ['Active','On Leave','Resigned'], value: statusCtrl, scale: scale)),
-                  ]),
+                  if (isNarrow)
+                    Column(children: [
+                      _DateField(label: 'Contract End Date', ctrl: contractEndCtrl, scale: scale),
+                      SizedBox(height: 8 * scale),
+                      _DropdownField(label: 'Status', valueList: const ['Active','On Leave','Resigned'], value: statusCtrl, scale: scale),
+                    ])
+                  else
+                    Row(children: [
+                      Expanded(child: _DateField(label: 'Contract End Date', ctrl: contractEndCtrl, scale: scale)),
+                      SizedBox(width: 8 * scale),
+                      Expanded(child: _DropdownField(label: 'Status', valueList: const ['Active','On Leave','Resigned'], value: statusCtrl, scale: scale)),
+                    ]),
                 ])),
                 SizedBox(height: 12 * scale),
                 _Section(title: 'Documents Upload', scale: scale, child: ValueListenableBuilder<Map<String, Map<String, dynamic>>>(

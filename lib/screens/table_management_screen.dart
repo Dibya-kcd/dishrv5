@@ -9,7 +9,7 @@ class TableManagementScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<RestaurantProvider>();
-    final tables = provider.tables.where((t) => t.status != 'deleted').toList();
+    final tables = [...provider.tables]..sort((a, b) => a.number.compareTo(b.number));
  
     void showAddTableDialog() {
       final numberController = TextEditingController();

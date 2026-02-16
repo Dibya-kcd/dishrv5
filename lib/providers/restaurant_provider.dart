@@ -1,8 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import '../utils/web_adapter.dart' as web;
-import 'package:dishr/web/web_bridge_stub.dart'
-    if (dart.library.js_interop) 'package:dishr/web/web_bridge.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -13,6 +11,7 @@ import '../models/menu_item.dart';
 import '../models/order.dart';
 import '../models/table_info.dart';
 import '../data/repository.dart';
+import '../utils/auth_helper.dart';
 import '../data/sync_service.dart';
 import '../services/printer_service.dart';
 import '../utils/html_ticket_generator.dart';
@@ -73,6 +72,22 @@ class RestaurantProvider extends ChangeNotifier {
     final deltas = _computeTakeoutDelta(_takeoutCart);
     return deltas.isNotEmpty;
   }
+  String? _temporaryRole;
+  String? get actingAsRole => _temporaryRole;
+
+  void actAsRole(String? role) {
+    _temporaryRole = role;
+    if (role != null) {
+      SyncService.instance.logAuditEvent('act_as_role_start', {'target_role': role});
+      setCurrentView('dashboard');
+    } else {
+      SyncService.instance.logAuditEvent('act_as_role_stop', {});
+    }
+    notifyListeners();
+  }
+
+  String? get clientRole => _temporaryRole ?? Repository.instance.clientMeta?['role']?.toString();
+  String? get realRole => Repository.instance.clientMeta?['role']?.toString();
   bool get installAvailable => _installAvailable;
   dynamic get installPromptEvent => _installPromptEvent;
   List<String> get categories {
@@ -172,7 +187,7 @@ class RestaurantProvider extends ChangeNotifier {
     _kotBatchesByOrder = {};
     _cancelledKeysByOrder = {};
     await Repository.instance.orders.clearAllSynced();
-    _ensureTableOrderConsistency();
+    await _ensureTableOrderConsistency();
     _saveState();
     showToast('All orders cleared (offline + online).', icon: '✅');
     setCurrentView('dashboard');
@@ -183,7 +198,7 @@ class RestaurantProvider extends ChangeNotifier {
     bool changed = false;
     for (final o in orders) {
       if (o.items.isEmpty && o.status != 'Cancelled' && o.status != 'Settled' && o.status != 'Completed') {
-         await Repository.instance.orders.updateOrderStatus(o.id, 'Cancelled');
+         await Repository.instance.orders.updateOrderStatus(o.id, 'Cancelled', notify: false);
          if (o.table.startsWith('Table ')) {
             // Also release table if needed
             try {
@@ -194,8 +209,10 @@ class RestaurantProvider extends ChangeNotifier {
          changed = true;
       }
     }
+    // We don't call _loadState() here because the constructor calls it right after cleanUpBlankOrders()
+    // or we can call it if we want to ensure state is fresh, but we should use notify: false if multiple things change.
     if (changed) {
-      _loadState(); // Reload state to reflect changes
+      Repository.instance.notifyDataChanged();
     }
   }
 
@@ -251,13 +268,13 @@ class RestaurantProvider extends ChangeNotifier {
     _initPWA();
     Future.microtask(() async {
       await Repository.instance.init();
+      await AuthHelper.refreshRoles();
       await cleanUpBlankOrders();
       await _loadState();
       
       // Listen for sync changes
       _dataSubscription = Repository.instance.onDataChanged.listen((_) {
-        _loadState();
-        notifyListeners();
+        _loadState(); // _loadState already calls notifyListeners()
       });
       
       _flushPendingPrints();
@@ -303,11 +320,29 @@ class RestaurantProvider extends ChangeNotifier {
   }
 
   void setCurrentView(String view, {int? tableNumber, bool updateUrl = true}) {
-    _currentView = view;
-    if (updateUrl) {
-      _pushUrlForView(view, tableNumber: tableNumber);
+    final rawRole = (Repository.instance.clientMeta?['role']?.toString() ?? '').trim().toLowerCase();
+    // Use actingAsRole if set, otherwise fallback to the session role
+    final role = actingAsRole?.toLowerCase() ?? rawRole;
+    
+    final allowed = AuthHelper.allowedViewsForRole(role);
+    String target = view;
+
+    // Admin always allowed to see everything, but respect the target if it's allowed
+    if (role != 'admin' && !allowed.contains(view)) {
+      if (role == 'chef') {
+        target = 'kitchen';
+      } else if (role == 'waiter') {
+        target = 'tables';
+      } else {
+        target = 'dashboard';
+      }
     }
-    if (view == 'dashboard') {
+    
+    _currentView = target;
+    if (updateUrl) {
+      _pushUrlForView(target, tableNumber: tableNumber);
+    }
+    if (target == 'dashboard') {
       _ensureTableOrderConsistency();
     }
     notifyListeners();
@@ -352,7 +387,7 @@ class RestaurantProvider extends ChangeNotifier {
       web.historyPush(url);
     }
   }
-  void _ensureTableOrderConsistency() {
+  Future<void> _ensureTableOrderConsistency() async {
     // 1. Remove empty active orders (no items, not settled/cancelled)
     // Don't auto-cancel 'Preparing' or 'Ready' orders as they might be temporarily empty during sync/load
     final emptyActiveOrders = _orders.where((o) => 
@@ -366,20 +401,29 @@ class RestaurantProvider extends ChangeNotifier {
     if (emptyActiveOrders.isNotEmpty) {
       _orders = _orders.where((o) => !emptyActiveOrders.contains(o)).toList();
       for (final o in emptyActiveOrders) {
-        Repository.instance.orders.updateOrderStatus(o.id, 'Cancelled');
+        // Use notify: false to avoid infinite loops during cleanup
+        await Repository.instance.orders.updateOrderStatus(o.id, 'Cancelled', notify: false);
       }
       notifyListeners();
     }
 
     // 2. Ensure table status consistency
+    bool tableChanged = false;
     for (final t in _tables) {
       if (t.status != 'available') {
         final label = 'Table ${t.number}';
         final hasActive = _orders.any((o) => o.table == label && o.status != 'Settled' && o.status != 'Cancelled');
         if (!hasActive) {
-          updateTableStatus(t.id, 'available', null);
+          // Use a direct update or ensure it doesn't notify redundantly
+          await updateTableStatus(t.id, 'available', null, notify: false);
+          tableChanged = true;
         }
       }
+    }
+    
+    if (tableChanged) {
+      // One final notification if tables were cleaned up
+      Repository.instance.notifyDataChanged();
     }
   }
 
@@ -390,7 +434,10 @@ class RestaurantProvider extends ChangeNotifier {
   }
 
   // State Persistence
+  bool _isLoadingState = false;
   Future<void> _loadState() async {
+    if (_isLoadingState) return;
+    _isLoadingState = true;
     try {
       final s = Repository.instance.settings;
       final prefs = await SharedPreferences.getInstance();
@@ -453,7 +500,6 @@ class RestaurantProvider extends ChangeNotifier {
       if (dbMenu.isNotEmpty) {
         menuItems = dbMenu;
       } else {
-        // Try Legacy Prefs
         final menuJson = prefs.getString('menuItems');
         if (menuJson != null) {
           try {
@@ -461,8 +507,23 @@ class RestaurantProvider extends ChangeNotifier {
             menuItems = data.map((m) => MenuItem.fromJson(m)).toList();
           } catch (_) {}
         }
-        // Save to DB (defaults or from prefs)
-        await Repository.instance.menu.upsertMenuItems(menuItems);
+        if (menuItems.isEmpty) {
+          final defaults = <MenuItem>[
+            MenuItem(id: 1, name: 'Paneer Tikka', category: 'Starters', price: 220, image: ''),
+            MenuItem(id: 2, name: 'Chicken Biryani', category: 'Main Course', price: 280, image: ''),
+            MenuItem(id: 3, name: 'Masala Dosa', category: 'South Indian', price: 160, image: ''),
+            MenuItem(id: 4, name: 'Butter Naan', category: 'Breads', price: 60, image: ''),
+            MenuItem(id: 5, name: 'Gulab Jamun', category: 'Desserts', price: 120, image: ''),
+            MenuItem(id: 6, name: 'Cold Coffee', category: 'Beverages', price: 140, image: ''),
+            MenuItem(id: 7, name: 'Dal Makhani', category: 'Main Course', price: 240, image: ''),
+            MenuItem(id: 8, name: 'Spring Rolls', category: 'Starters', price: 180, image: ''),
+          ];
+          await Repository.instance.menu.upsertMenuItems(defaults, notify: false);
+          menuItems = await Repository.instance.menu.listMenu();
+        } else {
+          // If we loaded from legacy prefs but DB was empty, save to DB
+          await Repository.instance.menu.upsertMenuItems(menuItems, notify: false);
+        }
       }
       // Seed sample recipes if missing
       try {
@@ -472,25 +533,9 @@ class RestaurantProvider extends ChangeNotifier {
           if (m == null) return;
           final existing = await Repository.instance.ingredients.getRecipeForMenuItem(m.id);
           if (existing.isNotEmpty) return;
-          final updated = MenuItem(
-            id: m.id,
-            name: m.name,
-            category: m.category,
-            price: m.price,
-            image: m.image,
-            soldOut: m.soldOut,
-            modifiers: m.modifiers,
-            upsellIds: m.upsellIds,
-            instructionTemplates: m.instructionTemplates,
-            specialFlags: m.specialFlags,
-            availableDays: m.availableDays,
-            availableStart: m.availableStart,
-            availableEnd: m.availableEnd,
-            seasonal: m.seasonal,
-            ingredients: ingList,
-            stock: m.stock,
-          );
-          updateMenuItem(updated);
+          
+          // Use direct repository call instead of provider method to avoid loops
+          await Repository.instance.ingredients.setRecipeForMenuItem(m.id, ingList, notify: false);
         }
         await ensureRecipe('Paneer Tikka', [
           {'name':'Paneer','qty':150,'unit':'g'},
@@ -539,7 +584,6 @@ class RestaurantProvider extends ChangeNotifier {
       if (dbTables.isNotEmpty) {
         _tables = dbTables;
       } else {
-        // Try Legacy Prefs for Tables
         final tablesJson = prefs.getString('tables');
         if (tablesJson != null) {
           try {
@@ -547,9 +591,16 @@ class RestaurantProvider extends ChangeNotifier {
              _tables = data.map((m) => TableInfo.fromJson(m)).toList();
           } catch (_) {}
         }
-        // Save to DB
-        for (var t in _tables) {
-           await Repository.instance.tables.upsertTable(t.id, t.number, t.status, t.capacity, orderId: t.orderId);
+        if (_tables.isEmpty) {
+          final defaults = List<TableInfo>.generate(8, (i) => TableInfo(id: i + 1, number: i + 1, status: 'available', capacity: 4));
+          for (final t in defaults) {
+            await Repository.instance.tables.upsertTable(t.id, t.number, t.status, t.capacity, orderId: t.orderId, notify: false);
+          }
+          _tables = await Repository.instance.tables.listTables();
+        } else {
+          for (var t in _tables) {
+             await Repository.instance.tables.upsertTable(t.id, t.number, t.status, t.capacity, orderId: t.orderId, notify: false);
+          }
         }
       }
 
@@ -571,6 +622,8 @@ class RestaurantProvider extends ChangeNotifier {
 
     } catch (e) {
       // Error loading state
+    } finally {
+      _isLoadingState = false;
     }
     
     notifyListeners();
@@ -608,9 +661,6 @@ class RestaurantProvider extends ChangeNotifier {
 
   Future<void> _sendToPrinter(String kind, String htmlDoc) async {
     try {
-      if (kIsWeb && isAndroidPrinterAvailable()) {
-        return;
-      }
       final res = await http.post(Uri.parse(_printerEndpoint), 
         headers: {'Content-Type': 'application/json'}, 
         body: jsonEncode({'type': kind, 'html': htmlDoc})
@@ -645,11 +695,7 @@ class RestaurantProvider extends ChangeNotifier {
         if (res.statusCode != 200) {
           remaining.add(job);
         }
-      } catch (e) {
-        // If server is definitely not running, stop retrying this job
-        if (e.toString().contains('Connection refused') || e.toString().contains('ERR_CONNECTION_REFUSED')) {
-           continue;
-        }
+      } catch (_) {
         remaining.add(job);
       }
     }
@@ -667,11 +713,11 @@ class RestaurantProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> updateTableStatus(int tableId, String status, String? orderId) async {
+  Future<void> updateTableStatus(int tableId, String status, String? orderId, {bool notify = true}) async {
     _tables = _tables.map((t) => t.id == tableId ? TableInfo(id: t.id, number: t.number, status: status, capacity: t.capacity, orderId: orderId) : t).toList();
     final tbl = _tables.firstWhere((t) => t.id == tableId, orElse: () => TableInfo(id: tableId, number: tableId, status: status, capacity: 4, orderId: orderId));
-    notifyListeners();
-    await Repository.instance.tables.upsertTable(tbl.id, tbl.number, tbl.status, tbl.capacity, orderId: tbl.orderId);
+    if (notify) notifyListeners();
+    await Repository.instance.tables.upsertTable(tbl.id, tbl.number, tbl.status, tbl.capacity, orderId: tbl.orderId, notify: notify);
     _saveState();
   }
 
@@ -758,6 +804,11 @@ class RestaurantProvider extends ChangeNotifier {
   void updateMenuItem(MenuItem updated) {
     menuItems = menuItems.map((m) => m.id == updated.id ? updated : m).toList();
     Repository.instance.menu.updateMenuItem(updated);
+    // Don't call _loadState() here as it can cause infinite loops
+    // notifyListeners() is called by the repository listener if needed, 
+    // but here we manually notify for immediate UI update.
+    notifyListeners();
+    
     () async {
       final list = await Repository.instance.ingredients.listIngredients();
       final byName = <String, String>{};
@@ -1461,7 +1512,9 @@ class RestaurantProvider extends ChangeNotifier {
       notifyListeners();
       showToast('Order cancelled successfully.', icon: '🗑️');
     } catch (e) {
-      debugPrint("Error cancelling order: $e");
+      if (kDebugMode) {
+        debugPrint("Error cancelling order: $e");
+      }
       showToast('Failed to cancel order.', icon: '⚠️');
     }
   }

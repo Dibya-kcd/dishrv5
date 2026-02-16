@@ -1,0 +1,95 @@
+{
+  "rules": {
+    ".read": "auth != null",
+    ".write": "false",
+    
+    "role_pins": {
+      "$role": {
+        ".read": "auth != null",
+        ".write": "auth != null && root.child('roles/' + auth.uid + '/role').val() == 'admin'"
+      }
+    },
+    
+    "roles": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid == $uid || root.child('roles/' + auth.uid + '/role').val() == 'admin')",
+        // Allow user to set their role only if it doesn't exist yet, or if they are admin
+        ".write": "auth != null && (auth.uid == $uid && (!data.exists() || root.child('roles/' + auth.uid + '/role').val() == 'admin') || root.child('roles/' + auth.uid + '/role').val() == 'admin')",
+        ".validate": "newData.hasChild('role') && (newData.child('role').val() == 'admin' || newData.child('role').val() == 'manager' || newData.child('role').val() == 'chef' || newData.child('role').val() == 'waiter' || newData.child('role').val() == 'staff')"
+      }
+    },
+    
+    "menu_items": {
+      "$id": {
+        ".read": "auth != null",
+        ".write": "auth != null && root.child('roles/' + auth.uid + '/role').val() == 'admin'"
+      }
+    },
+    
+    "orders": {
+      "$id": {
+        ".read": "auth != null",
+        ".write": "auth != null && (root.child('roles/' + auth.uid + '/role').val() == 'admin' || root.child('roles/' + auth.uid + '/role').val() == 'manager' || root.child('roles/' + auth.uid + '/role').val() == 'waiter' || root.child('roles/' + auth.uid + '/role').val() == 'chef')"
+      }
+    },
+    
+    "tables": {
+      "$id": {
+        ".read": "auth != null",
+        ".write": "auth != null && (root.child('roles/' + auth.uid + '/role').val() == 'admin' || root.child('roles/' + auth.uid + '/role').val() == 'manager' || root.child('roles/' + auth.uid + '/role').val() == 'waiter')"
+      }
+    },
+    
+    "expenses": {
+      "$id": {
+        ".read": "auth != null",
+        ".write": "auth != null && root.child('roles/' + auth.uid + '/role').val() == 'admin'"
+      }
+    },
+    
+    "employees": {
+      "$id": {
+        ".read": "auth != null",
+        ".write": "auth != null && root.child('roles/' + auth.uid + '/role').val() == 'admin'"
+      }
+    },
+    
+    "ingredients": {
+      "$id": {
+        ".read": "auth != null",
+        ".write": "auth != null && (root.child('roles/' + auth.uid + '/role').val() == 'admin' || root.child('roles/' + auth.uid + '/role').val() == 'manager' || root.child('roles/' + auth.uid + '/role').val() == 'chef')"
+      }
+    },
+    
+    "recipes": {
+      "$menuId": {
+        ".read": "auth != null",
+        ".write": "auth != null && (root.child('roles/' + auth.uid + '/role').val() == 'admin' || root.child('roles/' + auth.uid + '/role').val() == 'manager' || root.child('roles/' + auth.uid + '/role').val() == 'chef')"
+      }
+    },
+    
+    "inventory_txns": {
+      "$id": {
+        ".read": "auth != null",
+        ".write": "auth != null && (root.child('roles/' + auth.uid + '/role').val() == 'admin' || root.child('roles/' + auth.uid + '/role').val() == 'manager' || root.child('roles/' + auth.uid + '/role').val() == 'chef')"
+      }
+    },
+    
+    "counters": {
+      ".read": "auth != null",
+      ".write": "auth != null && root.child('roles/' + auth.uid + '/role').val() == 'admin'"
+    },
+    
+    "role_configs": {
+      "$id": {
+        ".read": "auth != null",
+        ".write": "auth != null && root.child('roles/' + auth.uid + '/role').val() == 'admin'"
+      }
+    },
+    
+    "audit_log": {
+      ".read": "auth != null && root.child('roles/' + auth.uid + '/role').val() == 'admin'",
+      ".write": "auth != null"
+    }
+  }
+}

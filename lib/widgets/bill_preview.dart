@@ -33,7 +33,7 @@ class BillPreview extends StatelessWidget {
                   padding: const EdgeInsets.only(bottom: 12),
                   decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: Colors.black87))),
                   child: Column(children: const [
-                    Text('The Dish', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: Colors.black)),
+                    Text('RESTOPOS', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: Colors.black)),
                     SizedBox(height: 6),
                     Text('TAX INVOICE', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
                   ]),

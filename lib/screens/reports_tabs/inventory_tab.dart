@@ -21,13 +21,40 @@ class InventoryTab extends StatefulWidget {
 
 class _InventoryTabState extends State<InventoryTab> with AutomaticKeepAliveClientMixin {
   final int _lowStockLimit = 20;
+  late Future<List<dynamic>> _dataFuture;
 
   @override
   bool get wantKeepAlive => true;
 
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  @override
+  void didUpdateWidget(InventoryTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.startMs != widget.startMs || oldWidget.endMs != widget.endMs) {
+      _loadData();
+    }
+  }
+
+  void _loadData() {
+    _dataFuture = Future.wait([
+      Repository.instance.ingredients.listLowStock(),
+      Repository.instance.ingredients.listIngredients(),
+      Repository.instance.ingredients.listTransactions(type: 'deduction', fromMs: widget.startMs, toMs: widget.endMs, limit: 1000),
+      Repository.instance.ingredients.listTransactions(type: 'wastage', fromMs: widget.startMs, toMs: widget.endMs, limit: 1000),
+      Repository.instance.ingredients.listTransactions(type: 'purchase', fromMs: widget.startMs, toMs: widget.endMs, limit: 1000),
+    ]);
+  }
+
   Future<void> _refresh() async {
-    setState(() {});
-    await Future.delayed(const Duration(milliseconds: 250));
+    setState(() {
+      _loadData();
+    });
+    await _dataFuture;
   }
 
   @override
@@ -49,13 +76,7 @@ class _InventoryTabState extends State<InventoryTab> with AutomaticKeepAliveClie
                 const SizedBox(height: 24),
 
                 FutureBuilder<List<dynamic>>(
-                  future: Future.wait([
-                    Repository.instance.ingredients.listLowStock(),
-                    Repository.instance.ingredients.listIngredients(),
-                    Repository.instance.ingredients.listTransactions(type: 'deduction', fromMs: widget.startMs, toMs: widget.endMs, limit: 1000),
-                    Repository.instance.ingredients.listTransactions(type: 'wastage', fromMs: widget.startMs, toMs: widget.endMs, limit: 1000),
-                    Repository.instance.ingredients.listTransactions(type: 'addition', fromMs: widget.startMs, toMs: widget.endMs, limit: 1000),
-                  ]),
+                  future: _dataFuture,
                   builder: (context, snapshot) {
                     if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: Color(0xFF10B981)));
                     

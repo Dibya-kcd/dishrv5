@@ -22,9 +22,13 @@ class _MenuScreenState extends State<MenuScreen> {
       final selectedCategory = provider.selectedCategory;
       final menuItems = selectedCategory == 'All' ? provider.menuItems : provider.menuItems.where((m) => m.category == selectedCategory).toList();
 
-      final cross = width >= 1024 ? 4 : (width >= 640 ? 3 : 2);
-      final cardAspect = 1.0;
-      
+      final cross = width >= 1280 ? 5 : (width >= 1024 ? 4 : (width >= 640 ? 3 : (width >= 480 ? 2 : 1)));
+      final cardAspect = width < 480
+          ? 1.0
+          : (width < 640
+              ? 1.2
+              : (width < 1024 ? 1.1 : 1.0));
+
       return PageScaffold(
         title: 'Menu',
         actions: [
@@ -70,8 +74,8 @@ class _MenuScreenState extends State<MenuScreen> {
             tooltip: 'Filters',
           ),
         ],
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          // Removed category chips/dropdowns to keep filter icon only
+        child: SingleChildScrollView(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             const SizedBox(height: 12),
             Row(children: [
               Expanded(
@@ -123,7 +127,6 @@ class _MenuScreenState extends State<MenuScreen> {
                               TextField(decoration: const InputDecoration(hintText: 'Price'), controller: priceController, keyboardType: TextInputType.number),
                               const SizedBox(height: 8),
                               DropdownButtonFormField<String>(
-                                // ignore: deprecated_member_use
                                 value: selected,
                                 items: categories.where((c) => c != 'All').map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
                                 onChanged: (v) { if (v != null) setLocal(() => selected = v); },
@@ -180,63 +183,67 @@ class _MenuScreenState extends State<MenuScreen> {
                   ),
                   padding: const EdgeInsets.all(12),
                   child: Column(children: [
-                    Text(item.image, style: const TextStyle(fontSize: 32)),
-                    const SizedBox(height: 6),
-                    Text(item.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
-                    Text(item.category, style: const TextStyle(color: Color(0xFFA1A1AA), fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Text(item.image, style: const TextStyle(fontSize: 28)),
                     const SizedBox(height: 4),
-                    Text('₹${item.price}', style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold)),
+                    Text(item.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Text(item.category, style: const TextStyle(color: Color(0xFFA1A1AA), fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 4),
+                    Text('₹${item.price}', style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold, fontSize: 13)),
                     const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      alignment: WrapAlignment.center,
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(color: const Color(0xFF27272A), borderRadius: BorderRadius.circular(12)),
-                          child: Row(children: [
-                            const Icon(Icons.sell, color: Colors.white, size: 14),
-                            const SizedBox(width: 4),
-                            Text('Sold $soldCount', style: const TextStyle(color: Colors.white, fontSize: 12)),
+                          child: Row(mainAxisSize: MainAxisSize.min, children: [
+                            const Icon(Icons.sell, color: Colors.white, size: 13),
+                            const SizedBox(width: 3),
+                            Text('Sold $soldCount', style: const TextStyle(color: Colors.white, fontSize: 11)),
                           ]),
                         ),
-                        const SizedBox(width: 6),
-                        if (item.soldOut) Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(color: const Color(0xFFEF4444), borderRadius: BorderRadius.circular(12)),
-                          child: Row(children: const [
-                            Icon(Icons.block, color: Colors.white, size: 14),
-                            SizedBox(width: 4),
-                            Text('SOLD OUT', style: TextStyle(color: Colors.white, fontSize: 12)),
-                          ]),
-                        ),
-                        if (lowStock && !item.soldOut) Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(color: const Color(0xFFF59E0B), borderRadius: BorderRadius.circular(12)),
-                          child: Row(children: [
-                            const Icon(Icons.warning, color: Colors.white, size: 14),
-                            const SizedBox(width: 4),
-                            Text('Stock ${item.stock}', style: const TextStyle(color: Colors.white, fontSize: 12)),
-                          ]),
-                        ),
-                        const SizedBox(width: 6),
-                        if (!item.soldOut && soldCount >= 10) Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(color: const Color(0xFF10B981), borderRadius: BorderRadius.circular(12)),
-                          child: Row(children: const [
-                            Icon(Icons.star_border, color: Colors.white, size: 14),
-                            SizedBox(width: 4),
-                            Text('POPULAR', style: TextStyle(color: Colors.white, fontSize: 12)),
-                          ]),
-                        ),
-                        if (!item.soldOut && soldCount <= 2) Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(color: const Color(0xFF3B82F6), borderRadius: BorderRadius.circular(12)),
-                          child: Row(children: const [
-                            Icon(Icons.trending_down, color: Colors.white, size: 14),
-                            SizedBox(width: 4),
-                            Text('LOW SELLING', style: TextStyle(color: Colors.white, fontSize: 12)),
-                          ]),
-                        ),
+                        if (item.soldOut)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(color: const Color(0xFFEF4444), borderRadius: BorderRadius.circular(12)),
+                            child: Row(mainAxisSize: MainAxisSize.min, children: const [
+                              Icon(Icons.block, color: Colors.white, size: 13),
+                              SizedBox(width: 3),
+                              Text('SOLD OUT', style: TextStyle(color: Colors.white, fontSize: 11)),
+                            ]),
+                          ),
+                        if (lowStock && !item.soldOut)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(color: const Color(0xFFF59E0B), borderRadius: BorderRadius.circular(12)),
+                            child: Row(mainAxisSize: MainAxisSize.min, children: [
+                              const Icon(Icons.warning, color: Colors.white, size: 13),
+                              const SizedBox(width: 3),
+                              Text('Stock ${item.stock}', style: const TextStyle(color: Colors.white, fontSize: 11)),
+                            ]),
+                          ),
+                        if (!item.soldOut && soldCount >= 10)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(color: const Color(0xFF10B981), borderRadius: BorderRadius.circular(12)),
+                            child: Row(mainAxisSize: MainAxisSize.min, children: const [
+                              Icon(Icons.star_border, color: Colors.white, size: 13),
+                              SizedBox(width: 3),
+                              Text('POPULAR', style: TextStyle(color: Colors.white, fontSize: 11)),
+                            ]),
+                          ),
+                        if (!item.soldOut && soldCount <= 2)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(color: const Color(0xFF3B82F6), borderRadius: BorderRadius.circular(12)),
+                            child: Row(mainAxisSize: MainAxisSize.min, children: const [
+                              Icon(Icons.trending_down, color: Colors.white, size: 13),
+                              SizedBox(width: 3),
+                              Text('LOW SELLING', style: TextStyle(color: Colors.white, fontSize: 11)),
+                            ]),
+                          ),
                       ],
                     ),
                     const SizedBox(height: 6),
@@ -249,18 +256,19 @@ class _MenuScreenState extends State<MenuScreen> {
                         return Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(color: const Color(0xFF27272A), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFF27272A))),
-                          child: Text(f, style: const TextStyle(color: Colors.white, fontSize: 11)),
+                          child: Text(f, style: const TextStyle(color: Colors.white, fontSize: 10)),
                         );
                         })
                       ],
                     ),
                     const Spacer(),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    Wrap(
+                      spacing: 4,
+                      runSpacing: 4,
                       children: [
-                        Expanded(
-                          child: TextButton(
-                            onPressed: () async {
+                        IconButton(
+                          tooltip: 'Edit',
+                          onPressed: () async {
                               final nameController = TextEditingController(text: item.name);
                               final priceController = TextEditingController(text: item.price.toString());
                               String selected = item.category;
@@ -303,7 +311,7 @@ class _MenuScreenState extends State<MenuScreen> {
                                 } catch (_) {}
                               }
                               if (!context.mounted) return;
-                              await showDialog(context: context, builder: (_) {
+                              await showDialog(context: context, builder: (dialogCtx) {
                                 return StatefulBuilder(builder: (context, setLocal) {
  
  
@@ -320,7 +328,6 @@ class _MenuScreenState extends State<MenuScreen> {
                                           TextField(decoration: const InputDecoration(hintText: 'Price'), controller: priceController, keyboardType: TextInputType.number),
                                           const SizedBox(height: 8),
                                           DropdownButtonFormField<String>(
-                                            // ignore: deprecated_member_use
                                             value: selected,
                                             items: categories.where((c) => c != 'All').map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
                                             onChanged: (v) { if (v != null) setLocal(() => selected = v); },
@@ -335,7 +342,6 @@ class _MenuScreenState extends State<MenuScreen> {
                                             value: v,
                                             onChanged: (val) => soldOut.value = val,
                                             title: const Text('Sold Out', style: TextStyle(color: Colors.white)),
-                                            // ignore: deprecated_member_use
                                             activeColor: const Color(0xFFEF4444),
                                           ),
                                         ),
@@ -533,7 +539,18 @@ class _MenuScreenState extends State<MenuScreen> {
                                                     ),
                                                   )),
                                                   const SizedBox(width: 6),
-                                                  SizedBox(width: 80, child: TextField(decoration: const InputDecoration(hintText: 'Qty'), controller: qtyC, keyboardType: TextInputType.number)),
+                                                  SizedBox(width: 80, child: TextField(
+                                                    decoration: const InputDecoration(hintText: 'Qty'),
+                                                    controller: qtyC,
+                                                    keyboardType: TextInputType.number,
+                                                    onChanged: (v) {
+                                                      final next = List<Map<String, dynamic>>.from(list);
+                                                      final cur = Map<String, dynamic>.from(next[i2]);
+                                                      cur['qty'] = double.tryParse(v) ?? 0.0;
+                                                      next[i2] = cur;
+                                                      ing.value = next;
+                                                    },
+                                                  )),
                                                   const SizedBox(width: 6),
                                                   SizedBox(width: 100, child: TextField(decoration: const InputDecoration(hintText: 'Unit'), controller: unitC, readOnly: true)),
                                                   IconButton(onPressed: () { final next = List<Map<String, dynamic>>.from(list); next.removeAt(i2); ing.value = next; }, icon: const Icon(Icons.delete, color: Colors.white)),
@@ -554,7 +571,14 @@ class _MenuScreenState extends State<MenuScreen> {
                                     ),
                                   ),
                                   actions: [
-                                    TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+                                    TextButton(onPressed: () => Navigator.of(dialogCtx).pop(), child: const Text('Cancel')),
+                                    TextButton(
+                                      onPressed: () {
+                                        context.read<RestaurantProvider>().deleteMenuItem(item.id);
+                                        Navigator.of(dialogCtx).pop();
+                                      },
+                                      child: const Text('Delete', style: TextStyle(color: Color(0xFFEF4444))),
+                                    ),
                                     ElevatedButton(onPressed: () {
                                       final name = nameController.text.trim();
                                       final price = int.tryParse(priceController.text.trim()) ?? item.price;
@@ -579,66 +603,76 @@ class _MenuScreenState extends State<MenuScreen> {
                                         stock: st,
                                       );
                                       context.read<RestaurantProvider>().updateMenuItem(updated);
-                                      Navigator.of(context).pop();
+                                      Navigator.of(dialogCtx).pop();
                                     }, child: const Text('Save')),
                                   ],
                                 );
                               });
                             });
-                            },
-                            style: TextButton.styleFrom(backgroundColor: const Color(0xFF27272A), foregroundColor: Colors.white),
-                            child: const Text('Edit'),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        TextButton(
-                              onPressed: () async {
-                                try {
-                                  final recipe = await Repository.instance.ingredients.getRecipeForMenuItem(item.id);
-                                  if (recipe.isEmpty) {
-                                if (!context.mounted) return;
-                                showDialog(context: context, builder: (_) => AlertDialog(
-                                  backgroundColor: const Color(0xFF18181B),
-                                  title: const Text('Recipe', style: TextStyle(color: Colors.white)),
-                                  content: const Text('No recipe mapped for this item.', style: TextStyle(color: Colors.white)),
-                                  actions: [TextButton(onPressed: ()=>Navigator.of(context).pop(), child: const Text('Close'))],
-                                ));
-                                    return;
-                                  }
-                                  final list = await Repository.instance.ingredients.listIngredients();
-                                  final byId = <String, Map<String, dynamic>>{};
-                                  for (final r in list) {
-                                    byId[r['id'] as String] = r;
-                                  }
-                                  final lines = recipe.map((e) {
-                                    final id = e['ingredient_id'] as String;
-                                    final nm = byId[id]?['name']?.toString() ?? id;
-                                    final qty = (e['qty'] as num?)?.toDouble() ?? 0.0;
-                                    final unit = e['unit']?.toString() ?? 'g';
-                                    return '$nm — $qty $unit';
-                                  }).toList();
-                                  if (!context.mounted) return;
-                                  showDialog(context: context, builder: (_) => AlertDialog(
-                                    backgroundColor: const Color(0xFF18181B),
-                                    title: const Text('Recipe', style: TextStyle(color: Colors.white)),
-                                    content: SizedBox(width: 420, child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                      ...lines.map((t) => Padding(padding: const EdgeInsets.only(bottom: 6), child: Text(t, style: const TextStyle(color: Colors.white)))),
-                                    ])),
-                                    actions: [TextButton(onPressed: ()=>Navigator.of(context).pop(), child: const Text('Close'))],
-                                  ));
-                                } catch (_) {}
-                              },
-                          style: TextButton.styleFrom(backgroundColor: const Color(0xFF27272A), foregroundColor: Colors.white),
-                          child: const Text('Recipe'),
+                          },
+                          icon: const Icon(Icons.edit, color: Colors.white, size: 18),
                         ),
                         IconButton(
-                          onPressed: () => context.read<RestaurantProvider>().deleteMenuItem(item.id),
-                          icon: const Icon(Icons.delete, color: Colors.white),
+                          tooltip: 'Recipe',
+                          onPressed: () async {
+                            try {
+                              final recipe = await Repository.instance.ingredients.getRecipeForMenuItem(item.id);
+                              if (recipe.isEmpty) {
+                                if (!context.mounted) return;
+                                showDialog(
+                                  context: context,
+                                  builder: (_) => AlertDialog(
+                                    backgroundColor: const Color(0xFF18181B),
+                                    title: const Text('Recipe', style: TextStyle(color: Colors.white)),
+                                    content: const Text('No recipe mapped for this item.', style: TextStyle(color: Colors.white)),
+                                    actions: [TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close'))],
+                                  ),
+                                );
+                                return;
+                              }
+                              final list = await Repository.instance.ingredients.listIngredients();
+                              final byId = <String, Map<String, dynamic>>{};
+                              for (final r in list) {
+                                byId[r['id'] as String] = r;
+                              }
+                              final lines = recipe.map((e) {
+                                final id = e['ingredient_id'] as String;
+                                final nm = byId[id]?['name']?.toString() ?? id;
+                                final qty = (e['qty'] as num?)?.toDouble() ?? 0.0;
+                                final unit = e['unit']?.toString() ?? 'g';
+                                return '$nm — $qty $unit';
+                              }).toList();
+                              if (!context.mounted) return;
+                              showDialog(
+                                context: context,
+                                builder: (_) => AlertDialog(
+                                  backgroundColor: const Color(0xFF18181B),
+                                  title: const Text('Recipe', style: TextStyle(color: Colors.white)),
+                                  content: SizedBox(
+                                    width: 420,
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        ...lines.map(
+                                          (t) => Padding(
+                                            padding: const EdgeInsets.only(bottom: 6),
+                                            child: Text(t, style: const TextStyle(color: Colors.white)),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  actions: [TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close'))],
+                                ),
+                              );
+                            } catch (_) {}
+                          },
+                          icon: const Icon(Icons.receipt_long, color: Colors.white, size: 18),
                         ),
                         Switch(
                           value: item.soldOut,
                           onChanged: (v) => context.read<RestaurantProvider>().toggleSoldOut(item.id, v),
-                          // ignore: deprecated_member_use
                           activeColor: const Color(0xFFEF4444),
                         ),
                       ],
@@ -648,7 +682,8 @@ class _MenuScreenState extends State<MenuScreen> {
               },
             ),
           ]),
-        );
+        ),
+      );
     });
   }
 }

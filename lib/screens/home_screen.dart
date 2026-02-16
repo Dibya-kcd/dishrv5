@@ -18,10 +18,15 @@ import 'inventory_screen.dart';
 import 'printer_settings_screen.dart';
 import 'expense_screen.dart';
 import 'employee_screen.dart';
+import 'settings_screen.dart';
 import 'table_management_screen.dart';
+import 'role_config_screen.dart';
+import 'admin_panel_screen.dart';
+import 'firebase_debug_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final String? initialView;
+  const HomeScreen({super.key, this.initialView});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -31,6 +36,12 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.initialView != null) {
+        final provider = context.read<RestaurantProvider>();
+        provider.setCurrentView(widget.initialView!, updateUrl: false);
+      }
+    });
   }
 
   @override
@@ -71,11 +82,26 @@ class _HomeScreenState extends State<HomeScreen> {
         case 'printer_settings':
           currentScreen = const PrinterSettingsScreen();
           break;
+        case 'roles':
+          currentScreen = const RoleManagementScreen();
+          break;
+        case 'simulation':
+          currentScreen = const AdminPanelScreen(embed: true);
+          break;
+        case 'debug':
+          currentScreen = const FirebaseDebugScreen();
+          break;
         case 'expenses':
           currentScreen = const ExpenseScreen();
           break;
         case 'employees':
           currentScreen = const EmployeeScreen();
+          break;
+        case 'settings':
+          currentScreen = const SettingsScreen();
+          break;
+        case 'admin':
+          currentScreen = const SettingsScreen();
           break;
         default:
           currentScreen = const DashboardScreen();
@@ -86,7 +112,6 @@ class _HomeScreenState extends State<HomeScreen> {
         body: Stack(children: [
           Column(children: [
             const TopNav(),
-            MobileNav(width: width),
             Expanded(child: currentScreen),
           ]),
           const KOTPreviewModal(),
@@ -128,6 +153,11 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
+          if (width < 1024)
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: MobileNav(width: width),
+            ),
         ]),
       );
     });

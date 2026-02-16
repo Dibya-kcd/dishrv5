@@ -1,4 +1,4 @@
-enum PrinterType { bluetooth, ble, network, usb }
+enum PrinterType { bluetooth, network, usb }
 
 class PrinterModel {
   final String id;

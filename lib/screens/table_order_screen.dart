@@ -29,7 +29,6 @@ class TableOrderScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                // ignore: deprecated_member_use
                 value: selectedReason,
                 items: reasons.map((r) => DropdownMenuItem(value: r, child: Text(r, style: const TextStyle(color: Colors.white)))).toList(),
                 onChanged: (v) => setState(() => selectedReason = v!),
@@ -479,6 +478,7 @@ class TableOrderScreen extends StatelessWidget {
                             onPressed: () {
                               showModalBottomSheet(
                                 context: context,
+                                useRootNavigator: true,
                                 isScrollControlled: true,
                                 backgroundColor: const Color(0xFF18181B),
                                 shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(12))),

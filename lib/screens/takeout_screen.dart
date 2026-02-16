@@ -27,7 +27,6 @@ class TakeoutScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                // ignore: deprecated_member_use
                 value: selectedReason,
                 items: reasons.map((r) => DropdownMenuItem(value: r, child: Text(r, style: const TextStyle(color: Colors.white)))).toList(),
                 onChanged: (v) => setState(() => selectedReason = v!),
@@ -487,112 +486,116 @@ class TakeoutScreen extends StatelessWidget {
         if (!embedded) {
           return Padding(
             padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
-                        Text('Takeout', style: TextStyle(color: Color(0xFFA1A1AA))),
-                        Text('Take order for takeout', style: TextStyle(color: Color(0xFFA1A1AA), fontSize: 12)),
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        DropdownButton<String>(
-                          value: categories.contains(selectedCategory) ? selectedCategory : 'All',
-                          items: categories.map((c) => DropdownMenuItem(
-                            value: c,
-                            child: Text(c, style: const TextStyle(color: Colors.white)),
-                          )).toList(),
-                          onChanged: (v) {
-                            if (v != null) provider.setSelectedCategory(v);
-                          },
-                          dropdownColor: const Color(0xFF27272A),
-                          style: const TextStyle(color: Colors.white),
-                        ),
-                        const SizedBox(width: 8),
-                        Stack(
-                          clipBehavior: Clip.none,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.shopping_cart_outlined, color: Colors.white),
-                              tooltip: 'Open Cart',
-                              onPressed: () {
-                                showModalBottomSheet(
-                                  context: context,
-                                  isScrollControlled: true,
-                                  backgroundColor: const Color(0xFF18181B),
-                                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(12))),
-                                  builder: (_) {
-                                    return SafeArea(
-                                      child: SizedBox(
-                                        height: MediaQuery.of(context).size.height * 0.7,
-                                        child: cartPanel,
-                                      ),
-                                    );
-                                  },
-                                );
-                              },
-                            ),
-                            if (takeoutCart.fold<int>(0, (s, i) => s + i.quantity) > 0)
-                              Positioned(
-                                right: 6,
-                                top: 6,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                  decoration: const BoxDecoration(color: Color(0xFFEF4444), borderRadius: BorderRadius.all(Radius.circular(10))),
-                                  child: Text(
-                                    '${takeoutCart.fold<int>(0, (s, i) => s + i.quantity)}',
-                                    style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text('Takeout', style: TextStyle(color: Color(0xFFA1A1AA))),
+                          Text('Take order for takeout', style: TextStyle(color: Color(0xFFA1A1AA), fontSize: 12)),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          DropdownButton<String>(
+                            value: categories.contains(selectedCategory) ? selectedCategory : 'All',
+                            items: categories.map((c) => DropdownMenuItem(
+                              value: c,
+                              child: Text(c, style: const TextStyle(color: Colors.white)),
+                            )).toList(),
+                            onChanged: (v) {
+                              if (v != null) provider.setSelectedCategory(v);
+                            },
+                            dropdownColor: const Color(0xFF27272A),
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                          const SizedBox(width: 8),
+                          Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.shopping_cart_outlined, color: Colors.white),
+                                tooltip: 'Open Cart',
+                                onPressed: () {
+                                  showModalBottomSheet(
+                                    context: context,
+                                    useRootNavigator: true,
+                                    isScrollControlled: true,
+                                    backgroundColor: const Color(0xFF18181B),
+                                    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(12))),
+                                    builder: (_) {
+                                      return SafeArea(
+                                        child: SizedBox(
+                                          height: MediaQuery.of(context).size.height * 0.7,
+                                          child: cartPanel,
+                                        ),
+                                      );
+                                    },
+                                  );
+                                },
+                              ),
+                              if (takeoutCart.fold<int>(0, (s, i) => s + i.quantity) > 0)
+                                Positioned(
+                                  right: 6,
+                                  top: 6,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: const BoxDecoration(color: Color(0xFFEF4444), borderRadius: BorderRadius.all(Radius.circular(10))),
+                                    child: Text(
+                                      '${takeoutCart.fold<int>(0, (s, i) => s + i.quantity)}',
+                                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                                    ),
                                   ),
                                 ),
-                              ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                    childAspectRatio: 0.9,
-                  ),
-                  itemCount: filtered.length,
-                  itemBuilder: (context, i) {
-                    final item = filtered[i];
-                    return InkWell(
-                      onTap: () => provider.addToTakeoutCart(item),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF18181B),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFF27272A)),
-                        ),
-                        padding: const EdgeInsets.all(12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(item.image, style: const TextStyle(fontSize: 28)),
-                            const SizedBox(height: 6),
-                            Text(item.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
-                            Text('₹${item.price}', style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
-                          ],
-                        ),
+                            ],
+                          ),
+                        ],
                       ),
-                    );
-                  },
-                ),
-              ],
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      childAspectRatio: 0.9,
+                    ),
+                    itemCount: filtered.length,
+                    itemBuilder: (context, i) {
+                      final item = filtered[i];
+                      return InkWell(
+                        onTap: () => provider.addToTakeoutCart(item),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF18181B),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFF27272A)),
+                          ),
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(item.image, style: const TextStyle(fontSize: 28)),
+                              const SizedBox(height: 6),
+                              Text(item.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
+                              Text('₹${item.price}', style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 80),
+                ],
+              ),
             ),
           );
         } else {
@@ -615,6 +618,7 @@ class TakeoutScreen extends StatelessWidget {
                             onPressed: () {
                               showModalBottomSheet(
                                 context: context,
+                                useRootNavigator: true,
                                 isScrollControlled: true,
                                 backgroundColor: const Color(0xFF18181B),
                                 shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(12))),

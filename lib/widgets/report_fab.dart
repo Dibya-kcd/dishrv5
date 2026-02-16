@@ -18,7 +18,7 @@ class ReportFAB extends StatelessWidget {
   void _printReport(BuildContext context) {
     final htmlDoc = '''
 <html><head><style>body{font-family:sans-serif;padding:20px;} .card{border:1px solid #ccc;padding:10px;margin:10px 0;}</style></head><body>
-<h1>The Dish Report ($range)</h1>
+<h1>Restaurant Report ($range)</h1>
 <div class="card">Total Revenue: ₹${stats.total.toStringAsFixed(2)}</div>
 <div class="card">Orders: ${stats.count} (Avg: ₹${stats.avg.toStringAsFixed(2)})</div>
 <div class="card">Expenses: ₹${stats.expensesTotal.toStringAsFixed(2)}</div>
@@ -52,7 +52,7 @@ class ReportFAB extends StatelessWidget {
           return pw.Center(
             child: pw.Column(
               children: [
-                pw.Text('The Dish Report', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
+                pw.Text('Restaurant Report', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
                 pw.SizedBox(height: 20),
                 pw.Text('Total Revenue: ${total.toStringAsFixed(2)}'),
                 pw.Text('Net Revenue: ${net.toStringAsFixed(2)}'),

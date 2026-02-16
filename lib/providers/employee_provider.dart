@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../data/repository.dart';
+import '../data/sync_service.dart';
+import '../utils/auth_helper.dart';
 
 class EmployeeProvider extends ChangeNotifier {
   List<Map<String, dynamic>> _employees = [];
@@ -12,22 +14,55 @@ class EmployeeProvider extends ChangeNotifier {
   }
 
   Future<void> addEmployee(Map<String, dynamic> data) async {
+    final role = Repository.instance.clientMeta?['role']?.toString().toLowerCase() ?? '';
+    if (!AuthHelper.hasPermission(role, 'manage_employees')) return;
     await Repository.instance.employees.upsertEmployee(data);
     await loadEmployees();
   }
 
   Future<void> updateEmployee(Map<String, dynamic> data) async {
+    final role = Repository.instance.clientMeta?['role']?.toString().toLowerCase() ?? '';
+    if (!AuthHelper.hasPermission(role, 'manage_employees')) return;
     await Repository.instance.employees.updateEmployee(data);
     await loadEmployees();
   }
 
   Future<void> deleteEmployee(String id) async {
-    await Repository.instance.employees.deleteEmployee(id);
-    await loadEmployees();
+    final role = Repository.instance.clientMeta?['role']?.toString().toLowerCase() ?? '';
+    if (!AuthHelper.hasPermission(role, 'delete_employee')) {
+      throw Exception('You do not have permission to delete employees.');
+    }
+
+    try {
+      // Step 1: Use Online (Firebase) as Master - Soft delete in Firebase
+      await SyncService.instance.deleteEmployee(id);
+
+      // Step 2: Propagate Deletion to Offline (SQLite) - Local removal
+      // We call with fromSync: true to avoid redundant SyncService calls
+      await Repository.instance.employees.deleteEmployee(id, fromSync: true);
+
+      // Step 4: Audit log ensures traceability
+      await SyncService.instance.logAuditEvent('employee_deleted', {
+        'employee_id': id,
+        'deleted_by_role': role,
+        'deleted_by_client': Repository.instance.clientMeta?['name'] ?? 'Unknown',
+      });
+
+      await loadEmployees();
+    } catch (e) {
+      if (e.toString().contains('permission_denied')) {
+        throw Exception('Firebase Permission Denied: Only authenticated Admins can delete employees. Ensure you are signed in to Firebase in the Admin Panel.');
+      }
+      rethrow;
+    }
   }
 
   Future<void> checkAndGenerateSalaries() async {
     try {
+      // Only admins or managers can generate salaries
+      final currentRole = Repository.instance.clientMeta?['role']?.toString().toLowerCase();
+      if (currentRole != 'admin' && currentRole != 'manager') return;
+
       if (_employees.isEmpty) await loadEmployees();
       
       final now = DateTime.now();

@@ -1,5 +1,8 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'dart:ui';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'data/repository.dart';
@@ -7,15 +10,29 @@ import 'firebase_options.dart';
 import 'providers/restaurant_provider.dart';
 import 'providers/expense_provider.dart';
 import 'providers/employee_provider.dart';
-import 'screens/home_screen.dart';
+import 'screens/login_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Suppress the 'flutter/lifecycle' channel overflow warning during long initialization.
+  // This happens when engine events occur before runApp() is called.
+  if (!kIsWeb) {
+    DartPluginRegistrant.ensureInitialized();
+  }
+  ChannelBuffers().allowOverflow('flutter/lifecycle', true);
+
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  try {
+    await FirebaseAppCheck.instance.activate();
+  } catch (_) {}
 
   await Repository.instance.init();
+  // Automatic seeding disabled to prevent unwanted duplicate sample data.
+  // Use System Diagnostics to seed sample data manually if needed.
+  // await ensureSampleEmployees();
 
   runApp(
     MultiProvider(
@@ -35,9 +52,8 @@ class RestoPOSApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'The Dish',
+      title: 'RestoPOS',
       debugShowCheckedModeBanner: false,
-      onGenerateRoute: (settings) => MaterialPageRoute(builder: (_) => const HomeScreen()),
       initialRoute: '/',
       theme: ThemeData(
         useMaterial3: true,
@@ -80,7 +96,7 @@ class RestoPOSApp extends StatelessWidget {
           TargetPlatform.linux: FadeUpwardsPageTransitionsBuilder(),
         }),
       ),
-      home: const HomeScreen(),
+      home: const LoginScreen(),
     );
   }
 }

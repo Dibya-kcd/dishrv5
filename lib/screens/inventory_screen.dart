@@ -20,6 +20,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
   bool _loading = true;
   final _searchCtrl = TextEditingController();
   bool _qaExpanded = true;
+  Map<String, int?> _lastUpdated = {};
 
   @override
   void initState() {
@@ -28,12 +29,26 @@ class _InventoryScreenState extends State<InventoryScreen> {
   }
 
   Future<void> _refresh() async {
+    if (!mounted) return;
     setState(() => _loading = true);
-    final all = await Repository.instance.ingredients.listIngredients();
-    setState(() {
-      _ingredients = all.map((e) => Map<String, Object>.from(e)).toList();
-      _loading = false;
-    });
+    try {
+      final all = await Repository.instance.ingredients.listIngredients();
+      final lastMap = await Repository.instance.ingredients.listLastUpdatedByIngredient();
+      if (mounted) {
+        setState(() {
+          _ingredients = all.map((e) => Map<String, Object>.from(e)).toList();
+          _lastUpdated = lastMap.map((k, v) => MapEntry(k, v));
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _loading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error refreshing inventory: $e')),
+        );
+      }
+    }
   }
 
   // Reports dialog moved to Inventory Report screen
@@ -244,52 +259,97 @@ class _InventoryScreenState extends State<InventoryScreen> {
           backgroundColor: const Color(0xFF18181B),
           title: const Text('Batch Prep', style: TextStyle(color: Colors.white, letterSpacing: 0.5)),
           content: SizedBox(
-            width: 520,
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              ...items.asMap().entries.map((entry) {
-                final idx = entry.key;
-                final it = entry.value;
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Row(children: [
-                    Expanded(child: DropdownButtonHideUnderline(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        decoration: BoxDecoration(color: const Color(0xFF0B0B0E), borderRadius: BorderRadius.circular(8), border: Border.all(color: const Color(0xFF27272A))),
-                        child: DropdownButton<String>(
-                          value: it['ingredient_id'] as String?,
-                          hint: const Text('Ingredient', style: TextStyle(color: Colors.white)),
-                          dropdownColor: const Color(0xFF18181B),
-                          items: _ingredients.map((r) {
-                            final name = (r['name'] as String?) ?? '';
-                            final cat = (r['category'] as String?) ?? 'Uncategorized';
-                            final bu = (r['base_unit'] as String?) ?? '';
-                            return DropdownMenuItem(
-                              value: r['id'] as String,
-                              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                Text(name, style: const TextStyle(color: Colors.white)),
-                                Text('$cat • $bu', style: const TextStyle(color: Color(0xFFA1A1AA), fontSize: 11)),
-                              ]),
-                            );
-                          }).toList(),
-                          onChanged: (v) => setLocal(() { 
-                            it['ingredient_id'] = v; 
-                            final sel = _ingredients.firstWhere((x) => x['id'] == v, orElse: () => <String, Object>{});
-                            it['unit'] = sel['base_unit']?.toString() ?? (it['unit']?.toString() ?? 'g');
-                          }),
-                        ),
+            width: (MediaQuery.of(context).size.width - 64).clamp(280.0, 520.0),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ...items.asMap().entries.map((entry) {
+                    final idx = entry.key;
+                    final it = entry.value;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          SizedBox(
+                            width: 220,
+                            child: DropdownButtonHideUnderline(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF0B0B0E),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: const Color(0xFF27272A)),
+                                ),
+                                child: DropdownButton<String>(
+                                  value: it['ingredient_id'] as String?,
+                                  hint: const Text('Ingredient', style: TextStyle(color: Colors.white)),
+                                  dropdownColor: const Color(0xFF18181B),
+                                  items: _ingredients.map((r) {
+                                    final name = (r['name'] as String?) ?? '';
+                                    final cat = (r['category'] as String?) ?? 'Uncategorized';
+                                    final bu = (r['base_unit'] as String?) ?? '';
+                                    return DropdownMenuItem(
+                                      value: r['id'] as String,
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(name, style: const TextStyle(color: Colors.white)),
+                                          Text('$cat • $bu', style: const TextStyle(color: Color(0xFFA1A1AA), fontSize: 11)),
+                                        ],
+                                      ),
+                                    );
+                                  }).toList(),
+                                  onChanged: (v) => setLocal(() {
+                                    it['ingredient_id'] = v;
+                                    final sel = _ingredients.firstWhere((x) => x['id'] == v, orElse: () => <String, Object>{});
+                                    it['unit'] = sel['base_unit']?.toString() ?? (it['unit']?.toString() ?? 'g');
+                                  }),
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(
+                            width: 100,
+                            child: TextField(
+                              decoration: const InputDecoration(hintText: 'Qty'),
+                              keyboardType: TextInputType.number,
+                              onChanged: (v) => it['qty'] = double.tryParse(v) ?? 0.0,
+                            ),
+                          ),
+                          SizedBox(
+                            width: 80,
+                            child: TextField(
+                              controller: TextEditingController(text: (it['unit']?.toString() ?? 'g')),
+                              decoration: const InputDecoration(hintText: 'Unit'),
+                              readOnly: true,
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () => setLocal(() {
+                              items.removeAt(idx);
+                            }),
+                            icon: const Icon(Icons.delete, color: Colors.white),
+                            tooltip: 'Remove',
+                          ),
+                        ],
                       ),
-                    )),
-                    const SizedBox(width: 8),
-                    Expanded(child: TextField(decoration: const InputDecoration(hintText: 'Qty'), keyboardType: TextInputType.number, onChanged: (v) => it['qty'] = double.tryParse(v) ?? 0.0)),
-                    const SizedBox(width: 8),
-                    Expanded(child: TextField(controller: TextEditingController(text: (it['unit']?.toString() ?? 'g')), decoration: const InputDecoration(hintText: 'Unit'), readOnly: true)),
-                    IconButton(onPressed: () => setLocal(() { items.removeAt(idx); }), icon: const Icon(Icons.delete, color: Colors.white), tooltip: 'Remove'),
-                  ]),
-                );
-              }),
-              Align(alignment: Alignment.centerLeft, child: TextButton(onPressed: () => setLocal(() { addRow(); }), child: const Text('Add Row'))),
-            ]),
+                    );
+                  }),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton(
+                      onPressed: () => setLocal(() {
+                        addRow();
+                      }),
+                      child: const Text('Add Row'),
+                    ),
+                  ),
+                ],
+              ),
+          ),
           ),
           actions: [
             TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
@@ -314,12 +374,15 @@ class _InventoryScreenState extends State<InventoryScreen> {
     int? selectedIdx;
     await showDialog(context: context, builder: (_) {
       return StatefulBuilder(builder: (context, setLocal) {
+        final screenWidth = MediaQuery.of(context).size.width;
+        final dialogWidth = screenWidth - 32;
         return AlertDialog(
           backgroundColor: const Color(0xFF18181B),
           title: const Text('Restore Cancelled KOT', style: TextStyle(color: Colors.white, letterSpacing: 0.5)),
           content: SizedBox(
-            width: 520,
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
+            width: dialogWidth > 520 ? 520 : dialogWidth,
+            child: SingleChildScrollView(
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
               DropdownButtonHideUnderline(
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -341,21 +404,33 @@ class _InventoryScreenState extends State<InventoryScreen> {
               if (batches.isNotEmpty)
                 Container(
                   decoration: BoxDecoration(color: const Color(0xFF0B0B0E), borderRadius: BorderRadius.circular(8), border: Border.all(color: const Color(0xFF27272A))),
-                  child: Column(children: batches.asMap().entries.map((e) {
+                  child: Column(
+                    children: batches.asMap().entries.map((e) {
                       final idx = e.key;
                       final b = e.value;
-                      final ts = DateTime.fromMillisecondsSinceEpoch((b['timestamp'] as int?) ?? DateTime.now().millisecondsSinceEpoch).toLocal().toString();
+                      final dt = DateTime.fromMillisecondsSinceEpoch(
+                        (b['timestamp'] as int?) ?? DateTime.now().millisecondsSinceEpoch,
+                      ).toLocal();
+                      final y = dt.year.toString();
+                      final m = dt.month.toString().padLeft(2, '0');
+                      final d = dt.day.toString().padLeft(2, '0');
+                      final hh = dt.hour.toString().padLeft(2, '0');
+                      final mm = dt.minute.toString().padLeft(2, '0');
+                      final ts = '$y-$m-$d $hh:$mm';
                       return RadioListTile<int>(
                         value: idx,
-                        // ignore: deprecated_member_use
                         groupValue: selectedIdx,
-                        // ignore: deprecated_member_use
                         onChanged: (v) => setLocal(() => selectedIdx = v),
-                        title: Text('Batch ${idx + 1} • $ts', style: const TextStyle(color: Colors.white)),
+                        title: Text(
+                          'Batch ${idx + 1} • $ts',
+                          style: const TextStyle(color: Colors.white, fontSize: 13),
+                        ),
                       );
-                    }).toList()),
+                    }).toList(),
+                  ),
                 ),
             ]),
+          ),
           ),
           actions: [
             TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close')),
@@ -565,14 +640,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
                               const SizedBox(height: 4),
                               Text('Supplier: $supplier', style: const TextStyle(color: Color(0xFFA1A1AA), fontSize: 12), overflow: TextOverflow.ellipsis),
                               const Spacer(),
-                              FutureBuilder<int?>(
-                                future: Repository.instance.ingredients.getLastUpdatedTs(r['id'] as String),
-                                builder: (_, snap) {
-                                  final ts = snap.data;
-                                  final text = ts == null ? '-' : DateTime.fromMillisecondsSinceEpoch(ts).toLocal().toString();
-                                  return Text(text, style: const TextStyle(color: Colors.white, fontSize: 12));
-                                },
-                              ),
+                              Builder(builder: (_) {
+                                final ts = _lastUpdated[r['id'] as String];
+                                final text = ts == null ? '-' : DateTime.fromMillisecondsSinceEpoch(ts).toLocal().toString();
+                                return Text(text, style: const TextStyle(color: Colors.white, fontSize: 12));
+                              }),
                               const SizedBox(height: 8),
                               Row(children: [
                                 Tooltip(
@@ -581,6 +653,15 @@ class _InventoryScreenState extends State<InventoryScreen> {
                                     icon: Icons.add_circle_outlined,
                                     color: const Color(0xFF10B981),
                                     onTap: () => _showPurchaseDialog(presetIngId: r['id'] as String),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Tooltip(
+                                  message: 'Recipe Usage',
+                                  child: _QuickActionPill(
+                                    icon: Icons.receipt_long,
+                                    color: const Color(0xFF3B82F6),
+                                    onTap: () => _showUsageDialog(r['id'] as String, name),
                                   ),
                                 ),
                               ]),
@@ -674,11 +755,23 @@ window.onload = function(){ setTimeout(function(){ window.print(); }, 500); }
                         final url = 'data:text/html;charset=utf-8,${Uri.encodeComponent(htmlDoc)}';
                         web.openNewTab(url);
                       }, child: const Text('Export to PDF')),
+                      const SizedBox(width: 8),
+                      TextButton(
+                        onPressed: _fixDuplicates,
+                        child: const Text('Clean Duplicates'),
+                      ),
                     ]),
                   ]),
                 ),
               ]),
     );
+  }
+
+  Future<void> _fixDuplicates() async {
+    final rp = context.read<RestaurantProvider>();
+    await Repository.instance.ingredients.fixInventoryDuplicates();
+    await _refresh();
+    rp.showToast('Inventory duplicates cleaned.', icon: '✨');
   }
 
   Future<void> _showCreateIngredientDialog() async {
@@ -736,6 +829,38 @@ window.onload = function(){ setTimeout(function(){ window.print(); }, 500); }
         ],
       );
     });
+  }
+
+  Future<void> _showUsageDialog(String ingredientId, String name) async {
+    try {
+      final items = await Repository.instance.ingredients.getMenuItemsUsingIngredient(ingredientId);
+      if (!mounted) return;
+      showDialog(context: context, builder: (_) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF18181B),
+          title: Text('Used In • $name', style: const TextStyle(color: Colors.white, letterSpacing: 0.5)),
+          content: SizedBox(
+            width: 420,
+            child: items.isEmpty
+                ? const Text('No recipes use this ingredient.', style: TextStyle(color: Colors.white))
+                : SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: items.map((e) => Padding(
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: Text('${e['name']}', style: const TextStyle(color: Colors.white)),
+                      )).toList(),
+                    ),
+                  ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close')),
+            TextButton(onPressed: () { context.read<RestaurantProvider>().setCurrentView('menu'); Navigator.of(context).pop(); }, child: const Text('Open Menu')),
+          ],
+        );
+      });
+    } catch (_) {}
   }
 
   Future<void> _confirmAndDeleteIngredient(String id, String name) async {

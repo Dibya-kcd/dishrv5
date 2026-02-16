@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -17,7 +16,9 @@ class AppDatabase {
     DatabaseFactory factory;
     if (kIsWeb) {
       factory = databaseFactoryFfiWeb;
-    } else if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+    } else if (defaultTargetPlatform == TargetPlatform.windows || 
+               defaultTargetPlatform == TargetPlatform.linux || 
+               defaultTargetPlatform == TargetPlatform.macOS) {
       sqfliteFfiInit();
       factory = databaseFactoryFfi;
     } else {
@@ -26,7 +27,7 @@ class AppDatabase {
     final basePath = await factory.getDatabasesPath();
     final dbPath = p.join(basePath, 'dishr.db');
     final db = await factory.openDatabase(dbPath, options: OpenDatabaseOptions(
-      version: 8,
+      version: 13,
       onCreate: (db, v) async {
         await db.execute('''
           CREATE TABLE menu_items(
@@ -112,13 +113,147 @@ class AppDatabase {
         final dateStr = '$yy$mm$dd';
         await db.insert('settings', {'key': 'takeoutTokenNumber', 'value': '1'});
         await db.insert('settings', {'key': 'takeoutTokenDate', 'value': dateStr});
-        // No dummy menu items inserted
-        
-        // No dummy expenses inserted
+        await db.insert('menu_items', {
+          'id': 1,
+          'name': 'Paneer Tikka',
+          'category': 'Starters',
+          'price': 220,
+          'image': '',
+          'sold_out': 0,
+          'modifiers': jsonEncode([]),
+          'upsell_ids': jsonEncode([]),
+          'instruction_templates': jsonEncode(['Less Spicy','Extra Spicy']),
+          'special_flags': jsonEncode([]),
+          'available_days': jsonEncode(['Mon','Tue','Wed','Thu','Fri','Sat','Sun']),
+          'available_start': null,
+          'available_end': null,
+          'stock': null,
+        });
+        await db.insert('menu_items', {
+          'id': 2,
+          'name': 'Chicken Biryani',
+          'category': 'Main Course',
+          'price': 280,
+          'image': '',
+          'sold_out': 0,
+          'modifiers': jsonEncode([]),
+          'upsell_ids': jsonEncode([]),
+          'instruction_templates': jsonEncode(['Less Oil','Extra Masala']),
+          'special_flags': jsonEncode([]),
+          'available_days': jsonEncode(['Mon','Tue','Wed','Thu','Fri','Sat','Sun']),
+          'available_start': null,
+          'available_end': null,
+          'stock': null,
+        });
+        await db.insert('menu_items', {
+          'id': 3,
+          'name': 'Masala Dosa',
+          'category': 'South Indian',
+          'price': 160,
+          'image': '',
+          'sold_out': 0,
+          'modifiers': jsonEncode([]),
+          'upsell_ids': jsonEncode([]),
+          'instruction_templates': jsonEncode(['Less Oil','Extra Chutney']),
+          'special_flags': jsonEncode([]),
+          'available_days': jsonEncode(['Mon','Tue','Wed','Thu','Fri','Sat','Sun']),
+          'available_start': null,
+          'available_end': null,
+          'stock': null,
+        });
+        await db.insert('menu_items', {
+          'id': 4,
+          'name': 'Butter Naan',
+          'category': 'Breads',
+          'price': 60,
+          'image': '',
+          'sold_out': 0,
+          'modifiers': jsonEncode([]),
+          'upsell_ids': jsonEncode([]),
+          'instruction_templates': jsonEncode(['Extra Butter']),
+          'special_flags': jsonEncode([]),
+          'available_days': jsonEncode(['Mon','Tue','Wed','Thu','Fri','Sat','Sun']),
+          'available_start': null,
+          'available_end': null,
+          'stock': null,
+        });
+        await db.insert('menu_items', {
+          'id': 5,
+          'name': 'Gulab Jamun',
+          'category': 'Desserts',
+          'price': 120,
+          'image': '',
+          'sold_out': 0,
+          'modifiers': jsonEncode([]),
+          'upsell_ids': jsonEncode([]),
+          'instruction_templates': jsonEncode(['Warm','Cold']),
+          'special_flags': jsonEncode([]),
+          'available_days': jsonEncode(['Mon','Tue','Wed','Thu','Fri','Sat','Sun']),
+          'available_start': null,
+          'available_end': null,
+          'stock': null,
+        });
+        await db.insert('menu_items', {
+          'id': 6,
+          'name': 'Cold Coffee',
+          'category': 'Beverages',
+          'price': 140,
+          'image': '',
+          'sold_out': 0,
+          'modifiers': jsonEncode([]),
+          'upsell_ids': jsonEncode([]),
+          'instruction_templates': jsonEncode(['Less Sugar']),
+          'special_flags': jsonEncode([]),
+          'available_days': jsonEncode(['Mon','Tue','Wed','Thu','Fri','Sat','Sun']),
+          'available_start': null,
+          'available_end': null,
+          'stock': null,
+        });
+        await db.insert('menu_items', {
+          'id': 7,
+          'name': 'Dal Makhani',
+          'category': 'Main Course',
+          'price': 240,
+          'image': '',
+          'sold_out': 0,
+          'modifiers': jsonEncode([]),
+          'upsell_ids': jsonEncode([]),
+          'instruction_templates': jsonEncode(['Less Cream']),
+          'special_flags': jsonEncode([]),
+          'available_days': jsonEncode(['Mon','Tue','Wed','Thu','Fri','Sat','Sun']),
+          'available_start': null,
+          'available_end': null,
+          'stock': null,
+        });
+        await db.insert('menu_items', {
+          'id': 8,
+          'name': 'Spring Rolls',
+          'category': 'Starters',
+          'price': 180,
+          'image': '',
+          'sold_out': 0,
+          'modifiers': jsonEncode([]),
+          'upsell_ids': jsonEncode([]),
+          'instruction_templates': jsonEncode(['Extra Sauce']),
+          'special_flags': jsonEncode([]),
+          'available_days': jsonEncode(['Mon','Tue','Wed','Thu','Fri','Sat','Sun']),
+          'available_start': null,
+          'available_end': null,
+          'stock': null,
+        });
+        for (var n = 1; n <= 8; n++) {
+          await db.insert('tables', {
+            'id': n,
+            'number': n,
+            'status': 'available',
+            'capacity': 4,
+            'order_id': null
+          });
+        }
         await db.execute('''
           CREATE TABLE ingredients(
-            id TEXT PRIMARY KEY,
-            name TEXT,
+          id TEXT PRIMARY KEY,
+          name TEXT,
             category TEXT,
             base_unit TEXT,
             stock REAL DEFAULT 0,
@@ -126,6 +261,27 @@ class AppDatabase {
             supplier TEXT
           )
         ''');
+        await db.insert('ingredients', {'id':'ING001','name':'Paneer','category':'Dairy','base_unit':'g','stock':2000,'min_threshold':500,'supplier':'Local'});
+        await db.insert('ingredients', {'id':'ING002','name':'Curd','category':'Dairy','base_unit':'g','stock':1500,'min_threshold':400,'supplier':'Local'});
+        await db.insert('ingredients', {'id':'ING003','name':'Spice Mix','category':'Spices','base_unit':'g','stock':1000,'min_threshold':200,'supplier':'Local'});
+        await db.insert('ingredients', {'id':'ING004','name':'Oil','category':'Oils','base_unit':'ml','stock':3000,'min_threshold':800,'supplier':'Local'});
+        await db.insert('ingredients', {'id':'ING005','name':'Rice','category':'Grains','base_unit':'g','stock':5000,'min_threshold':1000,'supplier':'Local'});
+        await db.insert('ingredients', {'id':'ING006','name':'Chicken','category':'Meat','base_unit':'g','stock':3000,'min_threshold':700,'supplier':'Local'});
+        await db.insert('ingredients', {'id':'ING007','name':'Biryani Masala','category':'Spices','base_unit':'g','stock':800,'min_threshold':200,'supplier':'Local'});
+        await db.insert('ingredients', {'id':'ING008','name':'Dosa Batter','category':'Batter','base_unit':'g','stock':4000,'min_threshold':1000,'supplier':'Local'});
+        await db.insert('ingredients', {'id':'ING009','name':'Potato Masala','category':'Veg','base_unit':'g','stock':2500,'min_threshold':600,'supplier':'Local'});
+        await db.insert('ingredients', {'id':'ING010','name':'Flour','category':'Bakery','base_unit':'g','stock':4000,'min_threshold':900,'supplier':'Local'});
+        await db.insert('ingredients', {'id':'ING011','name':'Butter','category':'Dairy','base_unit':'g','stock':1200,'min_threshold':300,'supplier':'Local'});
+        await db.insert('ingredients', {'id':'ING012','name':'Yeast','category':'Bakery','base_unit':'g','stock':300,'min_threshold':50,'supplier':'Local'});
+        await db.insert('ingredients', {'id':'ING013','name':'Khoya Mix','category':'Dessert','base_unit':'g','stock':1200,'min_threshold':300,'supplier':'Local'});
+        await db.insert('ingredients', {'id':'ING014','name':'Sugar Syrup','category':'Dessert','base_unit':'ml','stock':1500,'min_threshold':400,'supplier':'Local'});
+        await db.insert('ingredients', {'id':'ING015','name':'Milk','category':'Dairy','base_unit':'ml','stock':3000,'min_threshold':800,'supplier':'Local'});
+        await db.insert('ingredients', {'id':'ING016','name':'Coffee','category':'Beverage','base_unit':'g','stock':500,'min_threshold':100,'supplier':'Local'});
+        await db.insert('ingredients', {'id':'ING017','name':'Sugar','category':'Beverage','base_unit':'g','stock':2000,'min_threshold':500,'supplier':'Local'});
+        await db.insert('ingredients', {'id':'ING018','name':'Black Lentils','category':'Legumes','base_unit':'g','stock':2500,'min_threshold':600,'supplier':'Local'});
+        await db.insert('ingredients', {'id':'ING019','name':'Cream','category':'Dairy','base_unit':'ml','stock':1200,'min_threshold':300,'supplier':'Local'});
+        await db.insert('ingredients', {'id':'ING020','name':'Roll Wrapper','category':'Bakery','base_unit':'pc','stock':200,'min_threshold':50,'supplier':'Local'});
+        await db.insert('ingredients', {'id':'ING021','name':'Veg Mix','category':'Veg','base_unit':'g','stock':3000,'min_threshold':800,'supplier':'Local'});
         await db.execute('''
           CREATE TABLE recipes(
             menu_item_id INTEGER,
@@ -135,6 +291,31 @@ class AppDatabase {
             PRIMARY KEY(menu_item_id, ingredient_id)
           )
         ''');
+        await db.insert('recipes', {'menu_item_id':1,'ingredient_id':'ING001','qty':150.0,'unit':'g'});
+        await db.insert('recipes', {'menu_item_id':1,'ingredient_id':'ING002','qty':50.0,'unit':'g'});
+        await db.insert('recipes', {'menu_item_id':1,'ingredient_id':'ING003','qty':10.0,'unit':'g'});
+        await db.insert('recipes', {'menu_item_id':1,'ingredient_id':'ING004','qty':10.0,'unit':'ml'});
+        await db.insert('recipes', {'menu_item_id':2,'ingredient_id':'ING005','qty':200.0,'unit':'g'});
+        await db.insert('recipes', {'menu_item_id':2,'ingredient_id':'ING006','qty':150.0,'unit':'g'});
+        await db.insert('recipes', {'menu_item_id':2,'ingredient_id':'ING007','qty':8.0,'unit':'g'});
+        await db.insert('recipes', {'menu_item_id':2,'ingredient_id':'ING004','qty':15.0,'unit':'ml'});
+        await db.insert('recipes', {'menu_item_id':3,'ingredient_id':'ING008','qty':200.0,'unit':'g'});
+        await db.insert('recipes', {'menu_item_id':3,'ingredient_id':'ING009','qty':120.0,'unit':'g'});
+        await db.insert('recipes', {'menu_item_id':3,'ingredient_id':'ING004','qty':10.0,'unit':'ml'});
+        await db.insert('recipes', {'menu_item_id':4,'ingredient_id':'ING010','qty':120.0,'unit':'g'});
+        await db.insert('recipes', {'menu_item_id':4,'ingredient_id':'ING011','qty':10.0,'unit':'g'});
+        await db.insert('recipes', {'menu_item_id':4,'ingredient_id':'ING012','qty':2.0,'unit':'g'});
+        await db.insert('recipes', {'menu_item_id':5,'ingredient_id':'ING013','qty':100.0,'unit':'g'});
+        await db.insert('recipes', {'menu_item_id':5,'ingredient_id':'ING014','qty':50.0,'unit':'ml'});
+        await db.insert('recipes', {'menu_item_id':6,'ingredient_id':'ING015','qty':200.0,'unit':'ml'});
+        await db.insert('recipes', {'menu_item_id':6,'ingredient_id':'ING016','qty':10.0,'unit':'g'});
+        await db.insert('recipes', {'menu_item_id':6,'ingredient_id':'ING017','qty':15.0,'unit':'g'});
+        await db.insert('recipes', {'menu_item_id':7,'ingredient_id':'ING018','qty':150.0,'unit':'g'});
+        await db.insert('recipes', {'menu_item_id':7,'ingredient_id':'ING019','qty':20.0,'unit':'ml'});
+        await db.insert('recipes', {'menu_item_id':7,'ingredient_id':'ING011','qty':10.0,'unit':'g'});
+        await db.insert('recipes', {'menu_item_id':8,'ingredient_id':'ING020','qty':2.0,'unit':'pc'});
+        await db.insert('recipes', {'menu_item_id':8,'ingredient_id':'ING021','qty':100.0,'unit':'g'});
+        await db.insert('recipes', {'menu_item_id':8,'ingredient_id':'ING004','qty':15.0,'unit':'ml'});
         await db.execute('''
           CREATE TABLE inventory_txns(
             id TEXT PRIMARY KEY,
@@ -168,12 +349,39 @@ class AppDatabase {
             payment TEXT,
             employment TEXT,
             documents TEXT,
+            pin TEXT,
             created_at INTEGER,
+            updated_at INTEGER,
+            deleted INTEGER DEFAULT 0
+          )
+        ''');
+        await db.execute('''
+          CREATE TABLE role_configs(
+            id TEXT PRIMARY KEY,
+            name TEXT,
+            permissions TEXT,
+            pin TEXT,
             updated_at INTEGER
           )
         ''');
       },
       onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 13) {
+          try {
+            await db.execute('ALTER TABLE employees ADD COLUMN deleted INTEGER DEFAULT 0');
+          } catch (_) {}
+        }
+        if (oldVersion < 12) {
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS role_configs(
+              id TEXT PRIMARY KEY,
+              name TEXT,
+              permissions TEXT,
+              pin TEXT,
+              updated_at INTEGER
+            )
+          ''');
+        }
         if (oldVersion < 2) {
           await db.execute('''
             CREATE TABLE IF NOT EXISTS expenses(
@@ -264,6 +472,21 @@ class AppDatabase {
         if (oldVersion < 8) {
           try {
              await db.execute('ALTER TABLE menu_items ADD COLUMN stock INTEGER');
+          } catch (_) {}
+        }
+        if (oldVersion < 9) {
+          try {
+             await db.execute('ALTER TABLE employees ADD COLUMN pin TEXT');
+          } catch (_) {}
+        }
+        if (oldVersion < 10) {
+          try {
+             await db.execute('ALTER TABLE employees ADD COLUMN pin TEXT');
+          } catch (_) {}
+        }
+        if (oldVersion < 11) {
+          try {
+             await db.execute('ALTER TABLE employees ADD COLUMN pin TEXT');
           } catch (_) {}
         }
       },

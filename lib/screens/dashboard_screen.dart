@@ -44,19 +44,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
     filteredOrders.where((o) => o.status == 'Settled' || o.status == 'Completed').toList();
     tables.where((t) => t.status == 'occupied' || t.status == 'billing' || t.status == 'serving' || t.status == 'preparing').toList();
 
+    final role = provider.clientRole?.toLowerCase() ?? 'staff';
+    
+    // Simplified Dashboard Visibility
+    final showClosedOrders = role == 'admin' || role == 'manager';
+
     return LayoutBuilder(builder: (context, constraints) {
       final width = constraints.maxWidth;
-      final crossAxisCount = width < 600 ? 1 : (width < 1024 ? 2 : 3);
+      
+      // Fixed 3-column layout on desktop for consistency, 2 on tablet, 1 on mobile
+      int crossAxisCount = 1;
+      if (width >= 1024) {
+        crossAxisCount = 3;
+      } else if (width >= 600) {
+        crossAxisCount = 2;
+      }
+
       final horizontalPadding = 16.0;
       final gridSpacing = 16.0;
       final itemWidth = (width - horizontalPadding * 2 - gridSpacing * (crossAxisCount - 1)) / crossAxisCount;
       final desiredHeight = 420.0;
       final aspectRatio = itemWidth / desiredHeight;
+
       return NestedScrollView(
           headerSliverBuilder: (context, innerBoxIsScrolled) => [
               SliverAppBar(
                 pinned: true,
                 backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                title: const Text('Live Dashboard', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 actions: [
                   Padding(
                     padding: const EdgeInsets.only(right: 12),
@@ -67,38 +82,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
           body: ListView(
             children: [
-              _buildCancellationReport(context, width, startMs, endMs),
+              if (role == 'admin' || role == 'manager') _buildCancellationReport(context, width, startMs, endMs),
               Padding(
                 padding: const EdgeInsets.all(16),
-                child: crossAxisCount == 1
-                    ? Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SizedBox(height: desiredHeight, child: _buildTableOrders(context, tables, filteredOrders)),
-                          const SizedBox(height: 16),
-                          SizedBox(height: desiredHeight, child: _buildTakeoutOrders(context, filteredOrders)),
-                          const SizedBox(height: 16),
-                          SizedBox(height: desiredHeight, child: _buildKitchenStatus(context, filteredOrders, width)),
-                        ],
-                      )
-                    : GridView.count(
-                        crossAxisCount: crossAxisCount,
-                        childAspectRatio: aspectRatio,
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        crossAxisSpacing: gridSpacing,
-                        mainAxisSpacing: gridSpacing,
-                        children: [
-                          _gridCard(child: _buildTableOrders(context, tables, filteredOrders)),
-                          _gridCard(child: _buildTakeoutOrders(context, filteredOrders)),
-                          _gridCard(child: _buildKitchenStatus(context, filteredOrders, width)),
-                        ],
-                      ),
+                child: GridView.count(
+                  crossAxisCount: crossAxisCount,
+                  childAspectRatio: aspectRatio,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  crossAxisSpacing: gridSpacing,
+                  mainAxisSpacing: gridSpacing,
+                  children: [
+                    _gridCard(child: _buildTableOrders(context, tables, filteredOrders)),
+                    _gridCard(child: _buildTakeoutOrders(context, filteredOrders)),
+                    _gridCard(child: _buildKitchenStatus(context, filteredOrders, width)),
+                  ],
+                ),
               ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: _buildClosedOrders(context, filteredOrders),
-              ),
+              if (showClosedOrders)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: _buildClosedOrders(context, filteredOrders),
+                ),
             ],
           ),
         );
