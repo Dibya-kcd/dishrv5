@@ -792,7 +792,8 @@ class _RoleCard extends StatelessWidget {
           const SizedBox(height: 8),
           ...allViews.map((v) {
             final enabled = views.contains(v);
-            return SwitchListTile(
+            return // ignore: deprecated_member_use
+            SwitchListTile(
               value: enabled,
               onChanged: isAdmin ? null : (val) => onPermissionChanged('views', v, val),
               title: Text(v, style: const TextStyle(color: Colors.white)),
@@ -806,7 +807,8 @@ class _RoleCard extends StatelessWidget {
           ...allActions.map((a) {
             final enabled = actions.contains(a);
             final label = a.replaceAll('_', ' ');
-            return SwitchListTile(
+            return // ignore: deprecated_member_use
+            SwitchListTile(
               value: enabled,
               onChanged: isAdmin ? null : (val) => onPermissionChanged('actions', a, val),
               title: Text(label, style: const TextStyle(color: Colors.white)),

@@ -417,6 +417,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                       final hh = dt.hour.toString().padLeft(2, '0');
                       final mm = dt.minute.toString().padLeft(2, '0');
                       final ts = '$y-$m-$d $hh:$mm';
+                      // ignore: deprecated_member_use
                       return RadioListTile<int>(
                         value: idx,
                         groupValue: selectedIdx,

@@ -124,6 +124,7 @@ class KitchenScreen extends StatelessWidget {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // ignore: deprecated_member_use
               DropdownButtonFormField<String>(
                 value: selectedReason,
                 items: reasons.map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
