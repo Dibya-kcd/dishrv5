@@ -1,3 +1,4 @@
+// ignore_for_file: deprecated_member_use
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/restaurant_provider.dart';
@@ -124,7 +125,6 @@ class KitchenScreen extends StatelessWidget {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // ignore: deprecated_member_use
               DropdownButtonFormField<String>(
                 value: selectedReason,
                 items: reasons.map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),

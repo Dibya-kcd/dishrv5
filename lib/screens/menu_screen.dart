@@ -1,3 +1,4 @@
+// ignore_for_file: deprecated_member_use
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/restaurant_provider.dart';
@@ -126,7 +127,6 @@ class _MenuScreenState extends State<MenuScreen> {
                               const SizedBox(height: 8),
                               TextField(decoration: const InputDecoration(hintText: 'Price'), controller: priceController, keyboardType: TextInputType.number),
                               const SizedBox(height: 8),
-                              // ignore: deprecated_member_use
                               DropdownButtonFormField<String>(
                                 value: selected,
                                 items: categories.where((c) => c != 'All').map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
@@ -328,7 +328,6 @@ class _MenuScreenState extends State<MenuScreen> {
                                           const SizedBox(height: 8),
                                           TextField(decoration: const InputDecoration(hintText: 'Price'), controller: priceController, keyboardType: TextInputType.number),
                                           const SizedBox(height: 8),
-                                          // ignore: deprecated_member_use
                                           DropdownButtonFormField<String>(
                                             value: selected,
                                             items: categories.where((c) => c != 'All').map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
@@ -340,8 +339,7 @@ class _MenuScreenState extends State<MenuScreen> {
                                           const SizedBox(height: 8),
                                         ValueListenableBuilder<bool>(
                                           valueListenable: soldOut,
-                                          builder: (_, v, __) => // ignore: deprecated_member_use
-                                          SwitchListTile(
+                                          builder: (_, v, __) => SwitchListTile(
                                             value: v,
                                             onChanged: (val) => soldOut.value = val,
                                             title: const Text('Sold Out', style: TextStyle(color: Colors.white)),
@@ -673,7 +671,6 @@ class _MenuScreenState extends State<MenuScreen> {
                           },
                           icon: const Icon(Icons.receipt_long, color: Colors.white, size: 18),
                         ),
-                        // ignore: deprecated_member_use
                         Switch(
                           value: item.soldOut,
                           onChanged: (v) => context.read<RestaurantProvider>().toggleSoldOut(item.id, v),

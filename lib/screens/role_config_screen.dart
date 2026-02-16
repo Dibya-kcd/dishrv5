@@ -1,3 +1,4 @@
+// ignore_for_file: deprecated_member_use
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -792,8 +793,7 @@ class _RoleCard extends StatelessWidget {
           const SizedBox(height: 8),
           ...allViews.map((v) {
             final enabled = views.contains(v);
-            return // ignore: deprecated_member_use
-            SwitchListTile(
+            return SwitchListTile(
               value: enabled,
               onChanged: isAdmin ? null : (val) => onPermissionChanged('views', v, val),
               title: Text(v, style: const TextStyle(color: Colors.white)),
@@ -807,8 +807,7 @@ class _RoleCard extends StatelessWidget {
           ...allActions.map((a) {
             final enabled = actions.contains(a);
             final label = a.replaceAll('_', ' ');
-            return // ignore: deprecated_member_use
-            SwitchListTile(
+            return SwitchListTile(
               value: enabled,
               onChanged: isAdmin ? null : (val) => onPermissionChanged('actions', a, val),
               title: Text(label, style: const TextStyle(color: Colors.white)),

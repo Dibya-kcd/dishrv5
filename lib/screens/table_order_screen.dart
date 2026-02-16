@@ -1,3 +1,4 @@
+// ignore_for_file: deprecated_member_use
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/restaurant_provider.dart';
@@ -28,7 +29,6 @@ class TableOrderScreen extends StatelessWidget {
                 style: TextStyle(color: Colors.white70),
               ),
               const SizedBox(height: 16),
-              // ignore: deprecated_member_use
               DropdownButtonFormField<String>(
                 value: selectedReason,
                 items: reasons.map((r) => DropdownMenuItem(value: r, child: Text(r, style: const TextStyle(color: Colors.white)))).toList(),
