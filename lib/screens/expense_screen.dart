@@ -327,7 +327,10 @@ class _CategoryCardState extends State<_CategoryCard> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
           curve: Curves.easeOut,
-          transform: Matrix4.identity()..scale(_hover ? 1.02 : 1.0),
+          transform: () {
+            final factor = _hover ? 1.02 : 1.0;
+            return Matrix4.diagonal3Values(factor, factor, 1.0);
+          }(),
           padding: EdgeInsets.all(12 * s),
           decoration: BoxDecoration(
             color: const Color(0xFF18181B),

@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -266,10 +265,6 @@ class _RoleManagementScreenState extends State<RoleManagementScreen> {
     updatedRole['updated_at'] = DateTime.now().millisecondsSinceEpoch;
 
     await Repository.instance.roles.upsertRole(updatedRole);
-    if (kDebugMode) {
-      debugPrint('[ROLE_DEBUG] _updatePermission role=${role['name']} type=$type value=$value enabled=$enabled');
-    }
-    
     await SyncService.instance.logAuditEvent('role_permission_update', {
       'role': role['name'],
       'type': type,
@@ -288,10 +283,6 @@ class _RoleManagementScreenState extends State<RoleManagementScreen> {
     updatedRole['updated_at'] = DateTime.now().millisecondsSinceEpoch;
 
     await Repository.instance.roles.upsertRole(updatedRole);
-    if (kDebugMode) {
-      debugPrint('[ROLE_DEBUG] _updatePin role=${role['name']} newPin=$newPin');
-    }
-    
     await SyncService.instance.logAuditEvent('role_pin_update', {
       'role': role['name'],
     });

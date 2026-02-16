@@ -1,18 +1,10 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'package:flutter/foundation.dart';
 import '../data/repository.dart';
 import '../data/sync_service.dart';
 
 class AuthHelper {
   static List<Map<String, dynamic>>? _cachedRoles;
-
-  static void _log(String message) {
-    if (kDebugMode) {
-      debugPrint(message);
-    }
-  }
-
   static Future<void> refreshRoles() async {
     final existing = await Repository.instance.roles.listRoles();
     await _ensureDefaultRoles(existing);
@@ -30,14 +22,12 @@ class AuthHelper {
           await Repository.instance.roles.upsertRole(config, fromSync: true, notify: false);
         }
         Repository.instance.notifyDataChanged();
-        _log('[ROLE_DEBUG] refreshRoles pulled ${data.length} role_configs from Firebase');
       } else if (roleSnap.exists == false) {
         // Only attempt to seed if Firebase role_configs is EMPTY and we are likely an admin
         // Check if current user is admin before attempting write to avoid permission denied spam
         final uid = FirebaseAuth.instance.currentUser?.uid;
         if (uid != null) {
           final adminSnap = await FirebaseDatabase.instance.ref('roles/$uid/role').get();
-          _log('[ROLE_DEBUG] refreshRoles seeding role_configs, uid=$uid firebaseRole=${adminSnap.value}');
           if (adminSnap.value == 'admin') {
             final currentRoles = await Repository.instance.roles.listRoles();
             for (var r in currentRoles) {
@@ -62,12 +52,9 @@ class AuthHelper {
         }
         Repository.instance.notifyDataChanged();
       }
-    } catch (e) {
-      _log('[ROLE_DEBUG] refreshRoles error $e');
-    }
+    } catch (_) {}
     
     _cachedRoles = await Repository.instance.roles.listRoles();
-    _log('[ROLE_DEBUG] cachedRoles count=${_cachedRoles?.length ?? 0}');
   }
 
   static Future<void> _ensureDefaultRoles(List<Map<String, dynamic>> existing) async {
@@ -144,8 +131,6 @@ class AuthHelper {
 
     if (roleMatch.isNotEmpty) {
       final role = roleMatch['name'].toString().toLowerCase();
-      _log('[ROLE_DEBUG] login via role PIN code=$code role=$role');
-      
       Repository.instance.setClientSession(role, pin);
       try {
         SyncService.instance.init();
@@ -154,8 +139,6 @@ class AuthHelper {
         // Populate all roles to Firebase if they are missing
         if (role == 'admin') {
           final currentRoles = await Repository.instance.roles.listRoles();
-          final uid = FirebaseAuth.instance.currentUser?.uid;
-          _log('[ROLE_DEBUG] admin PIN login seeding role_configs for ${currentRoles.length} roles uid=${uid ?? 'null'}');
           for (var r in currentRoles) {
             await FirebaseDatabase.instance.ref('role_configs/${r['id']}').set(r);
           }
@@ -180,9 +163,7 @@ class AuthHelper {
         SyncService.instance.init();
         await SyncService.instance.setCurrentUserRole(role);
         await SyncService.instance.initialUpload();
-      } catch (e) {
-        _log('[ROLE_DEBUG] employee PIN login sync error $e');
-      }
+      } catch (_) {}
       return employee;
     } catch (e) {
       return null;
@@ -191,11 +172,9 @@ class AuthHelper {
 
   static bool hasPermission(String role, String permission) {
     if (role.toLowerCase() == 'admin') {
-      _log('[ROLE_DEBUG] hasPermission role=admin permission=$permission result=true');
       return true;
     }
     if (_cachedRoles == null) {
-      _log('[ROLE_DEBUG] hasPermission role=$role permission=$permission result=false cachedRoles=null');
       return false;
     }
 
@@ -205,13 +184,11 @@ class AuthHelper {
     );
 
     if (r.isEmpty) {
-      _log('[ROLE_DEBUG] hasPermission role=$role permission=$permission result=false roleConfigMissing');
       return false;
     }
     final perms = r['permissions'] as Map<String, dynamic>? ?? {};
     final actions = perms['actions'] as List? ?? [];
     final result = actions.contains(permission);
-    _log('[ROLE_DEBUG] hasPermission role=$role permission=$permission result=$result');
     return result;
   }
 
@@ -222,11 +199,9 @@ class AuthHelper {
         'inventory','tables_manage','printer_settings','expenses','employees',
         'settings', 'admin'
       };
-      _log('[ROLE_DEBUG] allowedViewsForRole role=admin views=$views');
       return views;
     }
     if (_cachedRoles == null) {
-      _log('[ROLE_DEBUG] allowedViewsForRole role=$role views={dashboard} cachedRoles=null');
       return {'dashboard'};
     }
 
@@ -236,17 +211,14 @@ class AuthHelper {
     );
 
     if (r.isEmpty) {
-      _log('[ROLE_DEBUG] allowedViewsForRole role=$role views={dashboard} roleConfigMissing');
       return {'dashboard'};
     }
     final perms = r['permissions'] as Map<String, dynamic>? ?? {};
     final views = (perms['views'] as List? ?? []).map((e) => e.toString()).toSet();
     
     if (views.isEmpty) {
-      _log('[ROLE_DEBUG] allowedViewsForRole role=$role views={dashboard, settings} emptyFromConfig');
       return {'dashboard', 'settings'};
     }
-    _log('[ROLE_DEBUG] allowedViewsForRole role=$role views=$views');
     return views;
   }
 
