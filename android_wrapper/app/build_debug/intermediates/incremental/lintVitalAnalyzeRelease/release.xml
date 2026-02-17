@@ -1,0 +1,31 @@
+<variant
+    name="release"
+    package="com.restopos.pwa"
+    minSdkVersion="23"
+    targetSdkVersion="34"
+    mergedManifest="build_debug\intermediates\merged_manifest\release\processReleaseMainManifest\AndroidManifest.xml"
+    proguardFiles="build_debug\intermediates\default_proguard_files\global\proguard-android-optimize.txt-8.3.1;proguard-rules.pro"
+    partialResultsDir="build_debug\intermediates\lint_vital_partial_results\release\lintVitalAnalyzeRelease\out"
+    desugaredMethodsFiles="C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\76c86af7db75901bb8a77bbe6bd994e5\transformed\D8BackportedDesugaredMethods.txt">
+  <buildFeatures
+      namespacing="REQUIRED"/>
+  <sourceProviders>
+    <sourceProvider
+        manifests="src\main\AndroidManifest.xml"
+        javaDirectories="src\main\java;src\release\java;src\main\kotlin;src\release\kotlin"
+        resDirectories="src\main\res;src\release\res"
+        assetsDirectories="src\main\assets;src\release\assets"/>
+  </sourceProviders>
+  <testSourceProviders>
+  </testSourceProviders>
+  <testFixturesSourceProviders>
+  </testFixturesSourceProviders>
+  <artifact
+      classOutputs="build_debug\intermediates\javac\release\compileReleaseJavaWithJavac\classes;build_debug\tmp\kotlin-classes\release;build_debug\kotlinToolingMetadata;build_debug\intermediates\compile_and_runtime_not_namespaced_r_class_jar\release\processReleaseResources\R.jar"
+      type="MAIN"
+      applicationId="com.restopos.pwa"
+      generatedSourceFolders="build_debug\generated\ap_generated_sources\release\out"
+      generatedResourceFolders="build_debug\generated\res\resValues\release"
+      desugaredMethodsFiles="C:\Users\dibya\.gradle\caches\9.0-milestone-1\transforms\76c86af7db75901bb8a77bbe6bd994e5\transformed\D8BackportedDesugaredMethods.txt">
+  </artifact>
+</variant>

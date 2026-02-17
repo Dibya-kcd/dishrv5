@@ -37,7 +37,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
         webView.addJavascriptInterface(PrinterBridge(this, webView), "AndroidPrinter")
-        val url = "https://dibya-kcd.github.io/dishrv5/"
+        val url = "https://dibya-kcd.github.io/dishrv5/?renderer=html"
         webView.loadUrl(url)
     }
 
