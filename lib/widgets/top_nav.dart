@@ -21,7 +21,7 @@ class TopNav extends StatelessWidget {
         final isMobile = width < 1024;
         
         final items = [
-          {'id': 'dashboard', 'label': '$roleLabel Services', 'icon': Icons.wifi_tethering},
+          {'id': 'dashboard', 'label': 'Live Dashboard', 'icon': Icons.wifi_tethering},
         ];
 
         return Column(
@@ -77,7 +77,7 @@ class TopNav extends StatelessWidget {
                       child: const Icon(Icons.restaurant, color: Colors.white, size: 22),
                     ),
                     const SizedBox(width: 8),
-                    const Text('RestoPOS', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+                    const Text('The Dish', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
                     const SizedBox(width: 12),
                     ValueListenableBuilder<bool>(
                       valueListenable: SyncService.instance.connected,

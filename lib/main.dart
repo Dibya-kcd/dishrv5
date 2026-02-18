@@ -41,18 +41,18 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => ExpenseProvider()..loadExpenses()),
         ChangeNotifierProvider(create: (_) => EmployeeProvider()..loadEmployees()..checkAndGenerateSalaries()),
       ],
-      child: const RestoPOSApp(),
+      child: const TheDishApp(),
     ),
   );
 }
 
-class RestoPOSApp extends StatelessWidget {
-  const RestoPOSApp({super.key});
+class TheDishApp extends StatelessWidget {
+  const TheDishApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'RestoPOS',
+      title: 'The Dish',
       debugShowCheckedModeBanner: false,
       initialRoute: '/',
       theme: ThemeData(

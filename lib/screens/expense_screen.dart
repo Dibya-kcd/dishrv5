@@ -9,8 +9,8 @@ class ExpenseScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, constraints) {
       final width = constraints.maxWidth;
-      final isMobile = width < 768;
-      final isTablet = width >= 768 && width < 1024;
+      final isMobile = width < 600;
+      final isTablet = width >= 600 && width < 1024;
       final isLaptop = width >= 1024 && width < 1440;
       final cols = isMobile ? 1 : isTablet ? 2 : isLaptop ? 3 : 4;
       final scale = width < 360
@@ -144,6 +144,7 @@ class ExpenseScreen extends StatelessWidget {
                       child: Wrap(
                         spacing: gutter,
                         runSpacing: gutter,
+                        alignment: WrapAlignment.center,
                         children: categories.map((cat) {
                           final name = cat['name'] as String;
                           final emoji = cat['emoji'] as String;

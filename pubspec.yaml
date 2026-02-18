@@ -52,6 +52,7 @@ dependencies:
   pdf: ^3.10.7
   flutter_blue_plus: ^1.31.1
   print_bluetooth_thermal: ^1.1.0
+  image_picker: ^1.1.2
   network_info_plus: ^5.0.3
   web: ^1.1.1
   cached_network_image: ^3.4.1
@@ -81,6 +82,7 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.14.2
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -113,6 +115,11 @@ flutter:
     - family: NotoColorEmoji
       fonts:
         - asset: assets/fonts/NotoColorEmoji.ttf
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/app_icon.png"
   #   - family: Schyler
   #     fonts:
   #       - asset: fonts/Schyler-Regular.ttf

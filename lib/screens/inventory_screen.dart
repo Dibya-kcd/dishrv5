@@ -520,7 +520,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
       ],
       child: _loading
           ? const Center(child: CircularProgressIndicator())
-          : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          : SingleChildScrollView(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 const SizedBox(height: 0),
                 Container(
                   decoration: BoxDecoration(color: const Color(0xFF18181B), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFF27272A))),
@@ -537,7 +538,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
                     LayoutBuilder(builder: (context, constraints) {
                       if (!_qaExpanded) return const SizedBox.shrink();
                       final w = constraints.maxWidth;
-                      final cross = w < 600 ? 2 : (w < 900 ? 3 : 4);
+                      final spacing = 12.0;
+                      final maxCols = w >= 900 ? 4 : (w >= 600 ? 3 : 2);
+                      final totalSpacing = spacing * (maxCols - 1);
+                      final itemWidth = maxCols == 1 ? w : (w - totalSpacing) / maxCols;
                       final actions = [
       {'icon': Icons.block, 'label': 'Deduct for Wastage', 'onTap': _showWastageDialog, 'color': const Color(0xFFEF4444)},
       {'icon': Icons.playlist_add_outlined, 'label': 'Batch Prep', 'onTap': _showBatchPrepDialog, 'color': const Color(0xFFF59E0B)},
@@ -546,22 +550,25 @@ class _InventoryScreenState extends State<InventoryScreen> {
       {'icon': Icons.add_circle_outline, 'label': 'Add New Ingredient', 'onTap': _showCreateIngredientDialog, 'color': const Color(0xFF10B981)},
       // Removed 'Clean Duplicates' and 'Design Mockups'
     ];
-                      return GridView.count(
-                        crossAxisCount: cross,
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 12,
-                        children: actions.map((a) {
-                          return Tooltip(
-                            message: a['label'] as String,
-                            child: _QuickActionPill(
-                              icon: a['icon'] as IconData,
-                              color: a['color'] as Color,
-                              onTap: a['onTap'] as void Function()?,
-                            ),
-                          );
-                        }).toList(),
+                      return Wrap(
+                        spacing: spacing,
+                        runSpacing: spacing,
+                        alignment: WrapAlignment.center,
+                        children: actions
+                            .map(
+                              (a) => SizedBox(
+                                width: itemWidth,
+                                child: Tooltip(
+                                  message: a['label'] as String,
+                                  child: _QuickActionPill(
+                                    icon: a['icon'] as IconData,
+                                    color: a['color'] as Color,
+                                    onTap: a['onTap'] as void Function()?,
+                                  ),
+                                ),
+                              ),
+                            )
+                            .toList(),
                       );
                     }),
                     const SizedBox(height: 8),
@@ -583,22 +590,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
                       // Removed duplicate category chips; use filter icon in AppBar
                     ]),
                     const SizedBox(height: 12),
-                    Builder(builder: (_) {
-                      final w = MediaQuery.of(context).size.width;
-                      final cross = w >= 1200 ? 4 : (w >= 900 ? 3 : (w >= 600 ? 2 : 1));
-                      final aspect = w >= 1200 ? 1.5 : (w >= 900 ? 1.4 : (w >= 600 ? 1.3 : 1.2));
-                      return GridView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: cross,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
-                          childAspectRatio: aspect,
-                        ),
-                        itemCount: _filtered.length,
-                        itemBuilder: (context, i) {
-                          final r = _filtered[i];
+                    LayoutBuilder(builder: (context, box) {
+                      final w = box.maxWidth;
+                      final cards = <Widget>[];
+                      for (var i = 0; i < _filtered.length; i++) {
+                        final r = _filtered[i];
                           final name = r['name'] as String? ?? '';
                           final unit = r['base_unit'] as String? ?? '';
                           final stock = (r['stock'] as num?)?.toDouble() ?? 0.0;
@@ -606,7 +602,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                           final supplier = r['supplier'] as String? ?? '';
                           final below = min > 0 && stock <= min;
                           final borderColor = below ? const Color(0xFFEF4444) : const Color(0xFF10B981);
-                          return Container(
+                          final card = Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(color: const Color(0xFF18181B), borderRadius: BorderRadius.circular(12), border: Border.all(color: borderColor, width: 1.5)),
                             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -640,7 +636,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                               ]),
                               const SizedBox(height: 4),
                               Text('Supplier: $supplier', style: const TextStyle(color: Color(0xFFA1A1AA), fontSize: 12), overflow: TextOverflow.ellipsis),
-                              const Spacer(),
+                              const SizedBox(height: 4),
                               Builder(builder: (_) {
                                 final ts = _lastUpdated[r['id'] as String];
                                 final text = ts == null ? '-' : DateTime.fromMillisecondsSinceEpoch(ts).toLocal().toString();
@@ -668,7 +664,24 @@ class _InventoryScreenState extends State<InventoryScreen> {
                               ]),
                             ]),
                           );
-                        },
+                          cards.add(card);
+                      }
+
+                      const spacing = 12.0;
+                      final maxCols = w >= 1300 ? 4 : (w >= 900 ? 3 : (w >= 600 ? 2 : 1));
+                      final totalSpacing = spacing * (maxCols - 1);
+                      final itemWidth = maxCols == 1 ? w : (w - totalSpacing) / maxCols;
+
+                      return Wrap(
+                        spacing: spacing,
+                        runSpacing: spacing,
+                        alignment: WrapAlignment.center,
+                        children: cards
+                            .map((c) => SizedBox(
+                                  width: itemWidth,
+                                  child: c,
+                                ))
+                            .toList(),
                       );
                     }),
                   ]),
@@ -765,6 +778,7 @@ window.onload = function(){ setTimeout(function(){ window.print(); }, 500); }
                   ]),
                 ),
               ]),
+            ),
     );
   }
 

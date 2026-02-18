@@ -1,6 +1,9 @@
 // ignore_for_file: deprecated_member_use
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:image_picker/image_picker.dart';
 import '../providers/restaurant_provider.dart';
 import '../models/menu_item.dart';
 import '../data/repository.dart';
@@ -14,6 +17,65 @@ class MenuScreen extends StatefulWidget {
 
 class _MenuScreenState extends State<MenuScreen> {
 
+  static const String _defaultMenuEmoji = '🍽️';
+  final ImagePicker _imagePicker = ImagePicker();
+
+  double _menuImageSizeForWidth(double width) {
+    if (width < 360) return 28;
+    if (width < 480) return 32;
+    if (width < 768) return 40;
+    if (width < 1280) return 48;
+    if (width < 1920) return 56;
+    return 64;
+  }
+
+  String _normalizeEmojiInput(String input) {
+    final trimmed = input.trim();
+    if (trimmed.startsWith('data:image/')) return trimmed;
+    if (trimmed.isEmpty) return '';
+    final runes = trimmed.runes.toList();
+    if (runes.isEmpty) return '';
+    if (runes.length <= 2) return trimmed;
+    return String.fromCharCodes(runes.take(2));
+  }
+
+  Widget _buildMenuImage(String value, {double size = 28}) {
+    final v = value.trim();
+    if (v.startsWith('data:image/')) {
+      try {
+        final baseStr = v.split(',').last;
+        final bytes = base64Decode(baseStr);
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: Image.memory(
+            Uint8List.fromList(bytes),
+            width: size,
+            height: size,
+            fit: BoxFit.cover,
+          ),
+        );
+      } catch (_) {
+        return Text(_defaultMenuEmoji, style: TextStyle(fontSize: size * 0.8));
+      }
+    }
+    if (v.isEmpty) {
+      return Text(_defaultMenuEmoji, style: TextStyle(fontSize: size * 0.8));
+    }
+    return Text(v, style: TextStyle(fontSize: size * 0.8));
+  }
+
+  Future<void> _pickMenuImage(TextEditingController controller, ImageSource source, void Function(void Function()) setLocal) async {
+    try {
+      final picked = await _imagePicker.pickImage(source: source, maxWidth: 512, maxHeight: 512, imageQuality: 75);
+      if (picked == null) return;
+      final bytes = await picked.readAsBytes();
+      final base64Str = base64Encode(bytes);
+      final dataUrl = 'data:image/png;base64,$base64Str';
+      controller.text = dataUrl;
+      setLocal(() {});
+    } catch (_) {}
+  }
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, constraints) {
@@ -23,12 +85,11 @@ class _MenuScreenState extends State<MenuScreen> {
       final selectedCategory = provider.selectedCategory;
       final menuItems = selectedCategory == 'All' ? provider.menuItems : provider.menuItems.where((m) => m.category == selectedCategory).toList();
 
-      final cross = width >= 1280 ? 5 : (width >= 1024 ? 4 : (width >= 640 ? 3 : (width >= 480 ? 2 : 1)));
-      final cardAspect = width < 480
-          ? 1.0
-          : (width < 640
-              ? 1.2
-              : (width < 1024 ? 1.1 : 1.0));
+      final cross = width >= 1300
+          ? 4
+          : (width >= 900
+              ? 3
+              : (width >= 600 ? 2 : 1));
 
       return PageScaffold(
         title: 'Menu',
@@ -114,26 +175,109 @@ class _MenuScreenState extends State<MenuScreen> {
                   onPressed: () async {
                     final nameController = TextEditingController();
                     final priceController = TextEditingController();
+                    final emojiController = TextEditingController(text: _defaultMenuEmoji);
                     String selected = selectedCategory == 'All' ? (categories.length > 1 ? categories[1] : 'General') : selectedCategory;
                     await showDialog(context: context, builder: (_) {
                       return StatefulBuilder(builder: (context, setLocal) {
+                        final dialogWidth = MediaQuery.of(context).size.width;
+                        final previewSize = _menuImageSizeForWidth(dialogWidth) * 0.8;
                         return AlertDialog(
                           backgroundColor: const Color(0xFF18181B),
                           title: const Text('Add Menu Item', style: TextStyle(color: Colors.white, letterSpacing: 0.5)),
-                          content: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              TextField(decoration: const InputDecoration(hintText: 'Name'), controller: nameController),
-                              const SizedBox(height: 8),
-                              TextField(decoration: const InputDecoration(hintText: 'Price'), controller: priceController, keyboardType: TextInputType.number),
-                              const SizedBox(height: 8),
-                              DropdownButtonFormField<String>(
-                                value: selected,
-                                items: categories.where((c) => c != 'All').map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
-                                onChanged: (v) { if (v != null) setLocal(() => selected = v); },
-                                decoration: const InputDecoration(hintText: 'Category'),
-                              ),
-                            ],
+                          content: SingleChildScrollView(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                TextField(decoration: const InputDecoration(hintText: 'Name'), controller: nameController),
+                                const SizedBox(height: 8),
+                                TextField(decoration: const InputDecoration(hintText: 'Price'), controller: priceController, keyboardType: TextInputType.number),
+                                const SizedBox(height: 8),
+                                DropdownButtonFormField<String>(
+                                  value: selected,
+                                  items: categories.where((c) => c != 'All').map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                                  onChanged: (v) { if (v != null) setLocal(() => selected = v); },
+                                  decoration: const InputDecoration(hintText: 'Category'),
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    SizedBox(
+                                      width: previewSize + 8,
+                                      height: previewSize + 8,
+                                      child: Center(
+                                        child: _buildMenuImage(
+                                          emojiController.text.trim().isEmpty ? _defaultMenuEmoji : emojiController.text.trim(),
+                                          size: previewSize,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          TextField(
+                                            decoration: InputDecoration(
+                                              hintText: 'Emoji',
+                                              suffixIcon: emojiController.text.isEmpty
+                                                  ? null
+                                                  : IconButton(
+                                                      icon: const Icon(Icons.clear, size: 16),
+                                                      onPressed: () {
+                                                        emojiController.clear();
+                                                        setLocal(() {});
+                                                      },
+                                                    ),
+                                            ),
+                                            controller: emojiController,
+                                            onChanged: (value) {
+                                              final normalized = _normalizeEmojiInput(value);
+                                              if (normalized != value) {
+                                                emojiController
+                                                  ..text = normalized
+                                                  ..selection = TextSelection.fromPosition(
+                                                    TextPosition(offset: normalized.length),
+                                                  );
+                                              }
+                                              setLocal(() {});
+                                            },
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Wrap(
+                                            spacing: 8,
+                                            runSpacing: 4,
+                                            children: [
+                                              OutlinedButton.icon(
+                                                icon: const Icon(Icons.image, size: 16),
+                                                label: const Text('Choose Image'),
+                                                onPressed: () async {
+                                                  await _pickMenuImage(emojiController, ImageSource.gallery, setLocal);
+                                                },
+                                              ),
+                                              OutlinedButton.icon(
+                                                icon: const Icon(Icons.photo_camera, size: 16),
+                                                label: const Text('Camera'),
+                                                onPressed: () async {
+                                                  await _pickMenuImage(emojiController, ImageSource.camera, setLocal);
+                                                },
+                                              ),
+                                              TextButton(
+                                                onPressed: () {
+                                                  emojiController.text = _defaultMenuEmoji;
+                                                  setLocal(() {});
+                                                },
+                                                child: const Text('Use Default'),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
                           actions: [
                             TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
@@ -141,7 +285,9 @@ class _MenuScreenState extends State<MenuScreen> {
                               final name = nameController.text.trim();
                               final price = int.tryParse(priceController.text.trim()) ?? 0;
                               if (name.isNotEmpty && price > 0) {
-                                context.read<RestaurantProvider>().addMenuItem(name: name, category: selected, price: price, image: '🍽️');
+                                final normalized = _normalizeEmojiInput(emojiController.text);
+                                final img = normalized.isEmpty ? _defaultMenuEmoji : normalized;
+                                context.read<RestaurantProvider>().addMenuItem(name: name, category: selected, price: price, image: img);
                               }
                               Navigator.of(context).pop();
                             }, child: const Text('Add')),
@@ -156,120 +302,148 @@ class _MenuScreenState extends State<MenuScreen> {
               ),
             ]),
             const SizedBox(height: 12),
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: cross,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: cardAspect
-              ),
-              itemCount: menuItems.length,
-              itemBuilder: (context, i) {
-                final item = menuItems[i];
-                final orders = provider.orders;
-                int soldCount = 0;
-                for (final o in orders) {
-                  for (final it in o.items) {
-                    if (it.id == item.id) soldCount += it.quantity;
+            LayoutBuilder(
+              builder: (context, box) {
+                final w = box.maxWidth;
+                final cards = <Widget>[];
+                for (var i = 0; i < menuItems.length; i++) {
+                  final item = menuItems[i];
+                  final orders = provider.orders;
+                  int soldCount = 0;
+                  for (final o in orders) {
+                    for (final it in o.items) {
+                      if (it.id == item.id) soldCount += it.quantity;
+                    }
                   }
-                }
-                final lowStock = (item.stock ?? 0) > 0 && (item.stock ?? 0) <= 5;
-                return Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF18181B),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFF27272A))
-                  ),
-                  padding: const EdgeInsets.all(12),
-                  child: Column(children: [
-                    Text(item.image, style: const TextStyle(fontSize: 28)),
-                    const SizedBox(height: 4),
-                    Text(item.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
-                    Text(item.category, style: const TextStyle(color: Color(0xFFA1A1AA), fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis),
-                    const SizedBox(height: 4),
-                    Text('₹${item.price}', style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold, fontSize: 13)),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 4,
-                      alignment: WrapAlignment.center,
+                  final lowStock = (item.stock ?? 0) > 0 && (item.stock ?? 0) <= 5;
+                  final cardImageSize = _menuImageSizeForWidth(width);
+                  final card = Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF18181B),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFF27272A)),
+                    ),
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
                       children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(color: const Color(0xFF27272A), borderRadius: BorderRadius.circular(12)),
-                          child: Row(mainAxisSize: MainAxisSize.min, children: [
-                            const Icon(Icons.sell, color: Colors.white, size: 13),
-                            const SizedBox(width: 3),
-                            Text('Sold $soldCount', style: const TextStyle(color: Colors.white, fontSize: 11)),
-                          ]),
+                        _buildMenuImage(item.image, size: cardImageSize),
+                        const SizedBox(height: 4),
+                        Text(
+                          item.name,
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        if (item.soldOut)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(color: const Color(0xFFEF4444), borderRadius: BorderRadius.circular(12)),
-                            child: Row(mainAxisSize: MainAxisSize.min, children: const [
-                              Icon(Icons.block, color: Colors.white, size: 13),
-                              SizedBox(width: 3),
-                              Text('SOLD OUT', style: TextStyle(color: Colors.white, fontSize: 11)),
-                            ]),
-                          ),
-                        if (lowStock && !item.soldOut)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(color: const Color(0xFFF59E0B), borderRadius: BorderRadius.circular(12)),
-                            child: Row(mainAxisSize: MainAxisSize.min, children: [
-                              const Icon(Icons.warning, color: Colors.white, size: 13),
-                              const SizedBox(width: 3),
-                              Text('Stock ${item.stock}', style: const TextStyle(color: Colors.white, fontSize: 11)),
-                            ]),
-                          ),
-                        if (!item.soldOut && soldCount >= 10)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(color: const Color(0xFF10B981), borderRadius: BorderRadius.circular(12)),
-                            child: Row(mainAxisSize: MainAxisSize.min, children: const [
-                              Icon(Icons.star_border, color: Colors.white, size: 13),
-                              SizedBox(width: 3),
-                              Text('POPULAR', style: TextStyle(color: Colors.white, fontSize: 11)),
-                            ]),
-                          ),
-                        if (!item.soldOut && soldCount <= 2)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(color: const Color(0xFF3B82F6), borderRadius: BorderRadius.circular(12)),
-                            child: Row(mainAxisSize: MainAxisSize.min, children: const [
-                              Icon(Icons.trending_down, color: Colors.white, size: 13),
-                              SizedBox(width: 3),
-                              Text('LOW SELLING', style: TextStyle(color: Colors.white, fontSize: 11)),
-                            ]),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      alignment: WrapAlignment.center,
-                      children: [
-                        ...item.specialFlags.map((f) {
-                        return Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(color: const Color(0xFF27272A), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFF27272A))),
-                          child: Text(f, style: const TextStyle(color: Colors.white, fontSize: 10)),
-                        );
-                        })
-                      ],
-                    ),
-                    const Spacer(),
-                    Wrap(
-                      spacing: 4,
-                      runSpacing: 4,
-                      children: [
-                        IconButton(
-                          tooltip: 'Edit',
-                          onPressed: () async {
+                        Text(
+                          item.category,
+                          style: const TextStyle(color: Color(0xFFA1A1AA), fontSize: 11),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '₹${item.price}',
+                          style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 4,
+                          alignment: WrapAlignment.center,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(color: const Color(0xFF27272A), borderRadius: BorderRadius.circular(12)),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.sell, color: Colors.white, size: 13),
+                                  const SizedBox(width: 3),
+                                  Text('Sold $soldCount', style: const TextStyle(color: Colors.white, fontSize: 11)),
+                                ],
+                              ),
+                            ),
+                            if (item.soldOut)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(color: const Color(0xFFEF4444), borderRadius: BorderRadius.circular(12)),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: const [
+                                    Icon(Icons.block, color: Colors.white, size: 13),
+                                    SizedBox(width: 3),
+                                    Text('SOLD OUT', style: TextStyle(color: Colors.white, fontSize: 11)),
+                                  ],
+                                ),
+                              ),
+                            if (lowStock && !item.soldOut)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(color: const Color(0xFFF59E0B), borderRadius: BorderRadius.circular(12)),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.warning, color: Colors.white, size: 13),
+                                    const SizedBox(width: 3),
+                                    Text('Stock ${item.stock}', style: const TextStyle(color: Colors.white, fontSize: 11)),
+                                  ],
+                                ),
+                              ),
+                            if (!item.soldOut && soldCount >= 10)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(color: const Color(0xFF10B981), borderRadius: BorderRadius.circular(12)),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: const [
+                                    Icon(Icons.star_border, color: Colors.white, size: 13),
+                                    SizedBox(width: 3),
+                                    Text('POPULAR', style: TextStyle(color: Colors.white, fontSize: 11)),
+                                  ],
+                                ),
+                              ),
+                            if (!item.soldOut && soldCount <= 2)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(color: const Color(0xFF3B82F6), borderRadius: BorderRadius.circular(12)),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: const [
+                                    Icon(Icons.trending_down, color: Colors.white, size: 13),
+                                    SizedBox(width: 3),
+                                    Text('LOW SELLING', style: TextStyle(color: Colors.white, fontSize: 11)),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          alignment: WrapAlignment.center,
+                          children: [
+                            ...item.specialFlags.map((f) {
+                              return Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF27272A),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: const Color(0xFF27272A)),
+                                ),
+                                child: Text(f, style: const TextStyle(color: Colors.white, fontSize: 10)),
+                              );
+                            }),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Wrap(
+                          spacing: 4,
+                          runSpacing: 4,
+                          children: [
+                            IconButton(
+                              tooltip: 'Edit',
+                              onPressed: () async {
                               final nameController = TextEditingController(text: item.name);
                               final priceController = TextEditingController(text: item.price.toString());
                               String selected = item.category;
@@ -316,6 +490,8 @@ class _MenuScreenState extends State<MenuScreen> {
                                 return StatefulBuilder(builder: (context, setLocal) {
  
  
+                                  final dialogWidth = MediaQuery.of(context).size.width;
+                                  final previewSize = _menuImageSizeForWidth(dialogWidth) * 0.8;
                                   return AlertDialog(
                                     backgroundColor: const Color(0xFF18181B),
                                     title: const Text('Edit Item', style: TextStyle(color: Colors.white, letterSpacing: 0.5)),
@@ -335,7 +511,83 @@ class _MenuScreenState extends State<MenuScreen> {
                                             decoration: const InputDecoration(hintText: 'Category'),
                                           ),
                                           const SizedBox(height: 8),
-                                          TextField(decoration: const InputDecoration(hintText: 'Emoji/Image'), controller: emojiController),
+                                          Row(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              SizedBox(
+                                                width: previewSize + 8,
+                                                height: previewSize + 8,
+                                                child: Center(
+                                                  child: _buildMenuImage(
+                                                    emojiController.text.trim().isEmpty ? _defaultMenuEmoji : emojiController.text.trim(),
+                                                    size: previewSize,
+                                                  ),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    TextField(
+                                                      decoration: InputDecoration(
+                                                        hintText: 'Emoji',
+                                                        suffixIcon: emojiController.text.isEmpty
+                                                            ? null
+                                                            : IconButton(
+                                                                icon: const Icon(Icons.clear, size: 16),
+                                                                onPressed: () {
+                                                                  emojiController.clear();
+                                                                  setLocal(() {});
+                                                                },
+                                                              ),
+                                                      ),
+                                                      controller: emojiController,
+                                                      onChanged: (value) {
+                                                        final normalized = _normalizeEmojiInput(value);
+                                                        if (normalized != value) {
+                                                          emojiController
+                                                            ..text = normalized
+                                                            ..selection = TextSelection.fromPosition(
+                                                              TextPosition(offset: normalized.length),
+                                                            );
+                                                        }
+                                                        setLocal(() {});
+                                                      },
+                                                    ),
+                                                    const SizedBox(height: 8),
+                                                    Wrap(
+                                                      spacing: 8,
+                                                      runSpacing: 4,
+                                                      children: [
+                                                        OutlinedButton.icon(
+                                                          icon: const Icon(Icons.image, size: 16),
+                                                          label: const Text('Choose Image'),
+                                                          onPressed: () async {
+                                                            await _pickMenuImage(emojiController, ImageSource.gallery, setLocal);
+                                                          },
+                                                        ),
+                                                        OutlinedButton.icon(
+                                                          icon: const Icon(Icons.photo_camera, size: 16),
+                                                          label: const Text('Camera'),
+                                                          onPressed: () async {
+                                                            await _pickMenuImage(emojiController, ImageSource.camera, setLocal);
+                                                          },
+                                                        ),
+                                                        TextButton(
+                                                          onPressed: () {
+                                                            emojiController.text = _defaultMenuEmoji;
+                                                            setLocal(() {});
+                                                          },
+                                                          child: const Text('Use Default'),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                           const SizedBox(height: 8),
                                         ValueListenableBuilder<bool>(
                                           valueListenable: soldOut,
@@ -583,7 +835,8 @@ class _MenuScreenState extends State<MenuScreen> {
                                     ElevatedButton(onPressed: () {
                                       final name = nameController.text.trim();
                                       final price = int.tryParse(priceController.text.trim()) ?? item.price;
-                                      final img = emojiController.text.trim().isEmpty ? item.image : emojiController.text.trim();
+                                      final normalized = _normalizeEmojiInput(emojiController.text);
+                                      final img = normalized.isEmpty ? item.image : normalized;
                                       final st = stockController.text.trim().isEmpty ? item.stock : int.tryParse(stockController.text.trim());
                                       final updated = MenuItem(
                                         id: item.id,
@@ -613,78 +866,101 @@ class _MenuScreenState extends State<MenuScreen> {
                           },
                           icon: const Icon(Icons.edit, color: Colors.white, size: 18),
                         ),
-                        IconButton(
-                          tooltip: 'Recipe',
-                          onPressed: () async {
-                            try {
-                              final recipe = await Repository.instance.ingredients.getRecipeForMenuItem(item.id);
-                              if (recipe.isEmpty) {
-                                if (!context.mounted) return;
-                                showDialog(
-                                  context: context,
-                                  builder: (_) => AlertDialog(
-                                    backgroundColor: const Color(0xFF18181B),
-                                    title: const Text('Recipe', style: TextStyle(color: Colors.white)),
-                                    content: const Text('No recipe mapped for this item.', style: TextStyle(color: Colors.white)),
-                                    actions: [TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close'))],
-                                  ),
-                                );
-                                return;
-                              }
-                              final list = await Repository.instance.ingredients.listIngredients();
-                              final byId = <String, Map<String, dynamic>>{};
-                              for (final r in list) {
-                                byId[r['id'] as String] = r;
-                              }
-                              final lines = recipe.map((e) {
-                                final id = e['ingredient_id'] as String;
-                                final nm = byId[id]?['name']?.toString() ?? id;
-                                final qty = (e['qty'] as num?)?.toDouble() ?? 0.0;
-                                final unit = e['unit']?.toString() ?? 'g';
-                                return '$nm — $qty $unit';
-                              }).toList();
-                              if (!context.mounted) return;
-                              showDialog(
-                                context: context,
-                                builder: (_) => AlertDialog(
-                                  backgroundColor: const Color(0xFF18181B),
-                                  title: const Text('Recipe', style: TextStyle(color: Colors.white)),
-                                  content: SizedBox(
-                                    width: 420,
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        ...lines.map(
-                                          (t) => Padding(
-                                            padding: const EdgeInsets.only(bottom: 6),
-                                            child: Text(t, style: const TextStyle(color: Colors.white)),
-                                          ),
+                            IconButton(
+                              tooltip: 'Recipe',
+                              onPressed: () async {
+                                try {
+                                  final recipe = await Repository.instance.ingredients.getRecipeForMenuItem(item.id);
+                                  if (recipe.isEmpty) {
+                                    if (!context.mounted) return;
+                                    showDialog(
+                                      context: context,
+                                      builder: (_) => AlertDialog(
+                                        backgroundColor: const Color(0xFF18181B),
+                                        title: const Text('Recipe', style: TextStyle(color: Colors.white)),
+                                        content: const Text('No recipe mapped for this item.', style: TextStyle(color: Colors.white)),
+                                        actions: [TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close'))],
+                                      ),
+                                    );
+                                    return;
+                                  }
+                                  final list = await Repository.instance.ingredients.listIngredients();
+                                  final byId = <String, Map<String, dynamic>>{};
+                                  for (final r in list) {
+                                    byId[r['id'] as String] = r;
+                                  }
+                                  final lines = recipe.map((e) {
+                                    final id = e['ingredient_id'] as String;
+                                    final nm = byId[id]?['name']?.toString() ?? id;
+                                    final qty = (e['qty'] as num?)?.toDouble() ?? 0.0;
+                                    final unit = e['unit']?.toString() ?? 'g';
+                                    return '$nm — $qty $unit';
+                                  }).toList();
+                                  if (!context.mounted) return;
+                                  showDialog(
+                                    context: context,
+                                    builder: (_) => AlertDialog(
+                                      backgroundColor: const Color(0xFF18181B),
+                                      title: const Text('Recipe', style: TextStyle(color: Colors.white)),
+                                      content: SizedBox(
+                                        width: 420,
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            ...lines.map(
+                                              (t) => Padding(
+                                                padding: const EdgeInsets.only(bottom: 6),
+                                                child: Text(t, style: const TextStyle(color: Colors.white)),
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                      ],
+                                      ),
+                                      actions: [TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close'))],
                                     ),
-                                  ),
-                                  actions: [TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close'))],
-                                ),
-                              );
-                            } catch (_) {}
-                          },
-                          icon: const Icon(Icons.receipt_long, color: Colors.white, size: 18),
-                        ),
-                        Switch(
-                          value: item.soldOut,
-                          onChanged: (v) => context.read<RestaurantProvider>().toggleSoldOut(item.id, v),
-                          activeColor: const Color(0xFFEF4444),
+                                  );
+                                } catch (_) {}
+                              },
+                              icon: const Icon(Icons.receipt_long, color: Colors.white, size: 18),
+                            ),
+                            Switch(
+                              value: item.soldOut,
+                              onChanged: (v) => context.read<RestaurantProvider>().toggleSoldOut(item.id, v),
+                              activeColor: const Color(0xFFEF4444),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ]),
+                  );
+                  cards.add(card);
+                }
+
+                const spacing = 12.0;
+                final maxCols = cross;
+                final totalSpacing = spacing * (maxCols - 1);
+                final itemWidth = maxCols == 1 ? w : (w - totalSpacing) / maxCols;
+
+                return Wrap(
+                  spacing: spacing,
+                  runSpacing: spacing,
+                  alignment: WrapAlignment.center,
+                  children: cards
+                      .map(
+                        (c) => SizedBox(
+                          width: itemWidth,
+                          child: c,
+                        ),
+                      )
+                      .toList(),
                 );
               },
             ),
-          ]),
+          ],
         ),
-      );
-    });
+      ),
+    );
+  });
   }
 }

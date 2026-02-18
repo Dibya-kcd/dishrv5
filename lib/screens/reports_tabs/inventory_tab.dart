@@ -219,7 +219,12 @@ class _InventoryTabState extends State<InventoryTab> with AutomaticKeepAliveClie
             return GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: cross, mainAxisSpacing: 8, crossAxisSpacing: 8, childAspectRatio: 2.8),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: cross,
+                mainAxisSpacing: 8,
+                crossAxisSpacing: 8,
+                childAspectRatio: 2.2,
+              ),
               itemCount: _lowStockLimit.clamp(0, rows.length),
               itemBuilder: (_, i) {
                 final r = rows[i];

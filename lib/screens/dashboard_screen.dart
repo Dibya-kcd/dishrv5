@@ -52,20 +52,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return LayoutBuilder(builder: (context, constraints) {
       final width = constraints.maxWidth;
       
-      // Fixed 3-column layout on desktop for consistency, 2 on tablet, 1 on mobile
-      int crossAxisCount = 1;
-      if (width >= 1024) {
-        crossAxisCount = 3;
-      } else if (width >= 600) {
-        crossAxisCount = 2;
-      }
-
-      final horizontalPadding = 16.0;
-      final gridSpacing = 16.0;
-      final itemWidth = (width - horizontalPadding * 2 - gridSpacing * (crossAxisCount - 1)) / crossAxisCount;
-      final desiredHeight = 420.0;
-      final aspectRatio = itemWidth / desiredHeight;
-
       return NestedScrollView(
           headerSliverBuilder: (context, innerBoxIsScrolled) => [
               SliverAppBar(
@@ -85,19 +71,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
               if (role == 'admin' || role == 'manager') _buildCancellationReport(context, width, startMs, endMs),
               Padding(
                 padding: const EdgeInsets.all(16),
-                child: GridView.count(
-                  crossAxisCount: crossAxisCount,
-                  childAspectRatio: aspectRatio,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisSpacing: gridSpacing,
-                  mainAxisSpacing: gridSpacing,
-                  children: [
-                    _gridCard(child: _buildTableOrders(context, tables, filteredOrders)),
-                    _gridCard(child: _buildTakeoutOrders(context, filteredOrders)),
-                    _gridCard(child: _buildKitchenStatus(context, filteredOrders, width)),
-                  ],
-                ),
+                child: LayoutBuilder(builder: (context, box) {
+                  final w = box.maxWidth;
+                  final isWide = w >= 1024;
+                  final targetCols = isWide ? 3 : (w >= 600 ? 2 : 1);
+                  const spacing = 16.0;
+                  final totalSpacing = spacing * (targetCols - 1);
+                  final itemWidth = targetCols == 1 ? w : (w - totalSpacing) / targetCols;
+                  final desiredHeight = isWide ? 420.0 : 380.0;
+                  final height = desiredHeight;
+
+                  final cards = [
+                    _gridCard(child: _buildTableOrders(context, tables, filteredOrders), height: height),
+                    _gridCard(child: _buildTakeoutOrders(context, filteredOrders), height: height),
+                    _gridCard(child: _buildKitchenStatus(context, filteredOrders, width), height: height),
+                  ];
+
+                  return Wrap(
+                    spacing: spacing,
+                    runSpacing: spacing,
+                    alignment: WrapAlignment.center,
+                    children: cards
+                        .map((c) => SizedBox(
+                              width: isWide ? itemWidth : w,
+                              child: c,
+                            ))
+                        .toList(),
+                  );
+                }),
               ),
               if (showClosedOrders)
                 Padding(
@@ -109,13 +110,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
         );
     });
   }
-  Widget _gridCard({required Widget child}) {
+  Widget _gridCard({required Widget child, double? height}) {
     return Card(
       elevation: 6,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: child,
+        child: height == null ? child : SizedBox(height: height, child: child),
       ),
     );
   }

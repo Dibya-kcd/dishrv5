@@ -56,12 +56,12 @@ class TicketGenerator {
     final generator = Generator(PaperSize.mm80, profile);
     List<int> bytes = [];
 
-    bytes += generator.text('RESTAURANT NAME',
+    bytes += generator.text('The Dish',
         styles: const PosStyles(
             align: PosAlign.center,
             height: PosTextSize.size2,
             width: PosTextSize.size2));
-    bytes += generator.text('123 Food Street, City',
+    bytes += generator.text('Pallahara Rd, Pallahara, Odisha, India',
         styles: const PosStyles(align: PosAlign.center));
     bytes += generator.text('Tel: 123-456-7890',
         styles: const PosStyles(align: PosAlign.center));

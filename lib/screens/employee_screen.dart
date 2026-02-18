@@ -18,8 +18,8 @@ class EmployeeScreen extends StatelessWidget {
       final width = constraints.maxWidth;
       final outerPadding = 32.0; // PageScaffold adds 16 px padding on each side
       final usableViewport = math.max(240.0, width - outerPadding);
-      final isMobile = width < 768;
-      final isTablet = width >= 768 && width < 1024;
+      final isMobile = width < 600;
+      final isTablet = width >= 600 && width < 1024;
       final isLaptop = width >= 1024 && width < 1440;
       final cols = isMobile ? 1 : isTablet ? 2 : isLaptop ? 3 : 4;
       final scale = width < 360 ? 0.85 : width > 1728 ? 1.2 : (width / 1024).clamp(0.85, 1.2);
@@ -68,6 +68,7 @@ class EmployeeScreen extends StatelessWidget {
                   Wrap(
                     spacing: gutter,
                     runSpacing: gutter,
+                    alignment: WrapAlignment.center,
                     children: employees.map((e) => SizedBox(width: cardWidth, child: _EmployeeCard(emp: e, scale: scale))).toList(),
                   ),
                 ],
@@ -227,7 +228,8 @@ class _EmployeeCardState extends State<_EmployeeCard> {
           SizedBox(height: 10 * scale),
           LayoutBuilder(
             builder: (context, constraints) {
-              final spacing = 8.0 * scale;
+              final spacing = 4.0 * scale;
+              final iconSize = 20.0 * scale;
               return Align(
                 alignment: Alignment.centerRight,
                 child: Wrap(
@@ -235,37 +237,34 @@ class _EmployeeCardState extends State<_EmployeeCard> {
                   runSpacing: spacing,
                   alignment: WrapAlignment.end,
                   children: [
-                    _ActionButton(
-                      label: 'View',
-                      icon: Icons.visibility_outlined,
-                      scale: scale,
-                      onTap: () => _showViewEmployee(context, e, scale),
+                    Tooltip(
+                      message: 'View',
+                      child: IconButton(
+                        onPressed: () => _showViewEmployee(context, e, scale),
+                        icon: Icon(Icons.visibility_outlined, size: iconSize, color: Colors.white),
+                      ),
                     ),
-                    _ActionButton(
-                      label: 'Edit',
-                      icon: Icons.edit_outlined,
-                      scale: scale,
-                      onTap: () => _showAddEmployeeDialog(context, scale, existing: e),
+                    Tooltip(
+                      message: 'Edit',
+                      child: IconButton(
+                        onPressed: () => _showAddEmployeeDialog(context, scale, existing: e),
+                        icon: Icon(Icons.edit_outlined, size: iconSize, color: Colors.white),
+                      ),
                     ),
-                    _ActionButton(
-                      label: 'Pay',
-                      icon: Icons.payments_outlined,
-                      scale: scale,
-                      onTap: () async {
-                        final res = await context.read<ExpenseProvider>().recordEmployeeSalary(e);
-                        if (context.mounted) {
-                          context.read<RestaurantProvider>().showToast(
-                            res,
-                            icon: res.contains('recorded') ? '✅' : '⚠️',
-                          );
-                        }
-                      },
-                    ),
-                    _ActionButton(
-                      label: 'Delete',
-                      icon: Icons.delete_outlined,
-                      scale: scale,
-                      onTap: () => _showDeleteEmployeeDialog(context, e, scale),
+                    Tooltip(
+                      message: 'Pay',
+                      child: IconButton(
+                        onPressed: () async {
+                          final res = await context.read<ExpenseProvider>().recordEmployeeSalary(e);
+                          if (context.mounted) {
+                            context.read<RestaurantProvider>().showToast(
+                              res,
+                              icon: res.contains('recorded') ? '✅' : '⚠️',
+                            );
+                          }
+                        },
+                        icon: Icon(Icons.payments_outlined, size: iconSize, color: Colors.white),
+                      ),
                     ),
                   ],
                 ),
@@ -295,71 +294,6 @@ class _EmployeeCardState extends State<_EmployeeCard> {
       decoration: BoxDecoration(color: const Color(0xFF27272A), borderRadius: BorderRadius.circular(8)),
       alignment: Alignment.center,
       child: Icon(Icons.person, color: Colors.white, size: 24 * scale),
-    );
-  }
-}
-
-Future<void> _showDeleteEmployeeDialog(BuildContext context, Map<String, dynamic> employee, double scale) async {
-  final provider = context.read<EmployeeProvider>();
-  final name = employee['name']?.toString() ?? 'Unknown';
-  final id = employee['id']?.toString() ?? '';
-  
-  final confirmed = await showDialog<bool>(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      backgroundColor: const Color(0xFF18181B),
-      title: Text('Delete Employee', style: TextStyle(color: Colors.white, fontSize: 16 * scale)),
-      content: Text('Are you sure you want to delete $name? This action cannot be undone.', 
-        style: TextStyle(color: const Color(0xFFA1A1AA), fontSize: 14 * scale)),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(ctx).pop(false),
-          child: Text('Cancel', style: TextStyle(color: Colors.white, fontSize: 12 * scale)),
-        ),
-        ElevatedButton(
-          onPressed: () => Navigator.of(ctx).pop(true),
-          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444)),
-          child: Text('Delete', style: TextStyle(color: Colors.white, fontSize: 12 * scale)),
-        ),
-      ],
-    ),
-  );
-  
-  if (confirmed == true && context.mounted) {
-    try {
-      await provider.deleteEmployee(id);
-      if (context.mounted) {
-        context.read<RestaurantProvider>().showToast('Employee $name deleted successfully', icon: '✅');
-      }
-    } catch (e) {
-      if (context.mounted) {
-        context.read<RestaurantProvider>().showToast('Failed to delete employee: $e', icon: '⚠️');
-      }
-    }
-  }
-}
-
-class _ActionButton extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final double scale;
-  final VoidCallback onTap;
-  const _ActionButton({required this.label, required this.icon, required this.scale, required this.onTap});
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 120),
-        padding: EdgeInsets.symmetric(horizontal: 12 * scale, vertical: 8 * scale),
-        decoration: BoxDecoration(color: const Color(0xFF27272A), borderRadius: BorderRadius.circular(8), border: Border.all(color: const Color(0xFF3F3F46))),
-        child: Row(children: [
-          Icon(icon, color: Colors.white, size: 16 * scale),
-          SizedBox(width: 6 * scale),
-          Text(label, style: TextStyle(color: Colors.white, fontSize: 12 * scale, fontWeight: FontWeight.w600)),
-        ]),
-      ),
     );
   }
 }
@@ -724,6 +658,46 @@ Future<void> _showAddEmployeeDialog(BuildContext context, double scale, {Map<Str
         ),
         actions: [
           TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+          if (existing != null)
+            TextButton(
+              onPressed: () async {
+                final name = existing['name']?.toString() ?? 'Unknown';
+                final id = existing['id']?.toString() ?? '';
+                final nav = Navigator.of(context);
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    backgroundColor: const Color(0xFF18181B),
+                    title: Text('Delete Employee', style: TextStyle(color: Colors.white, fontSize: 16 * scale)),
+                    content: Text(
+                      'Are you sure you want to delete $name? This action cannot be undone.',
+                      style: TextStyle(color: const Color(0xFFA1A1AA), fontSize: 14 * scale),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(ctx).pop(false),
+                        child: Text('Cancel', style: TextStyle(color: Colors.white, fontSize: 12 * scale)),
+                      ),
+                      ElevatedButton(
+                        onPressed: () => Navigator.of(ctx).pop(true),
+                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444)),
+                        child: Text('Delete', style: TextStyle(color: Colors.white, fontSize: 12 * scale)),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirmed == true) {
+                  try {
+                    await provider.deleteEmployee(id);
+                    rp.showToast('Employee $name deleted successfully', icon: '✅');
+                    nav.pop();
+                  } catch (e) {
+                    rp.showToast('Failed to delete employee: $e', icon: '⚠️');
+                  }
+                }
+              },
+              child: const Text('Delete', style: TextStyle(color: Color(0xFFEF4444))),
+            ),
           ElevatedButton(
             onPressed: () async {
               final data = _collectEmployeeData(

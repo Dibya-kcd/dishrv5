@@ -19,7 +19,7 @@ void main() {
         providers: [
           ChangeNotifierProvider(create: (_) => RestaurantProvider()),
         ],
-        child: const RestoPOSApp(),
+        child: const TheDishApp(),
       ),
     );
     expect(find.byType(MaterialApp), findsOneWidget);
