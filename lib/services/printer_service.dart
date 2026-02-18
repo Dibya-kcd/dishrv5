@@ -211,15 +211,27 @@ class PrinterService extends ChangeNotifier {
       bool isConnected = false;
       try {
         isConnected = await PrintBluetoothThermal.connectionStatus;
+        if (isConnected) {
+          try {
+            await PrintBluetoothThermal.disconnect;
+          } catch (_) {}
+          isConnected = false;
+        }
       } catch (_) {
         isConnected = false;
       }
 
-      if (!isConnected) {
-        final connected = await PrintBluetoothThermal.connect(macPrinterAddress: printer.address);
-        if (!connected) {
-          throw Exception("Failed to connect to Classic BT printer");
+      try {
+        if (!isConnected) {
+          final connected = await PrintBluetoothThermal.connect(
+            macPrinterAddress: printer.address,
+          );
+          if (!connected) {
+            throw Exception("Failed to connect to Classic BT printer");
+          }
         }
+      } catch (e) {
+        throw Exception("Failed to connect to Classic BT printer: $e");
       }
       final ok = await PrintBluetoothThermal.writeBytes(bytes);
       if (ok != true) {
