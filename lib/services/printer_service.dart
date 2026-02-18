@@ -177,6 +177,7 @@ class PrinterService extends ChangeNotifier {
 
   Future<void> _printBytes(PrinterModel printer, List<int> bytes) async {
     try {
+      debugPrint('PRINTER: _printBytes type=${printer.type} addr=${printer.address} bytes=${bytes.length}');
       if (printer.type == PrinterType.network) {
         if (kIsWeb) {
           throw Exception("Network printing not supported on Web directly");
@@ -188,6 +189,7 @@ class PrinterService extends ChangeNotifier {
         throw Exception("USB Printing not fully implemented yet");
       }
     } catch (e) {
+      debugPrint('PRINTER: _printBytes error=$e');
       rethrow;
     }
   }
@@ -206,54 +208,53 @@ class PrinterService extends ChangeNotifier {
   }
 
   Future<void> _printBluetooth(PrinterModel printer, List<int> bytes) async {
-    // Classic BT path (Android): MAC addresses contain ':' (e.g., 00:1B:10:73:AD:08)
+    debugPrint('PRINTER: _printBluetooth start addr=${printer.address}');
     if (!kIsWeb && Platform.isAndroid && printer.address.contains(':')) {
-      bool isConnected = false;
+      debugPrint('PRINTER: Classic BT path addr=${printer.address}');
       try {
-        isConnected = await PrintBluetoothThermal.connectionStatus;
-        if (isConnected) {
-          try {
-            await PrintBluetoothThermal.disconnect;
-          } catch (_) {}
-          isConnected = false;
-        }
-      } catch (_) {
-        isConnected = false;
-      }
+        try {
+          await PrintBluetoothThermal.disconnect;
+        } catch (_) {}
 
-      try {
-        if (!isConnected) {
-          final connected = await PrintBluetoothThermal.connect(
-            macPrinterAddress: printer.address,
-          );
-          if (!connected) {
-            throw Exception("Failed to connect to Classic BT printer");
-          }
+        final connected = await PrintBluetoothThermal.connect(
+          macPrinterAddress: printer.address,
+        );
+        if (!connected) {
+          debugPrint('PRINTER: Classic connect failed addr=${printer.address}');
+          throw Exception("Failed to connect to Classic BT printer");
         }
+
+        final ok = await PrintBluetoothThermal.writeBytes(bytes);
+        if (ok != true) {
+          debugPrint('PRINTER: Classic write failed addr=${printer.address}');
+          throw Exception("Write failed on Classic BT printer");
+        }
+
+        try {
+          await PrintBluetoothThermal.disconnect;
+        } catch (_) {}
+        debugPrint('PRINTER: Classic BT print success addr=${printer.address}');
       } catch (e) {
+        debugPrint('PRINTER: Classic BT error addr=${printer.address} error=$e');
         throw Exception("Failed to connect to Classic BT printer: $e");
-      }
-      final ok = await PrintBluetoothThermal.writeBytes(bytes);
-      if (ok != true) {
-        throw Exception("Write failed on Classic BT printer");
       }
       return;
     }
 
-    // BLE path
+    debugPrint('PRINTER: BLE path addr=${printer.address}');
     final device = BluetoothDevice.fromId(printer.address);
     try {
       await device.connect();
     } catch (e) {
-      // If we can't connect, we can't discover services.
+      debugPrint('PRINTER: BLE connect failed addr=${printer.address} error=$e');
       throw Exception("Could not connect to BLE printer: $e");
     }
 
     if (device.isConnected == false) {
-       // Double check connection status
        try {
           await device.connect();
        } catch (e) {
+          debugPrint('PRINTER: BLE reconnect failed addr=${printer.address} error=$e');
           throw Exception("Could not connect to BLE printer (retry failed): $e");
        }
     }
@@ -277,6 +278,9 @@ class PrinterService extends ChangeNotifier {
       var end = (i + chunkSize < bytes.length) ? i + chunkSize : bytes.length;
       await targetChar.write(bytes.sublist(i, end), withoutResponse: targetChar.properties.writeWithoutResponse);
     }
-    try { await device.disconnect(); } catch (_) {}
+    try {
+      await device.disconnect();
+    } catch (_) {}
+    debugPrint('PRINTER: BLE print success addr=${printer.address}');
   }
 }
