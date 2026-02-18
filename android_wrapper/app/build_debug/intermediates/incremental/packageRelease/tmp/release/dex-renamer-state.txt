@@ -1,4 +1,4 @@
-#Tue Feb 17 10:29:18 IST 2026
+#Tue Feb 17 10:39:02 IST 2026
 base.1=C\:\\Users\\piku\\develop\\hotela\\dishrv5\\android_wrapper\\app\\build_debug\\intermediates\\global_synthetics_dex\\release\\mergeReleaseGlobalSynthetics\\classes.dex
 path.1=classes.dex
 base.0=C\:\\Users\\piku\\develop\\hotela\\dishrv5\\android_wrapper\\app\\build_debug\\intermediates\\dex\\release\\mergeDexRelease\\classes.dex

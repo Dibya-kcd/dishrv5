@@ -208,9 +208,18 @@ class PrinterService extends ChangeNotifier {
   Future<void> _printBluetooth(PrinterModel printer, List<int> bytes) async {
     // Classic BT path (Android): MAC addresses contain ':' (e.g., 00:1B:10:73:AD:08)
     if (!kIsWeb && Platform.isAndroid && printer.address.contains(':')) {
-      final connected = await PrintBluetoothThermal.connect(macPrinterAddress: printer.address);
-      if (!connected) {
-        throw Exception("Failed to connect to Classic BT printer");
+      bool isConnected = false;
+      try {
+        isConnected = await PrintBluetoothThermal.connectionStatus;
+      } catch (_) {
+        isConnected = false;
+      }
+
+      if (!isConnected) {
+        final connected = await PrintBluetoothThermal.connect(macPrinterAddress: printer.address);
+        if (!connected) {
+          throw Exception("Failed to connect to Classic BT printer");
+        }
       }
       final ok = await PrintBluetoothThermal.writeBytes(bytes);
       if (ok != true) {
