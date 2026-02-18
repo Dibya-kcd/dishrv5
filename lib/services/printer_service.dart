@@ -211,33 +211,27 @@ class PrinterService extends ChangeNotifier {
     debugPrint('PRINTER: _printBluetooth start addr=${printer.address}');
     if (!kIsWeb && Platform.isAndroid && printer.address.contains(':')) {
       debugPrint('PRINTER: Classic BT path addr=${printer.address}');
+      bool status = false;
       try {
-        try {
-          await PrintBluetoothThermal.disconnect;
-        } catch (_) {}
+        status = await PrintBluetoothThermal.connectionStatus;
+      } catch (_) {}
+      debugPrint('PRINTER: Classic BT status=$status addr=${printer.address}');
 
+      if (!status) {
         final connected = await PrintBluetoothThermal.connect(
           macPrinterAddress: printer.address,
         );
+        debugPrint('PRINTER: Classic BT connect result=$connected addr=${printer.address}');
         if (!connected) {
-          debugPrint('PRINTER: Classic connect failed addr=${printer.address}');
           throw Exception("Failed to connect to Classic BT printer");
         }
-
-        final ok = await PrintBluetoothThermal.writeBytes(bytes);
-        if (ok != true) {
-          debugPrint('PRINTER: Classic write failed addr=${printer.address}');
-          throw Exception("Write failed on Classic BT printer");
-        }
-
-        try {
-          await PrintBluetoothThermal.disconnect;
-        } catch (_) {}
-        debugPrint('PRINTER: Classic BT print success addr=${printer.address}');
-      } catch (e) {
-        debugPrint('PRINTER: Classic BT error addr=${printer.address} error=$e');
-        throw Exception("Failed to connect to Classic BT printer: $e");
       }
+      final ok = await PrintBluetoothThermal.writeBytes(bytes);
+      debugPrint('PRINTER: Classic BT write ok=$ok addr=${printer.address}');
+      if (ok != true) {
+        throw Exception("Write failed on Classic BT printer");
+      }
+      debugPrint('PRINTER: Classic BT print success addr=${printer.address}');
       return;
     }
 
