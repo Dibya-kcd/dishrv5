@@ -507,78 +507,10 @@ class RestaurantProvider extends ChangeNotifier {
             menuItems = data.map((m) => MenuItem.fromJson(m)).toList();
           } catch (_) {}
         }
-        if (menuItems.isEmpty) {
-          final defaults = <MenuItem>[
-            MenuItem(id: 1, name: 'Paneer Tikka', category: 'Starters', price: 220, image: ''),
-            MenuItem(id: 2, name: 'Chicken Biryani', category: 'Main Course', price: 280, image: ''),
-            MenuItem(id: 3, name: 'Masala Dosa', category: 'South Indian', price: 160, image: ''),
-            MenuItem(id: 4, name: 'Butter Naan', category: 'Breads', price: 60, image: ''),
-            MenuItem(id: 5, name: 'Gulab Jamun', category: 'Desserts', price: 120, image: ''),
-            MenuItem(id: 6, name: 'Cold Coffee', category: 'Beverages', price: 140, image: ''),
-            MenuItem(id: 7, name: 'Dal Makhani', category: 'Main Course', price: 240, image: ''),
-            MenuItem(id: 8, name: 'Spring Rolls', category: 'Starters', price: 180, image: ''),
-          ];
-          await Repository.instance.menu.upsertMenuItems(defaults, notify: false);
-          menuItems = await Repository.instance.menu.listMenu();
-        } else {
-          // If we loaded from legacy prefs but DB was empty, save to DB
+        if (menuItems.isNotEmpty) {
           await Repository.instance.menu.upsertMenuItems(menuItems, notify: false);
         }
       }
-      // Seed sample recipes if missing
-      try {
-        final byName = {for (final m in menuItems) m.name.toLowerCase(): m};
-        Future<void> ensureRecipe(String itemName, List<Map<String, dynamic>> ingList) async {
-          final m = byName[itemName.toLowerCase()];
-          if (m == null) return;
-          final existing = await Repository.instance.ingredients.getRecipeForMenuItem(m.id);
-          if (existing.isNotEmpty) return;
-          
-          // Use direct repository call instead of provider method to avoid loops
-          await Repository.instance.ingredients.setRecipeForMenuItem(m.id, ingList, notify: false);
-        }
-        await ensureRecipe('Paneer Tikka', [
-          {'name':'Paneer','qty':150,'unit':'g'},
-          {'name':'Curd','qty':50,'unit':'g'},
-          {'name':'Spice Mix','qty':10,'unit':'g'},
-          {'name':'Oil','qty':10,'unit':'ml'},
-        ]);
-        await ensureRecipe('Chicken Biryani', [
-          {'name':'Rice','qty':200,'unit':'g'},
-          {'name':'Chicken','qty':150,'unit':'g'},
-          {'name':'Biryani Masala','qty':8,'unit':'g'},
-          {'name':'Oil','qty':15,'unit':'ml'},
-        ]);
-        await ensureRecipe('Masala Dosa', [
-          {'name':'Dosa Batter','qty':200,'unit':'g'},
-          {'name':'Potato Masala','qty':120,'unit':'g'},
-          {'name':'Oil','qty':10,'unit':'ml'},
-        ]);
-        await ensureRecipe('Butter Naan', [
-          {'name':'Flour','qty':120,'unit':'g'},
-          {'name':'Butter','qty':10,'unit':'g'},
-          {'name':'Yeast','qty':2,'unit':'g'},
-        ]);
-        await ensureRecipe('Gulab Jamun', [
-          {'name':'Khoya Mix','qty':100,'unit':'g'},
-          {'name':'Sugar Syrup','qty':50,'unit':'ml'},
-        ]);
-        await ensureRecipe('Cold Coffee', [
-          {'name':'Milk','qty':200,'unit':'ml'},
-          {'name':'Coffee','qty':10,'unit':'g'},
-          {'name':'Sugar','qty':15,'unit':'g'},
-        ]);
-        await ensureRecipe('Dal Makhani', [
-          {'name':'Black Lentils','qty':150,'unit':'g'},
-          {'name':'Cream','qty':20,'unit':'ml'},
-          {'name':'Butter','qty':10,'unit':'g'},
-        ]);
-        await ensureRecipe('Spring Rolls', [
-          {'name':'Roll Wrapper','qty':2,'unit':'pc'},
-          {'name':'Veg Mix','qty':100,'unit':'g'},
-          {'name':'Oil','qty':15,'unit':'ml'},
-        ]);
-      } catch (_) {}
       // --- TABLES ---
       final dbTables = await Repository.instance.tables.listTables();
       if (dbTables.isNotEmpty) {

@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../data/repository.dart';
 import '../data/sync_service.dart';
 import '../utils/auth_helper.dart';
 import '../utils/sample_data.dart';
+import '../providers/restaurant_provider.dart';
 import 'login_screen.dart';
 
 class FirebaseDebugScreen extends StatefulWidget {
@@ -190,45 +192,34 @@ class _FirebaseDebugScreenState extends State<FirebaseDebugScreen> {
     }
   }
 
-  Future<void> _seedSampleData() async {
-    setState(() {
-      _busy = true;
-      _log = 'Seeding sample employees...\n';
-    });
-    try {
-      await ensureSampleEmployees();
-      _addLog('✅ Sample employees created successfully.');
-    } catch (e) {
-      _addLog('❌ Seeding failed: $e');
-    } finally {
-      setState(() => _busy = false);
-    }
-  }
-  Future<void> _resetIngredientsToSeed() async {
+  Future<void> _seedDemoData() async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Reset Ingredients to Seed'),
-        content: const Text('This will remove all non-seed ingredients locally and remotely, and reinsert the 21 canonical ingredients. Continue?'),
+        title: const Text('Seed Demo Data'),
+        content: const Text('This will insert demo menu, ingredients, recipes, employees and tables. Existing inventory and recipes may be overwritten. Continue?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('RESET', style: TextStyle(color: Colors.red))),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('SEED DEMO DATA')),
         ],
       ),
     );
     if (confirmed != true) return;
+
     setState(() {
       _busy = true;
-      _log = 'Resetting ingredients to canonical seed...\n';
+      _log = 'Seeding demo data (menu, ingredients, recipes, employees, tables)...\n';
     });
+
     try {
-      await Repository.instance.ingredients.resetToCanonicalSeed();
-      final removed = await SyncService.instance.purgeNonSeedIngredientsRemote();
-      _addLog('✅ Ingredients reset to seed. Firebase updated. Removed $removed non-seed remote items.');
+      await seedDemoData();
+      _addLog('✅ Demo data seeded successfully.');
     } catch (e) {
-      _addLog('❌ Reset failed: $e');
+      _addLog('❌ Demo data seeding failed: $e');
     } finally {
-      setState(() => _busy = false);
+      if (mounted) {
+        setState(() => _busy = false);
+      }
     }
   }
 
@@ -262,58 +253,6 @@ class _FirebaseDebugScreenState extends State<FirebaseDebugScreen> {
                     backgroundColor: Colors.orange.withValues(alpha: 0.2),
                     foregroundColor: Colors.orange,
                     side: const BorderSide(color: Colors.orange),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: _busy ? null : _seedSampleData,
-                  icon: const Icon(Icons.people_outline),
-                  label: const Text('Seed Samples'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green.withValues(alpha: 0.2),
-                    foregroundColor: Colors.green,
-                    side: const BorderSide(color: Colors.green),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: _busy ? null : _resetIngredientsToSeed,
-                  icon: const Icon(Icons.inventory_2_outlined),
-                  label: const Text('Reset Ingredients'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.purple.withValues(alpha: 0.2),
-                    foregroundColor: Colors.purple,
-                    side: const BorderSide(color: Colors.purple),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: _busy ? null : () async {
-                    setState(() {
-                      _busy = true;
-                      _log = 'Migrating menus to canonical keys and nesting recipes...\n';
-                    });
-                    try {
-                      final res = await SyncService.instance.migrateMenusToCanonicalAndNest();
-                      _addLog('✅ Migration complete. Migrated: ${res['migrated']}, Removed legacy: ${res['removed_legacy']}');
-                    } catch (e) {
-                      _addLog('❌ Migration failed: $e');
-                    } finally {
-                      setState(() => _busy = false);
-                    }
-                  },
-                  icon: const Icon(Icons.schema_outlined),
-                  label: const Text('Migrate Menus/Recipes'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.teal.withValues(alpha: 0.2),
-                    foregroundColor: Colors.teal,
-                    side: const BorderSide(color: Colors.teal),
                   ),
                 ),
               ),
@@ -354,6 +293,39 @@ class _FirebaseDebugScreenState extends State<FirebaseDebugScreen> {
               const Text(
                 'CRITICAL ACTIONS',
                 style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 12),
+              ),
+              const SizedBox(height: 8),
+              ElevatedButton.icon(
+                onPressed: _busy ? null : _seedDemoData,
+                icon: const Icon(Icons.restaurant),
+                label: const Text('SEED DEMO DATA (DEMO ONLY)'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange.withValues(alpha: 0.1),
+                  foregroundColor: Colors.orange,
+                  side: const BorderSide(color: Colors.orange),
+                ),
+              ),
+              const SizedBox(height: 8),
+              ElevatedButton.icon(
+                onPressed: _busy
+                    ? null
+                    : () async {
+                        setState(() => _busy = true);
+                        try {
+                          await context.read<RestaurantProvider>().resetAllDataFresh(context);
+                        } finally {
+                          if (mounted) {
+                            setState(() => _busy = false);
+                          }
+                        }
+                      },
+                icon: const Icon(Icons.delete_forever),
+                label: const Text('RESET LOCAL + CLOUD DATABASE'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red.withValues(alpha: 0.1),
+                  foregroundColor: Colors.red,
+                  side: const BorderSide(color: Colors.red),
+                ),
               ),
               const SizedBox(height: 8),
               ElevatedButton.icon(

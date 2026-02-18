@@ -53,7 +53,7 @@ class Repository {
 
 
   Future<void> init() async {
-    final db = await _db.database;
+    await _db.database;
     await _ensureDeviceId();
     await _loadSession();
     if (_clientRole != null) {
@@ -65,91 +65,6 @@ class Repository {
       if (kDebugMode) {
         debugPrint('No existing session found');
       }
-    }
-    
-    final seeded = await settings.get('seed_vmo');
-    if (seeded != '1') {
-      await db.transaction((txn) async {
-        final existingIngredients = await ingredients.listIngredients(txn: txn);
-        if (existingIngredients.isEmpty) {
-          final seed = [
-            {'id':'ING001','name':'Paneer','category':'Dairy','base_unit':'g','stock':2000.0,'min_threshold':500.0,'supplier':'Local'},
-            {'id':'ING002','name':'Curd','category':'Dairy','base_unit':'g','stock':1500.0,'min_threshold':400.0,'supplier':'Local'},
-            {'id':'ING003','name':'Spice Mix','category':'Spices','base_unit':'g','stock':1000.0,'min_threshold':200.0,'supplier':'Local'},
-            {'id':'ING004','name':'Oil','category':'Oils','base_unit':'ml','stock':3000.0,'min_threshold':800.0,'supplier':'Local'},
-            {'id':'ING005','name':'Rice','category':'Grains','base_unit':'g','stock':5000.0,'min_threshold':1000.0,'supplier':'Local'},
-            {'id':'ING006','name':'Chicken','category':'Meat','base_unit':'g','stock':3000.0,'min_threshold':700.0,'supplier':'Local'},
-            {'id':'ING007','name':'Biryani Masala','category':'Spices','base_unit':'g','stock':800.0,'min_threshold':200.0,'supplier':'Local'},
-            {'id':'ING008','name':'Dosa Batter','category':'Batter','base_unit':'g','stock':4000.0,'min_threshold':1000.0,'supplier':'Local'},
-            {'id':'ING009','name':'Potato Masala','category':'Veg','base_unit':'g','stock':2500.0,'min_threshold':600.0,'supplier':'Local'},
-            {'id':'ING010','name':'Flour','category':'Bakery','base_unit':'g','stock':4000.0,'min_threshold':900.0,'supplier':'Local'},
-            {'id':'ING011','name':'Butter','category':'Dairy','base_unit':'g','stock':1200.0,'min_threshold':300.0,'supplier':'Local'},
-            {'id':'ING012','name':'Yeast','category':'Bakery','base_unit':'g','stock':300.0,'min_threshold':50.0,'supplier':'Local'},
-            {'id':'ING013','name':'Khoya Mix','category':'Dessert','base_unit':'g','stock':1200.0,'min_threshold':300.0,'supplier':'Local'},
-            {'id':'ING014','name':'Sugar Syrup','category':'Dessert','base_unit':'ml','stock':1500.0,'min_threshold':400.0,'supplier':'Local'},
-            {'id':'ING015','name':'Milk','category':'Dairy','base_unit':'ml','stock':3000.0,'min_threshold':800.0,'supplier':'Local'},
-            {'id':'ING016','name':'Coffee','category':'Beverage','base_unit':'g','stock':500.0,'min_threshold':100.0,'supplier':'Local'},
-            {'id':'ING017','name':'Sugar','category':'Beverage','base_unit':'g','stock':2000.0,'min_threshold':500.0,'supplier':'Local'},
-            {'id':'ING018','name':'Black Lentils','category':'Legumes','base_unit':'g','stock':2500.0,'min_threshold':600.0,'supplier':'Local'},
-            {'id':'ING019','name':'Cream','category':'Dairy','base_unit':'ml','stock':1200.0,'min_threshold':300.0,'supplier':'Local'},
-            {'id':'ING020','name':'Roll Wrapper','category':'Bakery','base_unit':'pc','stock':200.0,'min_threshold':50.0,'supplier':'Local'},
-            {'id':'ING021','name':'Veg Mix','category':'Veg','base_unit':'g','stock':3000.0,'min_threshold':800.0,'supplier':'Local'},
-          ];
-          for (final ing in seed) {
-            await ingredients.upsertIngredient(ing, notify: false, txn: txn);
-          }
-          final menuItems = await menu.listMenu(txn: txn);
-          final byName = {for (final m in menuItems) m.name.toLowerCase(): m};
-          Future<void> setRecipe(String itemName, List<Map<String, dynamic>> items) async {
-            final m = byName[itemName.toLowerCase()];
-            if (m == null) return;
-            await ingredients.setRecipeForMenuItem(m.id, items, notify: false, txn: txn);
-          }
-          await setRecipe('Paneer Tikka', [
-            {'ingredient_id':'ING001','qty':150.0,'unit':'g'},
-            {'ingredient_id':'ING002','qty':50.0,'unit':'g'},
-            {'ingredient_id':'ING003','qty':10.0,'unit':'g'},
-            {'ingredient_id':'ING004','qty':10.0,'unit':'ml'},
-          ]);
-          await setRecipe('Chicken Biryani', [
-            {'ingredient_id':'ING005','qty':200.0,'unit':'g'},
-            {'ingredient_id':'ING006','qty':150.0,'unit':'g'},
-            {'ingredient_id':'ING007','qty':8.0,'unit':'g'},
-            {'ingredient_id':'ING004','qty':15.0,'unit':'ml'},
-          ]);
-          await setRecipe('Masala Dosa', [
-            {'ingredient_id':'ING008','qty':200.0,'unit':'g'},
-            {'ingredient_id':'ING009','qty':120.0,'unit':'g'},
-            {'ingredient_id':'ING004','qty':10.0,'unit':'ml'},
-          ]);
-          await setRecipe('Butter Naan', [
-            {'ingredient_id':'ING010','qty':120.0,'unit':'g'},
-            {'ingredient_id':'ING011','qty':10.0,'unit':'g'},
-            {'ingredient_id':'ING012','qty':2.0,'unit':'g'},
-          ]);
-          await setRecipe('Gulab Jamun', [
-            {'ingredient_id':'ING013','qty':100.0,'unit':'g'},
-            {'ingredient_id':'ING014','qty':50.0,'unit':'ml'},
-          ]);
-          await setRecipe('Cold Coffee', [
-            {'ingredient_id':'ING015','qty':200.0,'unit':'ml'},
-            {'ingredient_id':'ING016','qty':10.0,'unit':'g'},
-            {'ingredient_id':'ING017','qty':15.0,'unit':'g'},
-          ]);
-          await setRecipe('Dal Makhani', [
-            {'ingredient_id':'ING018','qty':150.0,'unit':'g'},
-            {'ingredient_id':'ING019','qty':20.0,'unit':'ml'},
-            {'ingredient_id':'ING011','qty':10.0,'unit':'g'},
-          ]);
-          await setRecipe('Spring Rolls', [
-            {'ingredient_id':'ING020','qty':2.0,'unit':'pc'},
-            {'ingredient_id':'ING021','qty':100.0,'unit':'g'},
-            {'ingredient_id':'ING004','qty':15.0,'unit':'ml'},
-          ]);
-        }
-        await settings.set('seed_vmo', '1', txn: txn);
-      });
-      notifyDataChanged();
     }
   }
   Future<void> _ensureDeviceId() async {

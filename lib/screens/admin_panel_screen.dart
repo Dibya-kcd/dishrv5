@@ -6,7 +6,6 @@ import '../data/sync_service.dart';
 import '../data/repository.dart';
 import '../providers/restaurant_provider.dart';
 import 'firebase_debug_screen.dart';
-import 'role_config_screen.dart';
 import '../utils/auth_helper.dart';
 import 'login_screen.dart';
 
@@ -206,69 +205,6 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (isActing) ...[
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.orange.withValues(alpha: 0.1),
-                    border: Border.all(color: Colors.orange.withValues(alpha: 0.5)),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Column(
-                    children: [
-                      Text(
-                        'ACTING AS: ${provider.actingAsRole!.toUpperCase()}',
-                        style: GoogleFonts.inter(color: Colors.orange, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 8),
-                      ElevatedButton(
-                        onPressed: () => provider.actAsRole(null),
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, foregroundColor: Colors.white),
-                        child: const Text('Safe Exit to Admin Mode'),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-              ],
-
-              Text('Role Play (Simulation)', style: GoogleFonts.inter(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 16),
-              
-              if (!widget.embed) ...[
-                // Navigation to Security & Roles
-                ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => const RoleManagementScreen()));
-                  },
-                  icon: const Icon(Icons.security),
-                  label: const Text('Security & Role Configuration'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF3B82F6),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    alignment: Alignment.centerLeft,
-                  ),
-                ),
-                const SizedBox(height: 12),
-              ],
-
-              // Act as a Role
-              ElevatedButton.icon(
-                onPressed: () => _showActAsDialog(context, provider),
-                icon: const Icon(Icons.theater_comedy),
-                label: const Text('Act as a Role (Simulation)'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF8B5CF6),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  alignment: Alignment.centerLeft,
-                ),
-              ),
-              const SizedBox(height: 24),
-              const Divider(color: Color(0xFF3F3F46)),
-              const SizedBox(height: 24),
-
               Text('Firebase Authentication', style: GoogleFonts.inter(fontSize: 16, color: Colors.grey)),
               const SizedBox(height: 12),
               if (!isSignedIn) ...[

@@ -1,9 +1,37 @@
 // ignore_for_file: deprecated_member_use
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/restaurant_provider.dart';
 import '../models/menu_item.dart';
 import '../models/cart_item.dart';
+
+Widget _buildMenuImage(String value, {double size = 28}) {
+  const fallback = '🍽️';
+  final v = value.trim();
+  if (v.startsWith('data:image/')) {
+    try {
+      final baseStr = v.split(',').last;
+      final bytes = base64Decode(baseStr);
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Image.memory(
+          Uint8List.fromList(bytes),
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+        ),
+      );
+    } catch (_) {
+      return Text(fallback, style: TextStyle(fontSize: size * 0.8));
+    }
+  }
+  if (v.isEmpty) {
+    return Text(fallback, style: TextStyle(fontSize: size * 0.8));
+  }
+  return Text(v, style: TextStyle(fontSize: size * 0.8));
+}
 
 class TakeoutScreen extends StatelessWidget {
   final bool embedded;
@@ -584,7 +612,7 @@ class TakeoutScreen extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(item.image, style: const TextStyle(fontSize: 28)),
+                              _buildMenuImage(item.image, size: 28),
                               const SizedBox(height: 6),
                               Text(item.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
                               Text('₹${item.price}', style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
@@ -698,7 +726,7 @@ class TakeoutScreen extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(item.image, style: const TextStyle(fontSize: 28)),
+                              _buildMenuImage(item.image, size: 28),
                               const SizedBox(height: 6),
                               Text(item.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
                               Text('₹${item.price}', style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
@@ -808,7 +836,7 @@ class TakeoutScreen extends StatelessWidget {
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text(item.image, style: const TextStyle(fontSize: 28)),
+                                      _buildMenuImage(item.image, size: 28),
                                       const SizedBox(height: 6),
                                       Text(item.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
                                       Text('₹${item.price}', style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
@@ -920,7 +948,7 @@ class TakeoutScreen extends StatelessWidget {
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text(item.image, style: const TextStyle(fontSize: 28)),
+                                      _buildMenuImage(item.image, size: 28),
                                       const SizedBox(height: 6),
                                       Text(item.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
                                       Text('₹${item.price}', style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),

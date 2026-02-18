@@ -1,9 +1,36 @@
 // ignore_for_file: deprecated_member_use
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/restaurant_provider.dart';
 import '../models/menu_item.dart';
- 
+
+Widget _buildMenuImage(String value, {double size = 32}) {
+  const fallback = '🍽️';
+  final v = value.trim();
+  if (v.startsWith('data:image/')) {
+    try {
+      final baseStr = v.split(',').last;
+      final bytes = base64Decode(baseStr);
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Image.memory(
+          Uint8List.fromList(bytes),
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+        ),
+      );
+    } catch (_) {
+      return Text(fallback, style: TextStyle(fontSize: size * 0.8));
+    }
+  }
+  if (v.isEmpty) {
+    return Text(fallback, style: TextStyle(fontSize: size * 0.8));
+  }
+  return Text(v, style: TextStyle(fontSize: size * 0.8));
+}
 
 class TableOrderScreen extends StatelessWidget {
   const TableOrderScreen({super.key});
@@ -601,7 +628,7 @@ class TableOrderScreen extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(item.image, style: const TextStyle(fontSize: 32)),
+                              _buildMenuImage(item.image, size: 32),
                               const SizedBox(height: 6),
                               Text(item.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
                               Text('₹${item.price}', style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
@@ -773,7 +800,7 @@ class TableOrderScreen extends StatelessWidget {
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text(item.image, style: const TextStyle(fontSize: 32)),
+                                      _buildMenuImage(item.image, size: 32),
                                       const SizedBox(height: 6),
                                       Text(item.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
                                       Text('₹${item.price}', style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),

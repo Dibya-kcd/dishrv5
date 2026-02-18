@@ -230,8 +230,8 @@ class _RoleManagementScreenState extends State<RoleManagementScreen> {
       setState(() => _addPinError = 'PIN already in use');
       return;
     }
-    if (role == 'admin' && _hasAdminAssigned(exceptId: id)) {
-      setState(() => _addPinError = 'Only one admin allowed');
+    if (role == 'admin') {
+      setState(() => _addPinError = 'Admin cannot be assigned to employees');
       return;
     }
     final emp = _employees.firstWhere((e) => e['id'] == id, orElse: () => {});
@@ -301,7 +301,7 @@ class _RoleManagementScreenState extends State<RoleManagementScreen> {
   Widget build(BuildContext context) {
     final currentRole = (Repository.instance.clientMeta?['role']?.toString() ?? '').toLowerCase();
     final roleDescriptions = {
-      'admin': 'Full access. Locked role.',
+      'admin': 'Full access. Not assignable to employees.',
       'manager': 'Approve bookings, reports, manage staff.',
       'chef': 'Kitchen view and inventory.',
       'waiter': 'Take orders and view tables.',
@@ -426,11 +426,20 @@ class _RoleManagementScreenState extends State<RoleManagementScreen> {
                         decoration: BoxDecoration(color: const Color(0xFF1A1A1A), borderRadius: BorderRadius.circular(8)),
                         child: DropdownButtonHideUnderline(
                           child: DropdownButton<String>(
-                            value: _selectedAddRole != null && _roles.map((r)=>r['name'].toString().toLowerCase()).contains(_selectedAddRole) ? _selectedAddRole : null,
+                            value: _selectedAddRole != null &&
+                                    _roles
+                                        .map((r) => r['name'].toString().toLowerCase())
+                                        .where((name) => name != 'admin')
+                                        .contains(_selectedAddRole)
+                                ? _selectedAddRole
+                                : null,
                             isExpanded: true,
                             dropdownColor: const Color(0xFF1A1A1A),
                             hint: const Text('Select role', style: TextStyle(color: Colors.grey)),
-                            items: _roles.map((r) => r['name'].toString().toLowerCase()).map((value) {
+                            items: _roles
+                                .map((r) => r['name'].toString().toLowerCase())
+                                .where((value) => value != 'admin')
+                                .map((value) {
                               return DropdownMenuItem<String>(
                                 value: value,
                                 child: Text(value, style: const TextStyle(color: Colors.white)),
@@ -447,11 +456,6 @@ class _RoleManagementScreenState extends State<RoleManagementScreen> {
                             roleDescriptions[_selectedAddRole] ?? '',
                             style: const TextStyle(color: Colors.grey, fontSize: 12),
                           ),
-                        ),
-                      if (_selectedAddRole == 'admin' && _hasAdminAssigned(exceptId: _selectedEmployeeId))
-                        const Padding(
-                          padding: EdgeInsets.only(top: 8),
-                          child: Text('Admin role is locked. Only one admin allowed.', style: TextStyle(color: Colors.redAccent, fontSize: 12)),
                         ),
                       const SizedBox(height: 12),
                       const Text('PIN', style: TextStyle(color: Colors.grey, fontSize: 12)),
@@ -785,9 +789,53 @@ class _RoleCard extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: Padding(
                 padding: EdgeInsets.only(bottom: 8),
-                child: Text('Admin is locked. Permissions and PIN cannot be changed here.', style: TextStyle(color: Colors.grey)),
+                child: Text('Admin has full access. Permissions are fixed; PIN can be changed.', style: TextStyle(color: Colors.grey)),
               ),
             ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Role PIN', style: TextStyle(color: Colors.grey)),
+              TextButton(
+                onPressed: () async {
+                  final controller = TextEditingController(text: role['pin']?.toString() ?? '');
+                  final result = await showDialog<String>(
+                    context: context,
+                    builder: (ctx) {
+                      return AlertDialog(
+                        backgroundColor: const Color(0xFF1F2933),
+                        title: const Text('Change Role PIN', style: TextStyle(color: Colors.white)),
+                        content: TextField(
+                          controller: controller,
+                          keyboardType: TextInputType.number,
+                          obscureText: true,
+                          style: const TextStyle(color: Colors.white),
+                          decoration: const InputDecoration(
+                            hintText: 'Enter new PIN',
+                            hintStyle: TextStyle(color: Colors.grey),
+                          ),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(ctx).pop(),
+                            child: const Text('Cancel'),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.of(ctx).pop(controller.text.trim()),
+                            child: const Text('Save'),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                  if (result != null && result.trim().isNotEmpty) {
+                    onPinChanged(result.trim());
+                  }
+                },
+                child: const Text('Change PIN'),
+              ),
+            ],
+          ),
           const SizedBox(height: 8),
           const Text('View Permissions', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
