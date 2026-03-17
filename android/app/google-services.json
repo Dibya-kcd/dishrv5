@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "714316660548",
+    "firebase_url": "https://dishrv1-6dc29-default-rtdb.firebaseio.com",
+    "project_id": "dishrv1-6dc29",
+    "storage_bucket": "dishrv1-6dc29.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:714316660548:android:f9b4c92a102a3dc2cc6111",
+        "android_client_info": {
+          "package_name": "com.company.thedish"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "714316660548-pvv0kvfvo1dvnv6k279soh8gjr8nbgta.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA2fcijphUsmvKg9vtXPuJuqWC7WFKHIHE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "714316660548-pvv0kvfvo1dvnv6k279soh8gjr8nbgta.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
