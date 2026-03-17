@@ -6,23 +6,18 @@ import '../widgets/mobile_nav.dart';
 import '../widgets/kot_preview_modal.dart';
 import '../widgets/bill_preview_modal.dart';
 import '../widgets/payment_modal.dart';
+import '../widgets/app_ui_kit.dart';
 
 import 'dashboard_screen.dart';
-import 'tables_screen.dart';
 import 'table_order_screen.dart';
 import 'kitchen_screen.dart';
 import 'takeout_screen.dart';
 import 'menu_screen.dart';
 import 'reports_screen.dart';
 import 'inventory_screen.dart';
-import 'printer_settings_screen.dart';
 import 'expense_screen.dart';
-import 'employee_screen.dart';
 import 'settings_screen.dart';
-import 'table_management_screen.dart';
-import 'role_config_screen.dart';
-import 'admin_panel_screen.dart';
-import 'firebase_debug_screen.dart';
+import 'tables_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final String? initialView;
@@ -38,122 +33,69 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (widget.initialView != null) {
-        final provider = context.read<RestaurantProvider>();
-        provider.setCurrentView(widget.initialView!, updateUrl: false);
+        context.read<RestaurantProvider>().setCurrentView(widget.initialView!, updateUrl: false);
       }
     });
   }
 
+  Widget _resolveScreen(String view) {
+    switch (view) {
+      // ── Primary screens ─────────────────────────────────────────
+      case 'tables':        return const TablesScreen();
+      case 'tableOrder':    return const TableOrderScreen();
+      case 'kitchen':       return const KitchenScreen();
+      case 'takeout':       return const TakeoutScreen();
+      case 'menu':          return const MenuScreen();
+      case 'reports':       return const ReportsScreen();
+      case 'inventory':     return const InventoryScreen();
+      case 'expenses':      return const ExpenseScreen();
+
+      // ── Settings hub (with deep-link to a section) ───────────────
+      case 'settings':
+      case 'admin':
+        return const SettingsScreen();
+
+      // Deep-link into a specific Settings tab
+      case 'tables_manage':    return const SettingsScreen(initialSection: 'tables_manage');
+      case 'employees':        return const SettingsScreen(initialSection: 'employees');
+      case 'tax':              return const SettingsScreen(initialSection: 'tax');
+      case 'printer_settings': return const SettingsScreen(initialSection: 'printer');
+      case 'roles':            return const SettingsScreen(initialSection: 'roles');
+      case 'simulation':       return const SettingsScreen(initialSection: 'simulation');
+      case 'debug':            return const SettingsScreen(initialSection: 'debug');
+
+      case 'dashboard':
+      default:              return const DashboardScreen();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final provider = context.watch<RestaurantProvider>();
+
     return LayoutBuilder(builder: (context, constraints) {
       final width = constraints.maxWidth;
-      final provider = context.watch<RestaurantProvider>();
-      
-      Widget currentScreen;
-      switch (provider.currentView) {
-        case 'dashboard':
-          currentScreen = const DashboardScreen();
-          break;
-        case 'tables':
-          currentScreen = const TablesScreen();
-          break;
-        case 'tableOrder':
-          currentScreen = const TableOrderScreen();
-          break;
-        case 'kitchen':
-          currentScreen = const KitchenScreen();
-          break;
-        case 'takeout':
-          currentScreen = const TakeoutScreen();
-          break;
-        case 'menu':
-          currentScreen = const MenuScreen();
-          break;
-        case 'reports':
-          currentScreen = const ReportsScreen();
-          break;
-        case 'inventory':
-          currentScreen = const InventoryScreen();
-          break;
-        case 'tables_manage':
-          currentScreen = const TableManagementScreen();
-          break;
-        case 'printer_settings':
-          currentScreen = const PrinterSettingsScreen();
-          break;
-        case 'roles':
-          currentScreen = const RoleManagementScreen();
-          break;
-        case 'simulation':
-          currentScreen = const AdminPanelScreen(embed: true);
-          break;
-        case 'debug':
-          currentScreen = const FirebaseDebugScreen();
-          break;
-        case 'expenses':
-          currentScreen = const ExpenseScreen();
-          break;
-        case 'employees':
-          currentScreen = const EmployeeScreen();
-          break;
-        case 'settings':
-          currentScreen = const SettingsScreen();
-          break;
-        case 'admin':
-          currentScreen = const SettingsScreen();
-          break;
-        default:
-          currentScreen = const DashboardScreen();
-      }
+      final isCompact = width < 1024;
 
       return Scaffold(
-        backgroundColor: const Color(0xFF0B0B0E),
+        backgroundColor: AppColors.bg0,
         body: Stack(children: [
+          // ── Main content ──────────────────────────────────────
           Column(children: [
             const TopNav(),
-            Expanded(child: currentScreen),
+            Expanded(child: _resolveScreen(provider.currentView)),
           ]),
+
+          // ── Modals ────────────────────────────────────────────
           const KOTPreviewModal(),
           const BillPreviewModal(),
           const PaymentModal(),
-          Align(
-            alignment: width < 600 ? Alignment.bottomCenter : Alignment.topRight,
-            child: Padding(
-              padding: EdgeInsets.only(
-                right: width < 600 ? 0 : 16,
-                left: width < 600 ? 16 : 0,
-                bottom: width < 600 ? 16 : 0,
-                top: width < 600 ? 0 : 16,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: width < 600 ? CrossAxisAlignment.center : CrossAxisAlignment.end,
-                children: provider.toasts.map((t) {
-                  return Container(
-                    margin: const EdgeInsets.only(top: 8),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF18181B),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: const Color(0xFF27272A)),
-                      boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 6)],
-                    ),
-                    constraints: BoxConstraints(maxWidth: width < 600 ? (width - 64) : 320),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(t['icon'] as String? ?? '✅', style: const TextStyle(fontSize: 18)),
-                        const SizedBox(width: 8),
-                        Expanded(child: Text(t['message'] as String? ?? '', style: const TextStyle(color: Colors.white), maxLines: 2, overflow: TextOverflow.ellipsis)),
-                      ],
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-          ),
-          if (width < 1024)
+
+          // ── Toast notifications ───────────────────────────────
+          _ToastStack(width: width, toasts: provider.toasts),
+
+          // ── Mobile / tablet bottom nav ────────────────────────
+          if (isCompact)
             Align(
               alignment: Alignment.bottomCenter,
               child: MobileNav(width: width),
@@ -161,5 +103,69 @@ class _HomeScreenState extends State<HomeScreen> {
         ]),
       );
     });
+  }
+}
+
+class _ToastStack extends StatelessWidget {
+  final double width;
+  final List<Map<String, dynamic>> toasts;
+
+  const _ToastStack({required this.width, required this.toasts});
+
+  @override
+  Widget build(BuildContext context) {
+    if (toasts.isEmpty) return const SizedBox.shrink();
+    final isCompact = width < 1024;
+
+    return Align(
+      alignment: isCompact ? Alignment.bottomCenter : Alignment.topRight,
+      child: Padding(
+        padding: EdgeInsets.only(
+          right: isCompact ? 0 : 16,
+          left: isCompact ? 16 : 0,
+          bottom: isCompact ? 80 : 0, // above mobile nav
+          top: isCompact ? 0 : 16,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: isCompact ? CrossAxisAlignment.center : CrossAxisAlignment.end,
+          children: toasts.map((t) => _ToastChip(t: t, maxWidth: isCompact ? width - 64 : 320)).toList(),
+        ),
+      ),
+    );
+  }
+}
+
+class _ToastChip extends StatelessWidget {
+  final Map<String, dynamic> t;
+  final double maxWidth;
+
+  const _ToastChip({required this.t, required this.maxWidth});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(top: 6),
+      constraints: BoxConstraints(maxWidth: maxWidth),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.bg2,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.border),
+        boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 8, offset: Offset(0, 2))],
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Text(t['icon'] as String? ?? '✅', style: const TextStyle(fontSize: 17)),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Text(
+            t['message'] as String? ?? '',
+            style: AppTextStyles.body,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ]),
+    );
   }
 }

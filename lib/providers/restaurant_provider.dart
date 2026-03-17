@@ -10,6 +10,7 @@ import '../models/cart_item.dart';
 import '../models/menu_item.dart';
 import '../models/order.dart';
 import '../models/table_info.dart';
+import '../models/tax_settings.dart';
 import '../data/repository.dart';
 import '../utils/auth_helper.dart';
 import '../data/sync_service.dart';
@@ -44,6 +45,17 @@ class RestaurantProvider extends ChangeNotifier {
   int _takeoutTokenNumber = 1;
   String _takeoutTokenDate = '';
   String _selectedCategory = 'All'; // Added state
+
+  // ---------- Tax ----------
+  TaxSettings _taxSettings = const TaxSettings();
+  TaxSettings get taxSettings => _taxSettings;
+
+  /// Persist updated tax settings and notify UI.
+  Future<void> saveTaxSettings(TaxSettings ts) async {
+    _taxSettings = ts;
+    await Repository.instance.taxSettings.save(ts);
+    notifyListeners();
+  }
   dynamic _installPromptEvent;
   final bool _installAvailable = false;
   bool mobileMenuOpen = false;
@@ -244,7 +256,8 @@ class RestaurantProvider extends ChangeNotifier {
     _sentTakeoutQtyByKey = {};
     _kotBatchesByOrder = {};
     _cancelledKeysByOrder = {};
-    await Repository.instance.clearAllLocalData();
+    _taxSettings = const TaxSettings(); // reset to default in-memory
+    await Repository.instance.clearAllLocalData(); // re-seeds defaults in SQLite
     await SyncService.instance.deleteAllData();
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('categories');
@@ -256,6 +269,12 @@ class RestaurantProvider extends ChangeNotifier {
     await prefs.remove('takeoutTokenNumber');
     await prefs.remove('takeoutTokenDate');
     _tables = [];
+    // Re-seed default 8 tables into freshly-cleared SQLite
+    for (var n = 1; n <= 8; n++) {
+      await Repository.instance.tables.upsertTable(n, n, 'available', 4, notify: false);
+    }
+    _tables = await Repository.instance.tables.listTables();
+    _categories = [];
     setCurrentView('dashboard');
     notifyListeners();
     if (context.mounted) {
@@ -441,6 +460,9 @@ class RestaurantProvider extends ChangeNotifier {
     try {
       final s = Repository.instance.settings;
       final prefs = await SharedPreferences.getInstance();
+
+      // --- TAX SETTINGS ---
+      _taxSettings = await Repository.instance.taxSettings.load();
 
       // --- TAKEOUT TOKEN ---
       final tokenNumStr = await s.get('takeoutTokenNumber');
@@ -1464,7 +1486,7 @@ class RestaurantProvider extends ChangeNotifier {
   void _recalculateOrderTotal(String orderId) {
     try {
       final order = _orders.firstWhere((o) => o.id == orderId);
-      final newTotal = cartTotal(order.items) * 1.05;
+      final newTotal = _taxSettings.totalFor(cartTotal(order.items));
       _orders = _orders.map((o) => o.id == orderId ? Order(id: o.id, table: o.table, status: o.status, items: o.items, total: newTotal, time: o.time, paymentMethod: o.paymentMethod, createdAt: o.createdAt, readyAt: o.readyAt) : o).toList();
       Repository.instance.orders.updateOrderItems(orderId, order.items, newTotal);
     } catch (_) {}
@@ -1630,7 +1652,7 @@ class RestaurantProvider extends ChangeNotifier {
       showKOTPreview = true;
       notifyListeners();
 
-      final total = cartTotal(sendItems) * 1.05;
+      final total = _taxSettings.totalFor(cartTotal(sendItems));
       
       // Robust Order ID resolution
       String id;
@@ -1676,7 +1698,7 @@ class RestaurantProvider extends ChangeNotifier {
         if (idx >= 0) {
           final existing = _orders[idx];
           final mergedItems = _mergeItemsCumulate(existing.items, sendItems);
-          final mergedTotal = cartTotal(mergedItems) * 1.05;
+          final mergedTotal = _taxSettings.totalFor(cartTotal(mergedItems));
           final updated = Order(
             id: existing.id,
             table: existing.table,
@@ -1723,7 +1745,7 @@ class RestaurantProvider extends ChangeNotifier {
         if (idx >= 0) {
           final existing = _orders[idx];
           final mergedItems = _mergeItemsCumulate(existing.items, sendItems);
-          final mergedTotal = cartTotal(mergedItems) * 1.05;
+          final mergedTotal = _taxSettings.totalFor(cartTotal(mergedItems));
           final updated = Order(
             id: existing.id,
             table: existing.table,
@@ -1855,7 +1877,7 @@ class RestaurantProvider extends ChangeNotifier {
   void openPaymentModal(List<CartItem> items, String tableInfo, bool isTableOrder) {
     final consolidated = consolidatedItemsForTable(tableInfo).isNotEmpty ? consolidatedItemsForTable(tableInfo) : items;
     final subtotal = consolidated.fold<double>(0, (s, i) => s + (i.isCancelled ? 0 : i.price * i.quantity));
-    final gst = subtotal * 0.05;
+    final gst = _taxSettings.taxFor(subtotal);
     
     if (isTableOrder && _selectedTable != null) {
       updateTableStatus(_selectedTable!.id, 'billing', _selectedTable!.orderId);
@@ -1884,7 +1906,11 @@ class RestaurantProvider extends ChangeNotifier {
       'items': consolidated,
       'subtotal': subtotal,
       'gst': gst,
-      'total': subtotal + gst,
+      'total': _taxSettings.totalFor(subtotal),
+      'taxLabel': _taxSettings.label,
+      'taxEnabled': _taxSettings.enabled,
+      'taxRate': _taxSettings.rate,
+      'taxInclusive': _taxSettings.inclusive,
       'isTableOrder': isTableOrder,
     };
     paymentMode = 'Cash';
@@ -1949,12 +1975,16 @@ class RestaurantProvider extends ChangeNotifier {
       }
     } catch (_) {}
     final recalculatedSubtotal = cartTotal(finalItems);
-    final recalculatedGst = recalculatedSubtotal * 0.05;
-    final recalculatedTotal = recalculatedSubtotal + recalculatedGst;
+    final recalculatedGst = _taxSettings.taxFor(recalculatedSubtotal);
+    final recalculatedTotal = _taxSettings.totalFor(recalculatedSubtotal);
     currentBill!['items'] = finalItems;
     currentBill!['subtotal'] = recalculatedSubtotal;
     currentBill!['gst'] = recalculatedGst;
     currentBill!['total'] = recalculatedTotal;
+    currentBill!['taxLabel'] = _taxSettings.label;
+    currentBill!['taxEnabled'] = _taxSettings.enabled;
+    currentBill!['taxRate'] = _taxSettings.rate;
+    currentBill!['taxInclusive'] = _taxSettings.inclusive;
     final items = finalItems;
     
     final doc = HtmlTicketGenerator.generateBill(
@@ -2009,7 +2039,7 @@ class RestaurantProvider extends ChangeNotifier {
       _orders = _orders.map((o) {
         if (o.table == tableLabel) {
           updated = true;
-          final newTotal = cartTotal(o.items) * 1.05;
+          final newTotal = _taxSettings.totalFor(cartTotal(o.items));
           final nowMs = DateTime.now().millisecondsSinceEpoch;
           return Order(id: o.id, table: o.table, status: 'Settled', items: o.items, total: newTotal, time: o.time, paymentMethod: method, createdAt: o.createdAt, readyAt: o.readyAt, settledAt: nowMs);
         }
@@ -2021,7 +2051,7 @@ class RestaurantProvider extends ChangeNotifier {
         final dt = DateTime.now();
         final timeStr = '${dt.hour.toString().padLeft(2,'0')}:${dt.minute.toString().padLeft(2,'0')}';
         final itemsList = currentBill!['items'] as List<CartItem>;
-        final totalVal = cartTotal(itemsList) * 1.05;
+        final totalVal = _taxSettings.totalFor(cartTotal(itemsList));
         _orders = [
           ..._orders,
           Order(id: id, table: tableLabel, status: 'Settled', items: itemsList, total: totalVal, time: timeStr, paymentMethod: method, createdAt: createdAt, settledAt: createdAt),
@@ -2043,7 +2073,6 @@ class RestaurantProvider extends ChangeNotifier {
       }
       _takeoutCart = [];
       _sentTakeoutQtyByKey = {};
-      _saveState();
       final tokenLabel = tableLabel.replaceFirst('Takeout #', '').trim();
       showToast('Payment received. $tokenLabel closed.', icon: '✅');
       final today = _todayYYMMDD();
@@ -2053,6 +2082,7 @@ class RestaurantProvider extends ChangeNotifier {
       } else {
         _takeoutTokenNumber = _takeoutTokenNumber + 1;
       }
+      _saveState(); // save AFTER incrementing so new token number is persisted
     }
     notifyListeners();
   }

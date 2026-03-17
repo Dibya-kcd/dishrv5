@@ -24,6 +24,14 @@ class SyncService {
   final ValueNotifier<bool> connected = ValueNotifier<bool>(false);
   // Use root path for shared data access (no device binding)
   String _clientPath(String node) => node;
+
+  /// Strips the _client session field before every Firebase write.
+  /// Rules reject any payload that contains _client.
+  Map<String, dynamic> _clean(Map<String, dynamic> d) {
+    final c = Map<String, dynamic>.from(d);
+    c.remove('_client');
+    return c;
+  }
   String _menuKey(int id) => 'MENU${id.toString().padLeft(3, '0')}';
 
   void init() {
@@ -45,6 +53,7 @@ class SyncService {
     _syncRecipes();
     _syncInventoryTxns();
     _syncRoleConfigs();
+    _syncSettings();
 
     
     // Attempt initial upload after a short delay to ensure DB is ready
@@ -62,7 +71,7 @@ class SyncService {
       'timestamp': ServerValue.timestamp,
       'user_id': user?.uid,
     };
-    await _dbRef.child('audit_log').push().set(payload);
+    await _dbRef.child('audit_log').push().set(_clean(payload));
   }
 
   // --- Menu Items ---
@@ -104,11 +113,9 @@ class SyncService {
   }
 
   Future<void> updateMenuItem(MenuItem item) async {
-    final meta = _repo.clientMeta;
     final payload = item.toJson();
-    if (meta != null) payload['_client'] = meta;
     final key = _menuKey(item.id);
-    await _dbRef.child(_clientPath('menu_items/$key')).set(payload);
+    await _dbRef.child(_clientPath('menu_items/$key')).set(_clean(payload));
     // Also clean up old numeric key, if exists
     await _dbRef.child(_clientPath('menu_items/${item.id}')).remove();
   }
@@ -172,10 +179,8 @@ class SyncService {
   }
   
   Future<void> updateOrder(Order order) async {
-    final meta = _repo.clientMeta;
     final payload = order.toJson();
-    if (meta != null) payload['_client'] = meta;
-    await _dbRef.child(_clientPath('orders/${order.id}')).set(payload);
+    await _dbRef.child(_clientPath('orders/${order.id}')).set(_clean(payload));
   }
   Future<void> deleteAllOrders() async {
     await _dbRef.child(_clientPath('orders')).remove();
@@ -191,7 +196,6 @@ class SyncService {
     await _dbRef.child(_clientPath('inventory_txns')).remove();
     await _dbRef.child(_clientPath('role_configs')).remove();
   }
-
 
   // --- Tables ---
   void _syncTables() {
@@ -226,10 +230,8 @@ class SyncService {
   }
 
   Future<void> updateTable(TableInfo table) async {
-    final meta = _repo.clientMeta;
     final payload = table.toJson();
-    if (meta != null) payload['_client'] = meta;
-    await _dbRef.child(_clientPath('tables/${table.id}')).set(payload);
+    await _dbRef.child(_clientPath('tables/${table.id}')).set(_clean(payload));
   }
 
   // --- Expenses ---
@@ -256,10 +258,8 @@ class SyncService {
   }
 
   Future<void> updateExpense(Map<String, dynamic> expense) async {
-    final meta = _repo.clientMeta;
     final payload = Map<String, dynamic>.from(expense);
-    if (meta != null) payload['_client'] = meta;
-    await _dbRef.child(_clientPath('expenses/${expense['id']}')).set(payload);
+    await _dbRef.child(_clientPath('expenses/${expense['id']}')).set(_clean(payload));
   }
 
   Future<void> deleteExpense(String id) async {
@@ -347,16 +347,14 @@ class SyncService {
   Future<void> updateEmployee(Map<String, dynamic> employee) async {
     final id = employee['id']?.toString() ?? '';
     if (id.isEmpty) return;
-    final meta = _repo.clientMeta;
     final payload = Map<String, dynamic>.from(employee);
     // Normalize employee role to lowercase
     if (payload['role'] != null) {
       payload['role'] = payload['role'].toString().toLowerCase();
     }
-    if (meta != null) payload['_client'] = meta;
     // Keep the deleted flag if provided, otherwise default to false
     payload['deleted'] = employee['deleted'] == true;
-    await _dbRef.child(_clientPath('employees/$id')).set(payload);
+    await _dbRef.child(_clientPath('employees/$id')).set(_clean(payload));
   }
 
   Future<void> deleteEmployee(String id) async {
@@ -367,16 +365,13 @@ class SyncService {
     }
 
     // Step 1: Use Online (Firebase) as Master - Soft Delete first
-    final meta = _repo.clientMeta;
     await _dbRef.child(_clientPath('employees/$id')).update({
       'deleted': true,
       'updated_at': DateTime.now().millisecondsSinceEpoch,
-      if (meta != null) '_client': meta,
     });
   }
 
   Future<void> updateIngredient(Map<String, dynamic> ingredient) async {
-    final meta = _repo.clientMeta;
     final payload = Map<String, dynamic>.from(ingredient);
     final name = (payload['name']?.toString() ?? '').trim();
     final mapping = <String, String>{
@@ -406,8 +401,7 @@ class SyncService {
     if (canon != null) {
       payload['id'] = canon;
     }
-    if (meta != null) payload['_client'] = meta;
-    await _dbRef.child(_clientPath('ingredients/${payload['id']}')).set(payload);
+    await _dbRef.child(_clientPath('ingredients/${payload['id']}')).set(_clean(payload));
   }
   Future<void> deleteIngredient(String id) async {
     await _dbRef.child(_clientPath('ingredients/$id')).remove();
@@ -489,14 +483,12 @@ class SyncService {
   }
 
   Future<void> updateRecipe(int menuItemId, List<Map<String, dynamic>> items) async {
-    final meta = _repo.clientMeta;
     final payload = {
       'items': items.map((e) => Map<String, dynamic>.from(e)).toList(),
-      if (meta != null) '_client': meta,
     };
     // Write nested under menu item canonical key
     final key = _menuKey(menuItemId);
-    await _dbRef.child(_clientPath('menu_items/$key/recipe')).set(payload);
+    await _dbRef.child(_clientPath('menu_items/$key/recipe')).set(_clean(payload));
     // Remove old flat recipe path to enforce the new structure
     await _dbRef.child(_clientPath('recipes/$menuItemId')).remove();
   }
@@ -526,20 +518,16 @@ class SyncService {
   
   Future<void> updateInventoryTxn(Map<String, dynamic> txn) async {
     try {
-      final meta = _repo.clientMeta;
-      final payload = Map<String, dynamic>.from(txn);
-      if (meta != null) payload['_client'] = meta;
-      await _dbRef.child(_clientPath('inventory_txns/${payload['id']}')).set(payload);
+        final payload = Map<String, dynamic>.from(txn);
+        await _dbRef.child(_clientPath('inventory_txns/${payload['id']}')).set(_clean(payload));
     } catch (e) {
       // debugPrint('Error updating inventory txn: $e');
     }
   }
 
   Future<void> addInventoryTxn(Map<String, dynamic> txn) async {
-    final meta = _repo.clientMeta;
     final payload = Map<String, dynamic>.from(txn);
-    if (meta != null) payload['_client'] = meta;
-    await _dbRef.child(_clientPath('inventory_txns/${payload['id']}')).set(payload);
+    await _dbRef.child(_clientPath('inventory_txns/${payload['id']}')).set(_clean(payload));
   }
   
   // --- Role Configs ---
@@ -571,13 +559,11 @@ class SyncService {
   Future<void> updateRoleConfig(Map<String, dynamic> config) async {
     final id = config['id']?.toString() ?? '';
     if (id.isEmpty) return;
-    final meta = _repo.clientMeta;
     final payload = Map<String, dynamic>.from(config);
     // Normalize role name to lowercase
     if (payload['name'] != null) {
       payload['name'] = payload['name'].toString().toLowerCase();
     }
-    if (meta != null) payload['_client'] = meta;
     final uid = FirebaseAuth.instance.currentUser?.uid;
     _logRoleSync('[ROLE_SYNC] updateRoleConfig id=$id role=${payload['name']} uid=${uid ?? 'null'} path=${_clientPath('role_configs/$id')}');
     if (uid != null) {
@@ -589,7 +575,7 @@ class SyncService {
       }
     }
     try {
-      await _dbRef.child(_clientPath('role_configs/$id')).set(payload);
+      await _dbRef.child(_clientPath('role_configs/$id')).set(_clean(payload));
       _logRoleSync('[ROLE_SYNC] updateRoleConfig success id=$id');
     } catch (e) {
       _logRoleSync('[ROLE_SYNC] updateRoleConfig error id=$id error=$e');
@@ -605,12 +591,7 @@ class SyncService {
 
   Future<void> initialUpload() async {
     try {
-      final meta = _repo.clientMeta;
-      if (meta == null) {
-        // Skip initial upload until a PIN session is set
-        return;
-      }
-
+  
       // Check current user role from Firebase to ensure we have permission to seed
       final userRole = await getCurrentUserRole();
       if (userRole != 'admin' && userRole != 'manager') {
@@ -625,14 +606,12 @@ class SyncService {
         final menuItems = await _repo.menu.listMenu();
         for (var m in menuItems) {
           final payload = m.toJson();
-          payload['_client'] = meta;
           final key = _menuKey(m.id);
-          await _dbRef.child(_clientPath('menu_items/$key')).set(payload);
+          await _dbRef.child(_clientPath('menu_items/$key')).set(_clean(payload));
           final recipes = await _repo.ingredients.getRecipeForMenuItem(m.id);
           if (recipes.isNotEmpty) {
             await _dbRef.child(_clientPath('menu_items/$key/recipe')).set({
               'items': recipes.map((e) => Map<String, dynamic>.from(e)).toList(),
-              '_client': meta,
             });
           }
         }
@@ -644,8 +623,7 @@ class SyncService {
         final tables = await _repo.tables.listTables();
         for (var t in tables) {
           final payload = t.toJson();
-          payload['_client'] = meta;
-          await _dbRef.child(_clientPath('tables/${t.id}')).set(payload);
+          await _dbRef.child(_clientPath('tables/${t.id}')).set(_clean(payload));
         }
       }
       
@@ -656,8 +634,7 @@ class SyncService {
          final orders = await _repo.orders.listOrdersWithItems();
          for (var o in orders) {
            final payload = o.toJson();
-           payload['_client'] = meta;
-           await _dbRef.child(_clientPath('orders/${o.id}')).set(payload);
+           await _dbRef.child(_clientPath('orders/${o.id}')).set(_clean(payload));
          }
       }
 
@@ -667,8 +644,7 @@ class SyncService {
          final expenses = await _repo.expenses.listExpenses();
          for (var e in expenses) {
             final payload = Map<String, dynamic>.from(e);
-            payload['_client'] = meta;
-            await _dbRef.child(_clientPath('expenses/${payload['id']}')).set(payload);
+            await _dbRef.child(_clientPath('expenses/${payload['id']}')).set(_clean(payload));
          }
       }
 
@@ -678,8 +654,7 @@ class SyncService {
          final ingredients = await _repo.ingredients.listIngredients();
          for (var i in ingredients) {
             final payload = Map<String, dynamic>.from(i);
-            payload['_client'] = meta;
-            await _dbRef.child(_clientPath('ingredients/${payload['id']}')).set(payload);
+            await _dbRef.child(_clientPath('ingredients/${payload['id']}')).set(_clean(payload));
          }
       }
 
@@ -691,8 +666,7 @@ class SyncService {
          final txns = await _repo.ingredients.listTransactions(limit: 1000); // Upload last 1000
          for (var t in txns) {
             final payload = Map<String, dynamic>.from(t);
-            payload['_client'] = meta;
-            await _dbRef.child(_clientPath('inventory_txns/${payload['id']}')).set(payload);
+            await _dbRef.child(_clientPath('inventory_txns/${payload['id']}')).set(_clean(payload));
          }
       }
 
@@ -701,8 +675,7 @@ class SyncService {
         final roles = await _repo.roles.listRoles();
         for (var r in roles) {
           final payload = Map<String, dynamic>.from(r);
-          payload['_client'] = meta;
-          await _dbRef.child(_clientPath('role_configs/${r['id']}')).set(payload);
+          await _dbRef.child(_clientPath('role_configs/${r['id']}')).set(_clean(payload));
         }
       }
 
@@ -711,10 +684,23 @@ class SyncService {
         final emps = await _repo.employees.listEmployees();
         for (var e in emps) {
           final payload = Map<String, dynamic>.from(e);
-          payload['_client'] = meta;
           final id = payload['id']?.toString() ?? '';
           if (id.isNotEmpty) {
-            await _dbRef.child(_clientPath('employees/$id')).set(payload);
+            await _dbRef.child(_clientPath('employees/$id')).set(_clean(payload));
+          }
+        }
+      }
+
+      // Upload app-wide settings (tax_config, categories, etc.)
+      final settingsSnapshot = await _dbRef.child(_clientPath('settings')).get();
+      if (!settingsSnapshot.exists) {
+        final db = await _repo.database;
+        final rows = await db.query('settings');
+        for (final row in rows) {
+          final key = row['key']?.toString();
+          final value = row['value']?.toString();
+          if (key != null && value != null) {
+            await _dbRef.child(_clientPath('settings/$key')).set(value);
           }
         }
       }
@@ -731,7 +717,6 @@ class SyncService {
     final result = <String, int>{'migrated': 0, 'removed_legacy': 0};
     final menuSnap = await _dbRef.child(_clientPath('menu_items')).get();
     final recipeSnap = await _dbRef.child(_clientPath('recipes')).get();
-    final meta = _repo.clientMeta;
     final recipesMap = <String, dynamic>{};
     if (recipeSnap.exists && recipeSnap.value is Map) {
       recipesMap.addAll(Map<String, dynamic>.from(recipeSnap.value as Map));
@@ -749,12 +734,10 @@ class SyncService {
             if (flat is Map && flat['items'] is List) {
               await _dbRef.child(_clientPath('menu_items/$key/recipe')).set({
                 'items': List<Map<String, dynamic>>.from((flat['items'] as List).map((e) => Map<String, dynamic>.from(e as Map))),
-                if (meta != null) '_client': meta,
               });
             } else if (flat is List) {
               await _dbRef.child(_clientPath('menu_items/$key/recipe')).set({
                 'items': List<Map<String, dynamic>>.from(flat.map((e) => Map<String, dynamic>.from(e as Map))),
-                if (meta != null) '_client': meta,
               });
             }
             continue;
@@ -762,19 +745,16 @@ class SyncService {
           final newKey = _menuKey(id);
           await _dbRef.child(_clientPath('menu_items/$newKey')).set({
             ...value,
-            if (meta != null) '_client': meta,
           });
           // Attach recipes
           final node = recipesMap[key];
           if (node is Map && node['items'] is List) {
             await _dbRef.child(_clientPath('menu_items/$newKey/recipe')).set({
               'items': List<Map<String, dynamic>>.from((node['items'] as List).map((e) => Map<String, dynamic>.from(e as Map))),
-              if (meta != null) '_client': meta,
             });
           } else if (node is List) {
             await _dbRef.child(_clientPath('menu_items/$newKey/recipe')).set({
               'items': List<Map<String, dynamic>>.from(node.map((e) => Map<String, dynamic>.from(e as Map))),
-              if (meta != null) '_client': meta,
             });
           }
           // Remove old numeric
@@ -791,18 +771,15 @@ class SyncService {
           final newKey = _menuKey(id);
           await _dbRef.child(_clientPath('menu_items/$newKey')).set({
             ...m,
-            if (meta != null) '_client': meta,
           });
           final node = recipesMap[id.toString()];
           if (node is Map && node['items'] is List) {
             await _dbRef.child(_clientPath('menu_items/$newKey/recipe')).set({
               'items': List<Map<String, dynamic>>.from((node['items'] as List).map((e) => Map<String, dynamic>.from(e as Map))),
-              if (meta != null) '_client': meta,
             });
           } else if (node is List) {
             await _dbRef.child(_clientPath('menu_items/$newKey/recipe')).set({
               'items': List<Map<String, dynamic>>.from(node.map((e) => Map<String, dynamic>.from(e as Map))),
-              if (meta != null) '_client': meta,
             });
           }
           migrated++;
@@ -927,6 +904,33 @@ class SyncService {
         }
       }
     }
+  }
+
+  /// Persists a single app-wide setting (e.g. tax_config) to Firebase RTDB
+  /// under the `settings/{key}` path.
+  Future<void> updateSetting(String key, String value) async {
+    if (!enabled) return;
+    await _dbRef.child(_clientPath('settings/$key')).set(value);
+  }
+
+  /// Listen for remote settings changes (tax_config, categories, etc.)
+  /// and write them straight through to the local SQLite settings table.
+  void _syncSettings() {
+    _dbRef.child(_clientPath('settings')).onValue.listen((event) async {
+      try {
+        final data = event.snapshot.value;
+        if (data == null) return;
+        if (data is Map) {
+          for (final entry in data.entries) {
+            final key = entry.key?.toString();
+            final value = entry.value?.toString();
+            if (key == null || value == null) continue;
+            // Write to local SQLite — notify so providers pick it up
+            await _repo.settings.set(key, value, notify: true);
+          }
+        }
+      } catch (_) {}
+    });
   }
 
   Future<String?> getCurrentUserRole() async {

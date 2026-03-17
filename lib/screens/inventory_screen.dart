@@ -1,992 +1,1456 @@
-// ignore_for_file: deprecated_member_use
 import 'package:flutter/material.dart';
-import '../utils/web_adapter.dart' as web;
 import 'package:provider/provider.dart';
 import '../providers/restaurant_provider.dart';
 import '../data/repository.dart';
 import '../models/cart_item.dart';
-import '../widgets/page_scaffold.dart';
+import '../widgets/app_ui_kit.dart';
+import '../utils/web_adapter.dart' as web;
+
+// ── Unit helpers ──────────────────────────────────────────────────────────────
+
+const _kUnitFamilies = {
+  'Weight': ['g', 'kg'],
+  'Volume': ['ml', 'l'],
+  'Count':  ['pc', 'dozen'],
+  'Other':  ['tbsp', 'tsp', 'cup'],
+};
+
+/// Canonical base unit per family — stock is always stored in these.
+const _kCanonicalBase = {'g': 'g', 'kg': 'g', 'ml': 'ml', 'l': 'ml',
+    'liter': 'ml', 'ltr': 'ml'};
+
+/// Convert qty from [from] to [to]. Returns null if families differ.
+double? _convert(double qty, String from, String to) {
+  final f = from.toLowerCase().trim();
+  final t = to.toLowerCase().trim();
+  if (f == t) return qty;
+  if (f == 'kg'  && t == 'g')  return qty * 1000;
+  if (f == 'g'   && t == 'kg') return qty / 1000;
+  if ((f == 'l' || f == 'liter' || f == 'ltr') && t == 'ml') return qty * 1000;
+  if (f == 'ml' && (t == 'l' || t == 'liter' || t == 'ltr')) return qty / 1000;
+  return null;
+}
+
+/// Human-friendly display. e.g. 1500 g → "1.5 kg", 300 ml → "300 ml"
+String _smartDisplay(double stockInBase, String baseUnit) {
+  final b = baseUnit.toLowerCase();
+  if (b == 'g'  && stockInBase >= 1000) return '${_f(stockInBase / 1000)} kg';
+  if (b == 'ml' && stockInBase >= 1000) return '${_f(stockInBase / 1000)} L';
+  return '${_f(stockInBase)} $baseUnit';
+}
+
+String _f(double v) =>
+    v == v.truncateToDouble() ? v.toInt().toString() : v.toStringAsFixed(2);
+
+/// Compatible entry units for a given base unit.
+List<String> _compatibleUnits(String baseUnit) {
+  final b = baseUnit.toLowerCase();
+  if (b == 'g' || b == 'kg') return ['g', 'kg'];
+  if (b == 'ml' || b == 'l' || b == 'liter' || b == 'ltr') return ['ml', 'l'];
+  return [baseUnit];
+}
+
+// ── Screen ────────────────────────────────────────────────────────────────────
 
 class InventoryScreen extends StatefulWidget {
   const InventoryScreen({super.key});
-
   @override
   State<InventoryScreen> createState() => _InventoryScreenState();
 }
 
-class _InventoryScreenState extends State<InventoryScreen> {
+class _InventoryScreenState extends State<InventoryScreen>
+    with SingleTickerProviderStateMixin {
   List<Map<String, Object>> _ingredients = [];
-  String _categoryFilter = 'All';
-  String _searchText = '';
-  bool _loading = true;
-  final _searchCtrl = TextEditingController();
-  bool _qaExpanded = true;
   Map<String, int?> _lastUpdated = {};
+  bool _loading = true;
+  String _search = '';
+  String _catFilter = 'All';
+  late final TabController _tabs;
+  final _searchCtrl = TextEditingController();
 
   @override
   void initState() {
     super.initState();
+    _tabs = TabController(length: 2, vsync: this);
     _refresh();
   }
 
+  @override
+  void dispose() {
+    _tabs.dispose();
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
   Future<void> _refresh() async {
-    if (!mounted) return;
+    if (!mounted) { return; }
     setState(() => _loading = true);
     try {
-      final all = await Repository.instance.ingredients.listIngredients();
-      final lastMap = await Repository.instance.ingredients.listLastUpdatedByIngredient();
-      if (mounted) {
-        setState(() {
-          _ingredients = all.map((e) => Map<String, Object>.from(e)).toList();
-          _lastUpdated = lastMap.map((k, v) => MapEntry(k, v));
-          _loading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _loading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error refreshing inventory: $e')),
-        );
-      }
+      final all  = await Repository.instance.ingredients.listIngredients();
+      final last = await Repository.instance.ingredients.listLastUpdatedByIngredient();
+      if (mounted) { setState(() {
+        _ingredients = all.map((e) => Map<String, Object>.from(e)).toList();
+        _lastUpdated = last.map((k, v) => MapEntry(k, v));
+        _loading = false;
+      }); }
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
     }
   }
-
-  // Reports dialog moved to Inventory Report screen
 
   List<Map<String, Object>> get _filtered {
-    final byCat = _categoryFilter == 'All' ? _ingredients : _ingredients.where((r) => (r['category'] as String? ?? '') == _categoryFilter).toList();
-    if (_searchText.trim().isEmpty) return byCat;
-    final q = _searchText.trim().toLowerCase();
-    return byCat.where((r) => ((r['name'] as String? ?? '').toLowerCase().contains(q)) || ((r['supplier'] as String? ?? '').toLowerCase().contains(q))).toList();
+    var list = _catFilter == 'All'
+        ? _ingredients
+        : _ingredients.where((r) =>
+            (r['category'] as String? ?? '') == _catFilter).toList();
+    final q = _search.trim().toLowerCase();
+    if (q.isNotEmpty) { list = list.where((r) =>
+        (r['name'] as String? ?? '').toLowerCase().contains(q) ||
+        (r['supplier'] as String? ?? '').toLowerCase().contains(q)).toList(); }
+    return list;
   }
 
-  Future<void> _showPurchaseDialog({String? presetIngId}) async {
-    String? ingId = presetIngId;
-    final qtyCtrl = TextEditingController();
-    final unitCtrl = TextEditingController(text: 'g');
-    final costCtrl = TextEditingController();
-    final supplierCtrl = TextEditingController();
-    final invoiceCtrl = TextEditingController();
-    final noteCtrl = TextEditingController();
-    if (ingId != null && !_ingredients.any((x) => (x['id']?.toString() ?? '') == ingId)) {
-      ingId = null;
-    }
-    if (ingId != null) {
-      final sel = _ingredients.firstWhere((x) => (x['id']?.toString() ?? '') == ingId, orElse: () => <String, Object>{});
-      unitCtrl.text = (sel['base_unit']?.toString() ?? unitCtrl.text);
-      final s = (sel['supplier'] as String?)?.trim();
-      if (s != null && s.isNotEmpty) supplierCtrl.text = s;
-    }
-    try {
-      await showDialog(context: context, builder: (_) {
-        return StatefulBuilder(builder: (context, setLocal) {
-          return AlertDialog(
-            backgroundColor: const Color(0xFF18181B),
-            title: const Text('Add Purchase/Refill', style: TextStyle(color: Colors.white, letterSpacing: 0.5)),
-          content: SizedBox(
-            width: 480,
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              if (ingId != null)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  decoration: BoxDecoration(color: const Color(0xFF0B0B0E), borderRadius: BorderRadius.circular(8), border: Border.all(color: const Color(0xFF27272A))),
-                  child: Builder(builder: (_) {
-                    final sel = _ingredients.firstWhere((x) => (x['id']?.toString() ?? '') == ingId, orElse: () => <String, Object>{});
-                    final name = (sel['name'] as String?) ?? '';
-                    final cat = (sel['category'] as String?) ?? 'Uncategorized';
-                    final bu = (sel['base_unit'] as String?) ?? '';
-                    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(name, style: const TextStyle(color: Colors.white)),
-                      Text('$cat • $bu', style: const TextStyle(color: Color(0xFFA1A1AA), fontSize: 11)),
-                    ]);
-                  }),
-                )
-              else
-                DropdownButtonHideUnderline(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    decoration: BoxDecoration(color: const Color(0xFF0B0B0E), borderRadius: BorderRadius.circular(8), border: Border.all(color: const Color(0xFF27272A))),
-                    child: DropdownButton<String>(
-                      value: null,
-                      hint: const Text('Ingredient', style: TextStyle(color: Colors.white)),
-                      dropdownColor: const Color(0xFF18181B),
-                      items: _ingredients.map((r) {
-                        final name = (r['name'] as String?) ?? '';
-                        final cat = (r['category'] as String?) ?? 'Uncategorized';
-                        final bu = (r['base_unit'] as String?) ?? '';
-                        return DropdownMenuItem(
-                          value: r['id'] as String,
-                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            Text(name, style: const TextStyle(color: Colors.white)),
-                            Text('$cat • $bu', style: const TextStyle(color: Color(0xFFA1A1AA), fontSize: 11)),
-                          ]),
-                        );
-                      }).toList(),
-                      onChanged: (v) {
-                        setLocal(() {
-                          ingId = v;
-                          final sel = _ingredients.firstWhere((x) => (x['id']?.toString() ?? '') == v, orElse: () => <String, Object>{});
-                          unitCtrl.text = (sel['base_unit']?.toString() ?? unitCtrl.text);
-                          final s = (sel['supplier'] as String?)?.trim();
-                          if (s != null && s.isNotEmpty) supplierCtrl.text = s;
-                        });
-                      },
-                    ),
-                  ),
-                ),
-              const SizedBox(height: 8),
-              Row(children: [
-                Expanded(child: TextField(controller: qtyCtrl, decoration: const InputDecoration(hintText: 'Quantity'), keyboardType: TextInputType.number)),
-                const SizedBox(width: 8),
-                Expanded(child: TextField(controller: unitCtrl, decoration: const InputDecoration(hintText: 'Unit'), readOnly: true)),
-              ]),
-              const SizedBox(height: 8),
-              Row(children: [
-                Expanded(child: TextField(controller: costCtrl, decoration: const InputDecoration(hintText: 'Cost/Unit'), keyboardType: TextInputType.number)),
-                const SizedBox(width: 8),
-                Expanded(child: TextField(controller: supplierCtrl, decoration: const InputDecoration(hintText: 'Supplier'))),
-              ]),
-              const SizedBox(height: 8),
-              Row(children: [
-                Expanded(child: TextField(controller: invoiceCtrl, decoration: const InputDecoration(hintText: 'Invoice'))),
-                const SizedBox(width: 8),
-                Expanded(child: TextField(controller: noteCtrl, decoration: const InputDecoration(hintText: 'Note'))),
-              ]),
-            ]),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-            ElevatedButton(onPressed: () async {
-              if (ingId == null) return;
-              final nav = Navigator.of(context);
-              final rp = context.read<RestaurantProvider>();
-              final q = double.tryParse(qtyCtrl.text.trim()) ?? 0.0;
-              final u = unitCtrl.text.trim().isEmpty ? 'g' : unitCtrl.text.trim();
-              final c = double.tryParse(costCtrl.text.trim());
-              await Repository.instance.ingredients.insertPurchase(ingId!, q, u, costPerUnit: c, supplier: supplierCtrl.text.trim().isEmpty ? null : supplierCtrl.text.trim(), invoice: invoiceCtrl.text.trim().isEmpty ? null : invoiceCtrl.text.trim(), note: noteCtrl.text.trim().isEmpty ? null : noteCtrl.text.trim());
-              nav.pop();
-              rp.showToast('Refilled $q $u', icon: '✅');
-              await _refresh();
-            }, child: const Text('Add')),
-          ],
-        );
-          });
-      });
-    } catch (_) {}
-  }
-
-  Future<void> _showWastageDialog() async {
-    String? ingId;
-    final qtyCtrl = TextEditingController();
-    final unitCtrl = TextEditingController(text: 'g');
-    final reasonCtrl = TextEditingController(text: 'spoilage');
-    await showDialog(context: context, builder: (_) {
-      return StatefulBuilder(builder: (context, setLocal) {
-        return AlertDialog(
-          backgroundColor: const Color(0xFF18181B),
-          title: const Text('Deduct for Wastage', style: TextStyle(color: Colors.white, letterSpacing: 0.5)),
-          content: SizedBox(
-            width: 420,
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              DropdownButtonHideUnderline(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  decoration: BoxDecoration(color: const Color(0xFF0B0B0E), borderRadius: BorderRadius.circular(8), border: Border.all(color: const Color(0xFF27272A))),
-                  child: DropdownButton<String>(
-                    value: ingId,
-                    hint: const Text('Ingredient', style: TextStyle(color: Colors.white)),
-                    dropdownColor: const Color(0xFF18181B),
-                    items: _ingredients.map((r) {
-                      final name = (r['name'] as String?) ?? '';
-                      final cat = (r['category'] as String?) ?? 'Uncategorized';
-                      final bu = (r['base_unit'] as String?) ?? '';
-                      return DropdownMenuItem(
-                        value: r['id'] as String,
-                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Text(name, style: const TextStyle(color: Colors.white)),
-                          Text('$cat • $bu', style: const TextStyle(color: Color(0xFFA1A1AA), fontSize: 11)),
-                        ]),
-                      );
-                    }).toList(),
-                    onChanged: (v) {
-                      setLocal(() {
-                        ingId = v;
-                        final sel = _ingredients.firstWhere((x) => x['id'] == v, orElse: () => <String, Object>{});
-                        unitCtrl.text = (sel['base_unit']?.toString() ?? unitCtrl.text);
-                      });
-                    },
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Row(children: [
-                Expanded(child: TextField(controller: qtyCtrl, decoration: const InputDecoration(hintText: 'Quantity'), keyboardType: TextInputType.number)),
-                const SizedBox(width: 8),
-                Expanded(child: TextField(controller: unitCtrl, decoration: const InputDecoration(hintText: 'Unit'), readOnly: true)),
-              ]),
-              const SizedBox(height: 8),
-              TextField(controller: reasonCtrl, decoration: const InputDecoration(hintText: 'Reason')),
-            ]),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-            ElevatedButton(onPressed: () async {
-              if (ingId == null) return;
-              final nav = Navigator.of(context);
-              final rp = context.read<RestaurantProvider>();
-              final q = double.tryParse(qtyCtrl.text.trim()) ?? 0.0;
-              final u = unitCtrl.text.trim().isEmpty ? 'g' : unitCtrl.text.trim();
-              final r = reasonCtrl.text.trim().isEmpty ? 'wastage' : reasonCtrl.text.trim();
-              await Repository.instance.ingredients.recordWastage(ingId!, q, u, r);
-              nav.pop();
-              rp.showToast('Wastage: $q $u • $r', icon: '🗑️');
-              await _refresh();
-            }, child: const Text('Deduct')),
-          ],
-        );
-      });
-    });
-  }
-
-  Future<void> _showBatchPrepDialog() async {
-    final items = <Map<String, dynamic>>[];
-    void addRow() => items.add({'ingredient_id': null, 'qty': 0.0, 'unit': 'g'});
-    addRow();
-    await showDialog(context: context, builder: (_) {
-      return StatefulBuilder(builder: (context, setLocal) {
-        return AlertDialog(
-          backgroundColor: const Color(0xFF18181B),
-          title: const Text('Batch Prep', style: TextStyle(color: Colors.white, letterSpacing: 0.5)),
-          content: SizedBox(
-            width: (MediaQuery.of(context).size.width - 64).clamp(280.0, 520.0),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ...items.asMap().entries.map((entry) {
-                    final idx = entry.key;
-                    final it = entry.value;
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          SizedBox(
-                            width: 220,
-                            child: DropdownButtonHideUnderline(
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF0B0B0E),
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: const Color(0xFF27272A)),
-                                ),
-                                child: DropdownButton<String>(
-                                  value: it['ingredient_id'] as String?,
-                                  hint: const Text('Ingredient', style: TextStyle(color: Colors.white)),
-                                  dropdownColor: const Color(0xFF18181B),
-                                  items: _ingredients.map((r) {
-                                    final name = (r['name'] as String?) ?? '';
-                                    final cat = (r['category'] as String?) ?? 'Uncategorized';
-                                    final bu = (r['base_unit'] as String?) ?? '';
-                                    return DropdownMenuItem(
-                                      value: r['id'] as String,
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(name, style: const TextStyle(color: Colors.white)),
-                                          Text('$cat • $bu', style: const TextStyle(color: Color(0xFFA1A1AA), fontSize: 11)),
-                                        ],
-                                      ),
-                                    );
-                                  }).toList(),
-                                  onChanged: (v) => setLocal(() {
-                                    it['ingredient_id'] = v;
-                                    final sel = _ingredients.firstWhere((x) => x['id'] == v, orElse: () => <String, Object>{});
-                                    it['unit'] = sel['base_unit']?.toString() ?? (it['unit']?.toString() ?? 'g');
-                                  }),
-                                ),
-                              ),
-                            ),
-                          ),
-                          SizedBox(
-                            width: 100,
-                            child: TextField(
-                              decoration: const InputDecoration(hintText: 'Qty'),
-                              keyboardType: TextInputType.number,
-                              onChanged: (v) => it['qty'] = double.tryParse(v) ?? 0.0,
-                            ),
-                          ),
-                          SizedBox(
-                            width: 80,
-                            child: TextField(
-                              controller: TextEditingController(text: (it['unit']?.toString() ?? 'g')),
-                              decoration: const InputDecoration(hintText: 'Unit'),
-                              readOnly: true,
-                            ),
-                          ),
-                          IconButton(
-                            onPressed: () => setLocal(() {
-                              items.removeAt(idx);
-                            }),
-                            icon: const Icon(Icons.delete, color: Colors.white),
-                            tooltip: 'Remove',
-                          ),
-                        ],
-                      ),
-                    );
-                  }),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: TextButton(
-                      onPressed: () => setLocal(() {
-                        addRow();
-                      }),
-                      child: const Text('Add Row'),
-                    ),
-                  ),
-                ],
-              ),
-          ),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-            ElevatedButton(onPressed: () async {
-              final filtered = items.where((it) => (it['ingredient_id'] as String?) != null && ((it['qty'] as num?)?.toDouble() ?? 0.0) > 0).toList();
-              if (filtered.isEmpty) return;
-              final nav = Navigator.of(context);
-              await Repository.instance.ingredients.applyBatchPrep(filtered);
-              nav.pop();
-              await _refresh();
-            }, child: const Text('Deduct')),
-          ],
-        );
-      });
-    });
-  }
-
-  Future<void> _showRestoreKOTDialog() async {
-    final provider = context.read<RestaurantProvider>();
-    String? tableLabel;
-    List<Map<String, dynamic>> batches = [];
-    int? selectedIdx;
-    await showDialog(context: context, builder: (_) {
-      return StatefulBuilder(builder: (context, setLocal) {
-        final screenWidth = MediaQuery.of(context).size.width;
-        final dialogWidth = screenWidth - 32;
-        return AlertDialog(
-          backgroundColor: const Color(0xFF18181B),
-          title: const Text('Restore Cancelled KOT', style: TextStyle(color: Colors.white, letterSpacing: 0.5)),
-          content: SizedBox(
-            width: dialogWidth > 520 ? 520 : dialogWidth,
-            child: SingleChildScrollView(
-              child: Column(mainAxisSize: MainAxisSize.min, children: [
-              DropdownButtonHideUnderline(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  decoration: BoxDecoration(color: const Color(0xFF0B0B0E), borderRadius: BorderRadius.circular(8), border: Border.all(color: const Color(0xFF27272A))),
-                  child: DropdownButton<String>(
-                    value: tableLabel,
-                    hint: const Text('Select Table/Order Label', style: TextStyle(color: Colors.white)),
-                    dropdownColor: const Color(0xFF18181B),
-                    items: provider.orders.map((o) => o.table).toSet().map((t) => DropdownMenuItem(value: t, child: Text(t, style: const TextStyle(color: Colors.white)))).toList(),
-                    onChanged: (v) => setLocal(() {
-                      tableLabel = v;
-                      batches = v == null ? [] : provider.getKotBatchesForTable(v);
-                      selectedIdx = null;
-                    }),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              if (batches.isNotEmpty)
-                Container(
-                  decoration: BoxDecoration(color: const Color(0xFF0B0B0E), borderRadius: BorderRadius.circular(8), border: Border.all(color: const Color(0xFF27272A))),
-                  child: Column(
-                    children: batches.asMap().entries.map((e) {
-                      final idx = e.key;
-                      final b = e.value;
-                      final dt = DateTime.fromMillisecondsSinceEpoch(
-                        (b['timestamp'] as int?) ?? DateTime.now().millisecondsSinceEpoch,
-                      ).toLocal();
-                      final y = dt.year.toString();
-                      final m = dt.month.toString().padLeft(2, '0');
-                      final d = dt.day.toString().padLeft(2, '0');
-                      final hh = dt.hour.toString().padLeft(2, '0');
-                      final mm = dt.minute.toString().padLeft(2, '0');
-                      final ts = '$y-$m-$d $hh:$mm';
-                      return RadioListTile<int>(
-                        value: idx,
-                        groupValue: selectedIdx,
-                        onChanged: (v) => setLocal(() => selectedIdx = v),
-                        title: Text(
-                          'Batch ${idx + 1} • $ts',
-                          style: const TextStyle(color: Colors.white, fontSize: 13),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-            ]),
-          ),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close')),
-            ElevatedButton(onPressed: () async {
-              if (tableLabel == null || selectedIdx == null) return;
-              final nav = Navigator.of(context);
-              final order = provider.orders.firstWhere((o) => o.table == tableLabel);
-              final batch = batches[selectedIdx!];
-              final items = List<CartItem>.from(batch['items'] as List<CartItem>);
-              final kotNum = provider.currentKOT?['kotNumber']?.toString();
-              await Repository.instance.ingredients.restoreKOTBatch(items, orderId: order.id, kotNumber: kotNum);
-              nav.pop();
-              provider.showToast('Restored KOT items to inventory', icon: '♻️');
-              await _refresh();
-            }, child: const Text('Restore')),
-              ElevatedButton(onPressed: () async {
-                if (tableLabel == null || selectedIdx == null) return;
-                final nav = Navigator.of(context);
-                final batch = batches[selectedIdx!];
-                final items = List<CartItem>.from(batch['items'] as List<CartItem>);
-                for (final ci in items) {
-                  final recipe = await Repository.instance.ingredients.getRecipeForMenuItem(ci.id);
-                  for (final r in recipe) {
-                  final ingId = r['ingredient_id'] as String;
-                  final qtyPerUnit = (r['qty'] as num?)?.toDouble() ?? 0.0;
-                  final unit = r['unit'] as String? ?? '';
-                  final total = qtyPerUnit * ci.quantity.toDouble();
-                  await Repository.instance.ingredients.recordWastage(ingId, total, unit, 'cancelled');
-                }
-              }
-              nav.pop();
-              provider.showToast('Marked batch items as wasted', icon: '🗑️');
-              await _refresh();
-            }, child: const Text('Mark Wasted')),
-          ],
-        );
-      });
-    });
-  }
+  List<String> get _categories => [
+    'All',
+    ..._ingredients
+        .map((r) => r['category'] as String? ?? '')
+        .where((c) => c.isNotEmpty).toSet().toList()..sort(),
+  ];
 
   @override
   Widget build(BuildContext context) {
-    final cats = ['All', ..._ingredients.map((r) => r['category'] as String? ?? '').where((c) => c.isNotEmpty).toSet()];
-    return PageScaffold(
+    return AppPageScaffold(
       title: 'Inventory',
+      scrollable: false,
       actions: [
+        AppButton.primary('Add Ingredient', icon: Icons.add, small: true,
+            onPressed: _showCreateDialog),
+        const SizedBox(width: 8),
         IconButton(
-          onPressed: () {
-            showModalBottomSheet(
-              context: context,
-              backgroundColor: const Color(0xFF18181B),
-              shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(12))),
-              builder: (_) {
-                return Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Category Filter', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: cats.map((c) {
-                          final selected = c == _categoryFilter;
-                          return FilterChip(
-                            selected: selected,
-                            label: Text(c),
-                            onSelected: (_) {
-                              setState(() => _categoryFilter = c);
-                              Navigator.pop(context);
-                            },
-                          );
-                        }).toList(),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            );
-          },
-          icon: const Icon(Icons.tune, color: Colors.white),
-          tooltip: 'Filters',
+          icon: const Icon(Icons.refresh_outlined, color: AppColors.textSecondary),
+          tooltip: 'Refresh', onPressed: _refresh,
         ),
       ],
-      child: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const SizedBox(height: 0),
-                Container(
-                  decoration: BoxDecoration(color: const Color(0xFF18181B), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFF27272A))),
-                  padding: const EdgeInsets.all(16),
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Row(children: [
-                      const Expanded(child: Text('Quick Actions', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-                      IconButton(
-                        onPressed: () => setState(() => _qaExpanded = !_qaExpanded),
-                        icon: Icon(_qaExpanded ? Icons.expand_less : Icons.expand_more, color: Colors.white),
-                      ),
-                    ]),
-                    const SizedBox(height: 8),
-                    LayoutBuilder(builder: (context, constraints) {
-                      if (!_qaExpanded) return const SizedBox.shrink();
-                      final w = constraints.maxWidth;
-                      final spacing = 12.0;
-                      final maxCols = w >= 900 ? 4 : (w >= 600 ? 3 : 2);
-                      final totalSpacing = spacing * (maxCols - 1);
-                      final itemWidth = maxCols == 1 ? w : (w - totalSpacing) / maxCols;
-                      final actions = [
-      {'icon': Icons.block, 'label': 'Deduct for Wastage', 'onTap': _showWastageDialog, 'color': const Color(0xFFEF4444)},
-      {'icon': Icons.playlist_add_outlined, 'label': 'Batch Prep', 'onTap': _showBatchPrepDialog, 'color': const Color(0xFFF59E0B)},
-      // Moved 'View Reports' to Inventory Report screen
-      {'icon': Icons.restore_outlined, 'label': 'Restore Cancelled KOT', 'onTap': _showRestoreKOTDialog, 'color': const Color(0xFF14B8A6)},
-      {'icon': Icons.add_circle_outline, 'label': 'Add New Ingredient', 'onTap': _showCreateIngredientDialog, 'color': const Color(0xFF10B981)},
-      // Removed 'Clean Duplicates' and 'Design Mockups'
-    ];
-                      return Wrap(
-                        spacing: spacing,
-                        runSpacing: spacing,
-                        alignment: WrapAlignment.center,
-                        children: actions
-                            .map(
-                              (a) => SizedBox(
-                                width: itemWidth,
-                                child: Tooltip(
-                                  message: a['label'] as String,
-                                  child: _QuickActionPill(
-                                    icon: a['icon'] as IconData,
-                                    color: a['color'] as Color,
-                                    onTap: a['onTap'] as void Function()?,
-                                  ),
-                                ),
-                              ),
-                            )
-                            .toList(),
-                      );
-                    }),
-                    const SizedBox(height: 8),
-                    Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      TextField(
-                        controller: _searchCtrl,
-                        decoration: const InputDecoration(
-                          hintText: 'Search ingredients or supplier',
-                          prefixIcon: Icon(Icons.search, color: Colors.white),
-                          filled: true,
-                          fillColor: Color(0xFF0B0B0E),
-                          border: OutlineInputBorder(borderSide: BorderSide(color: Color(0xFF27272A)), borderRadius: BorderRadius.all(Radius.circular(8))),
-                          enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Color(0xFF27272A)), borderRadius: BorderRadius.all(Radius.circular(8))),
-                          focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Color(0xFF3F3F46)), borderRadius: BorderRadius.all(Radius.circular(8))),
-                        ),
-                        onChanged: (v) => setState(() => _searchText = v),
-                      ),
-                      const SizedBox(height: 8),
-                      // Removed duplicate category chips; use filter icon in AppBar
-                    ]),
-                    const SizedBox(height: 12),
-                    LayoutBuilder(builder: (context, box) {
-                      final w = box.maxWidth;
-                      final cards = <Widget>[];
-                      for (var i = 0; i < _filtered.length; i++) {
-                        final r = _filtered[i];
-                          final name = r['name'] as String? ?? '';
-                          final unit = r['base_unit'] as String? ?? '';
-                          final stock = (r['stock'] as num?)?.toDouble() ?? 0.0;
-                          final min = (r['min_threshold'] as num?)?.toDouble() ?? 0.0;
-                          final supplier = r['supplier'] as String? ?? '';
-                          final below = min > 0 && stock <= min;
-                          final borderColor = below ? const Color(0xFFEF4444) : const Color(0xFF10B981);
-                          final card = Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(color: const Color(0xFF18181B), borderRadius: BorderRadius.circular(12), border: Border.all(color: borderColor, width: 1.5)),
-                            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                              Row(children: [
-                                Expanded(child: Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(color: borderColor, borderRadius: BorderRadius.circular(12)),
-                                  child: Text(below ? 'LOW' : 'OK', style: const TextStyle(color: Colors.white, fontSize: 11)),
-                                ),
-                                const SizedBox(width: 6),
-                                Tooltip(
-                                  message: 'Edit Ingredient',
-                                  child: IconButton(
-                                    onPressed: () => _showEditIngredientDialog(r),
-                                    icon: const Icon(Icons.edit, color: Colors.white),
-                                  ),
-                                ),
-                                Tooltip(
-                                  message: 'Remove Ingredient',
-                                  child: IconButton(
-                                    onPressed: () => _confirmAndDeleteIngredient(r['id'] as String, name),
-                                    icon: const Icon(Icons.delete_forever, color: Colors.white),
-                                  ),
-                                ),
-                              ]),
-                              const SizedBox(height: 6),
-                              Row(children: [
-                                Expanded(child: Text('Stock: ${stock.toStringAsFixed(0)} $unit', style: const TextStyle(color: Color(0xFFA1A1AA), fontSize: 12))),
-                                Expanded(child: Text('Threshold: ${min.toStringAsFixed(0)}', style: const TextStyle(color: Color(0xFFA1A1AA), fontSize: 12))),
-                              ]),
-                              const SizedBox(height: 4),
-                              Text('Supplier: $supplier', style: const TextStyle(color: Color(0xFFA1A1AA), fontSize: 12), overflow: TextOverflow.ellipsis),
-                              const SizedBox(height: 4),
-                              Builder(builder: (_) {
-                                final ts = _lastUpdated[r['id'] as String];
-                                final text = ts == null ? '-' : DateTime.fromMillisecondsSinceEpoch(ts).toLocal().toString();
-                                return Text(text, style: const TextStyle(color: Colors.white, fontSize: 12));
-                              }),
-                              const SizedBox(height: 8),
-                              Row(children: [
-                                Tooltip(
-                                  message: 'Add/Refill',
-                                  child: _QuickActionPill(
-                                    icon: Icons.add_circle_outlined,
-                                    color: const Color(0xFF10B981),
-                                    onTap: () => _showPurchaseDialog(presetIngId: r['id'] as String),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Tooltip(
-                                  message: 'Recipe Usage',
-                                  child: _QuickActionPill(
-                                    icon: Icons.receipt_long,
-                                    color: const Color(0xFF3B82F6),
-                                    onTap: () => _showUsageDialog(r['id'] as String, name),
-                                  ),
-                                ),
-                              ]),
-                            ]),
-                          );
-                          cards.add(card);
-                      }
-
-                      const spacing = 12.0;
-                      final maxCols = w >= 1300 ? 4 : (w >= 900 ? 3 : (w >= 600 ? 2 : 1));
-                      final totalSpacing = spacing * (maxCols - 1);
-                      final itemWidth = maxCols == 1 ? w : (w - totalSpacing) / maxCols;
-
-                      return Wrap(
-                        spacing: spacing,
-                        runSpacing: spacing,
-                        alignment: WrapAlignment.center,
-                        children: cards
-                            .map((c) => SizedBox(
-                                  width: itemWidth,
-                                  child: c,
-                                ))
-                            .toList(),
-                      );
-                    }),
-                  ]),
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  decoration: BoxDecoration(color: const Color(0xFF18181B), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFF27272A))),
-                  padding: const EdgeInsets.all(16),
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const Text('Reports', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    Wrap(spacing: 8, runSpacing: 8, children: [
-                      TextButton(onPressed: () async {
-                        final now = DateTime.now();
-                        final start = DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
-                        final end = DateTime(now.year, now.month, now.day, 23, 59, 59, 999).millisecondsSinceEpoch;
-                        final tx = await Repository.instance.ingredients.listTransactions(fromMs: start, toMs: end, limit: 1000);
-                        final cogs = tx.where((t) => t['type'] == 'purchase').fold<double>(0.0, (s, t) => s + (((t['qty'] as num?)?.toDouble() ?? 0.0) * ((t['cost_per_unit'] as num?)?.toDouble() ?? 0.0)));
-                        final wastage = tx.where((t) => t['type'] == 'wastage').fold<double>(0.0, (s, t) => s + ((t['qty'] as num?)?.toDouble() ?? 0.0));
-                        final usage = tx.where((t) => t['type'] == 'deduction').fold<double>(0.0, (s, t) => s + ((t['qty'] as num?)?.toDouble() ?? 0.0));
-                        if (!context.mounted) return;
-                        showDialog(context: context, builder: (_) => AlertDialog(
-                          backgroundColor: const Color(0xFF18181B),
-                          title: const Text('Daily Summary', style: TextStyle(color: Colors.white, letterSpacing: 0.5)),
-                          content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            Text('Usage Qty: ${usage.toStringAsFixed(1)}', style: const TextStyle(color: Colors.white)),
-                            Text('Wastage Qty: ${wastage.toStringAsFixed(1)}', style: const TextStyle(color: Colors.white)),
-                            Text('COGS: ₹${cogs.toStringAsFixed(0)}', style: const TextStyle(color: Colors.white)),
-                          ]),
-                          actions: [TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close'))],
-                        ));
-                      }, child: const Text('Daily Usage Summary')),
-                      TextButton(onPressed: () async {
-                        final now = DateTime.now();
-                        final start = DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
-                        final end = DateTime(now.year, now.month, now.day, 23, 59, 59, 999).millisecondsSinceEpoch;
-                        final tx = await Repository.instance.ingredients.listTransactions(type: 'wastage', fromMs: start, toMs: end, limit: 500);
-                        if (!context.mounted) return;
-                        showDialog(context: context, builder: (_) => AlertDialog(
-                          backgroundColor: const Color(0xFF18181B),
-                          title: const Text('Wastage Logs', style: TextStyle(color: Colors.white, letterSpacing: 0.5)),
-                          content: SizedBox(width: 520, child: SingleChildScrollView(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            ...tx.map((t) => Text('${t['ingredient_id']}: ${(t['qty'] as num?)?.toDouble() ?? 0.0} ${(t['unit'] as String?) ?? ''} • ${t['reason'] ?? ''}', style: const TextStyle(color: Colors.white))),
-                          ]))),
-                          actions: [TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close'))],
-                        ));
-                      }, child: const Text('Wastage Logs')),
-                      TextButton(onPressed: () async {
-                        final now = DateTime.now();
-                        final start = DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
-                        final end = DateTime(now.year, now.month, now.day, 23, 59, 59, 999).millisecondsSinceEpoch;
-                        final tx = await Repository.instance.ingredients.listTransactions(fromMs: start, toMs: end, limit: 2000);
-                        final header = 'id,ingredient_id,type,qty,unit,cost_per_unit,supplier,invoice,note,timestamp,related_order_id,kot_number,reason';
-                        final rows = tx.map((t) => [
-                          t['id'], t['ingredient_id'], t['type'], t['qty'], t['unit'], t['cost_per_unit'] ?? '', t['supplier'] ?? '', t['invoice'] ?? '', t['note'] ?? '', t['timestamp'], t['related_order_id'] ?? '', t['kot_number'] ?? '', t['reason'] ?? ''
-                        ].join(',')).join('\n');
-                        final csv = '$header\n$rows';
-                        final bytes = Uri.encodeComponent(csv);
-                        final url = 'data:text/csv;charset=utf-8,$bytes';
-                        web.openNewTab(url);
-                      }, child: const Text('Export to CSV')),
-                      TextButton(onPressed: () async {
-                        final now = DateTime.now();
-                        final start = DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
-                        final end = DateTime(now.year, now.month, now.day, 23, 59, 59, 999).millisecondsSinceEpoch;
-                        final tx = await Repository.instance.ingredients.listTransactions(fromMs: start, toMs: end, limit: 1000);
-                        final rows = tx.map((t) => '<tr><td>${t['id']}</td><td>${t['ingredient_id']}</td><td>${t['type']}</td><td>${t['qty']}</td><td>${t['unit']}</td><td>${t['cost_per_unit'] ?? ''}</td><td>${t['supplier'] ?? ''}</td><td>${t['invoice'] ?? ''}</td><td>${t['note'] ?? ''}</td><td>${DateTime.fromMillisecondsSinceEpoch((t['timestamp'] as int?) ?? 0).toLocal()}</td><td>${t['related_order_id'] ?? ''}</td><td>${t['kot_number'] ?? ''}</td><td>${t['reason'] ?? ''}</td></tr>').join();
-                        final htmlDoc = '''
-<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>Inventory Report</title>
-<style>
-body { font-family: Arial; padding: 16px; }
-table { border-collapse: collapse; width: 100%; }
-th, td { border: 1px solid #333; padding: 6px; font-size: 12px; }
-</style>
-</head><body>
-<h2>Inventory Transactions (Today)</h2>
-<table><thead><tr><th>ID</th><th>Ingredient</th><th>Type</th><th>Qty</th><th>Unit</th><th>Cost/Unit</th><th>Supplier</th><th>Invoice</th><th>Note</th><th>Timestamp</th><th>Order</th><th>KOT</th><th>Reason</th></tr></thead>
-<tbody>$rows</tbody></table>
-<script>
-window.onload = function(){ setTimeout(function(){ window.print(); }, 500); }
-</script>
-</body></html>
-''';
-                        final url = 'data:text/html;charset=utf-8,${Uri.encodeComponent(htmlDoc)}';
-                        web.openNewTab(url);
-                      }, child: const Text('Export to PDF')),
-                      const SizedBox(width: 8),
-                      TextButton(
-                        onPressed: _fixDuplicates,
-                        child: const Text('Clean Duplicates'),
-                      ),
-                    ]),
-                  ]),
-                ),
-              ]),
-            ),
+      child: Column(children: [
+        Container(color: AppColors.bg1, child: TabBar(
+          controller: _tabs,
+          indicatorColor: AppColors.amber,
+          labelColor: AppColors.amber,
+          unselectedLabelColor: AppColors.textSecondary,
+          dividerColor: AppColors.border,
+          tabs: const [
+            Tab(icon: Icon(Icons.inventory_2_outlined, size: 16), text: 'Stock'),
+            Tab(icon: Icon(Icons.build_outlined, size: 16), text: 'Actions'),
+          ],
+        )),
+        Expanded(child: TabBarView(controller: _tabs, children: [
+          _StockTab(
+            ingredients: _filtered,
+            categories: _categories,
+            catFilter: _catFilter,
+            search: _search,
+            searchCtrl: _searchCtrl,
+            lastUpdated: _lastUpdated,
+            loading: _loading,
+            onCatChanged: (c) => setState(() => _catFilter = c),
+            onSearchChanged: (v) => setState(() => _search = v),
+            onEdit: _showEditDialog,
+            onDelete: _confirmDelete,
+            onRefill: (ing) => _showPurchaseDialog(presetIng: ing),
+            onUsage: _showUsageDialog,
+          ),
+          _ActionsTab(ingredients: _ingredients, onRefresh: _refresh),
+        ])),
+      ]),
     );
   }
 
-  Future<void> _fixDuplicates() async {
-    final rp = context.read<RestaurantProvider>();
-    await Repository.instance.ingredients.fixInventoryDuplicates();
-    await _refresh();
-    rp.showToast('Inventory duplicates cleaned.', icon: '✨');
-  }
+  // ── Create ingredient ─────────────────────────────────────────────────────
 
-  Future<void> _showCreateIngredientDialog() async {
-    String name = '';
-    String category = 'Uncategorized';
-    String unit = 'g';
-    String supplier = '';
-    double minThreshold = 0.0;
-    double stock = 0.0;
-    await showDialog(context: context, builder: (_) {
-      return AlertDialog(
-        backgroundColor: const Color(0xFF18181B),
-        title: const Text('Add New Ingredient', style: TextStyle(color: Colors.white, letterSpacing: 0.5)),
-        content: Column(mainAxisSize: MainAxisSize.min, children: [
-          TextField(decoration: const InputDecoration(hintText: 'Name'), onChanged: (v) => name = v),
-          const SizedBox(height: 8),
-          TextField(decoration: const InputDecoration(hintText: 'Category'), onChanged: (v) => category = v),
-          const SizedBox(height: 8),
-          TextField(decoration: const InputDecoration(hintText: 'Base Unit (e.g., g, kg, ml, l, pc)'), onChanged: (v) => unit = v),
-          const SizedBox(height: 8),
-          TextField(decoration: const InputDecoration(hintText: 'Supplier'), onChanged: (v) => supplier = v),
-          const SizedBox(height: 8),
-          TextField(decoration: const InputDecoration(hintText: 'Min Threshold'), keyboardType: TextInputType.number, onChanged: (v) => minThreshold = double.tryParse(v) ?? 0.0),
-          const SizedBox(height: 8),
-          TextField(decoration: const InputDecoration(hintText: 'Opening Stock'), keyboardType: TextInputType.number, onChanged: (v) => stock = double.tryParse(v) ?? 0.0),
-        ]),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () async {
-            if (name.trim().isEmpty) return;
-            final nav = Navigator.of(context);
-            final rp = context.read<RestaurantProvider>();
-            
-            // Check for duplicates
-            final exists = _ingredients.any((i) => (i['name'] as String).trim().toLowerCase() == name.trim().toLowerCase());
-            if (exists) {
-              rp.showToast('Ingredient with this name already exists.', icon: '⚠️');
-              return;
-            }
+  Future<void> _showCreateDialog() async {
+    final nameCtrl     = TextEditingController();
+    final catCtrl      = TextEditingController();
+    final supplierCtrl = TextEditingController();
+    final threshCtrl   = TextEditingController(text: '0');
+    final stockCtrl    = TextEditingController(text: '0');
+    String selectedUnit = 'g';
 
-            final id = '${DateTime.now().millisecondsSinceEpoch}_${name.hashCode}';
-            await Repository.instance.ingredients.upsertIngredient({
-              'id': id,
-              'name': name.trim(),
-              'category': category.trim().isEmpty ? 'Uncategorized' : category.trim(),
-              'base_unit': unit.trim().isEmpty ? 'g' : unit.trim(),
-              'stock': stock,
-              'min_threshold': minThreshold,
-              'supplier': supplier.trim(),
-            });
-            nav.pop();
-            await _refresh();
-            rp.showToast('Ingredient added.', icon: '✅');
-          }, child: const Text('Save')),
-        ],
-      );
-    });
-  }
-
-  Future<void> _showUsageDialog(String ingredientId, String name) async {
-    try {
-      final items = await Repository.instance.ingredients.getMenuItemsUsingIngredient(ingredientId);
-      if (!mounted) return;
-      showDialog(context: context, builder: (_) {
+    await showDialog(context: context,
+      builder: (_) => StatefulBuilder(builder: (ctx, set) {
         return AlertDialog(
-          backgroundColor: const Color(0xFF18181B),
-          title: Text('Used In • $name', style: const TextStyle(color: Colors.white, letterSpacing: 0.5)),
-          content: SizedBox(
-            width: 420,
-            child: items.isEmpty
-                ? const Text('No recipes use this ingredient.', style: TextStyle(color: Colors.white))
-                : SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: items.map((e) => Padding(
-                        padding: const EdgeInsets.only(bottom: 6),
-                        child: Text('${e['name']}', style: const TextStyle(color: Colors.white)),
-                      )).toList(),
-                    ),
-                  ),
-          ),
+          backgroundColor: AppColors.bg2,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          title: const Text('Add Ingredient', style: AppTextStyles.h2),
+          content: SizedBox(width: 460, child: SingleChildScrollView(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              DarkField(label: 'Name *', controller: nameCtrl),
+              const SizedBox(height: 10),
+              DarkField(label: 'Category', controller: catCtrl,
+                  hint: 'e.g. Dairy, Spices, Oils'),
+              const SizedBox(height: 10),
+              _UnitPicker(selected: selectedUnit,
+                  onChanged: (u) => set(() => selectedUnit = u)),
+              const SizedBox(height: 10),
+              Row(children: [
+                Expanded(child: DarkField(
+                  label: 'Opening Stock ($selectedUnit)',
+                  controller: stockCtrl,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                )),
+                const SizedBox(width: 10),
+                Expanded(child: DarkField(
+                  label: 'Low-stock alert ($selectedUnit)',
+                  controller: threshCtrl,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                )),
+              ]),
+              const SizedBox(height: 10),
+              DarkField(label: 'Supplier', controller: supplierCtrl),
+            ]),
+          )),
           actions: [
-            TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close')),
-            TextButton(onPressed: () { context.read<RestaurantProvider>().setCurrentView('menu'); Navigator.of(context).pop(); }, child: const Text('Open Menu')),
+            TextButton(onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel')),
+            AppButton.primary('Add', onPressed: () async {
+              final name = nameCtrl.text.trim();
+              if (name.isEmpty) return;
+              if (_ingredients.any((i) =>
+                  (i['name'] as String).toLowerCase() == name.toLowerCase())) {
+                context.read<RestaurantProvider>()
+                    .showToast('Ingredient already exists', icon: '⚠️');
+                return;
+              }
+              final base  = _kCanonicalBase[selectedUnit] ?? selectedUnit;
+              final stock = _convert(
+                  double.tryParse(stockCtrl.text.trim()) ?? 0, selectedUnit, base) ??
+                  (double.tryParse(stockCtrl.text.trim()) ?? 0);
+              final thresh = _convert(
+                  double.tryParse(threshCtrl.text.trim()) ?? 0, selectedUnit, base) ??
+                  (double.tryParse(threshCtrl.text.trim()) ?? 0);
+              await Repository.instance.ingredients.upsertIngredient({
+                'id': '${DateTime.now().millisecondsSinceEpoch}_${name.hashCode}',
+                'name': name,
+                'category': catCtrl.text.trim().isEmpty
+                    ? 'Uncategorized' : catCtrl.text.trim(),
+                'base_unit': base,
+                'stock': stock,
+                'min_threshold': thresh,
+                'supplier': supplierCtrl.text.trim(),
+              });
+              if (ctx.mounted) { Navigator.pop(ctx); }
+              await _refresh();
+              if (mounted) { context.read<RestaurantProvider>()
+                  .showToast('$name added', icon: '✅'); }
+            }),
           ],
         );
-      });
-    } catch (_) {}
+      }),
+    );
   }
 
-  Future<void> _confirmAndDeleteIngredient(String id, String name) async {
-    await showDialog(context: context, builder: (_) {
-      return AlertDialog(
-        backgroundColor: const Color(0xFF18181B),
-        title: const Text('Remove Ingredient', style: TextStyle(color: Colors.white, letterSpacing: 0.5)),
-        content: Text(
-          "Remove '$name' from inventory? This deletes recipe mappings. Transactions history remains.",
-          style: const TextStyle(color: Colors.white),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () async {
-            final nav = Navigator.of(context);
-            final rp = context.read<RestaurantProvider>();
-            await Repository.instance.ingredients.deleteIngredient(id);
-            nav.pop();
-            await _refresh();
-            rp.showToast('Ingredient removed.', icon: '🗑️');
-          }, child: const Text('Delete')),
-        ],
-      );
-    });
-  }
+  // ── Edit ingredient ───────────────────────────────────────────────────────
 
-  Future<void> _showEditIngredientDialog(Map<String, Object> ing) async {
-    final id = ing['id'] as String;
-    final name = (ing['name'] as String?) ?? '';
-    final categoryCtrl = TextEditingController(text: (ing['category'] as String?) ?? 'Uncategorized');
-    final unitCtrl = TextEditingController(text: (ing['base_unit'] as String?) ?? 'g');
+  Future<void> _showEditDialog(Map<String, Object> ing) async {
+    final id       = ing['id'] as String;
+    final name     = (ing['name'] as String?) ?? '';
+    final baseUnit = (ing['base_unit'] as String?) ?? 'g';
+    final stockB   = (ing['stock'] as num?)?.toDouble() ?? 0.0;
+    final threshB  = (ing['min_threshold'] as num?)?.toDouble() ?? 0.0;
+
+    // Pick display unit (kg if ≥1000g, l if ≥1000ml)
+    String dispUnit = (baseUnit == 'g' && stockB >= 1000) ? 'kg'
+        : (baseUnit == 'ml' && stockB >= 1000) ? 'l'
+        : baseUnit;
+    final catCtrl      = TextEditingController(text: (ing['category'] as String?) ?? '');
     final supplierCtrl = TextEditingController(text: (ing['supplier'] as String?) ?? '');
-    final thresholdCtrl = TextEditingController(text: ((ing['min_threshold'] as num?)?.toString() ?? '0'));
-    final stockCtrl = TextEditingController(text: ((ing['stock'] as num?)?.toString() ?? '0'));
-    await showDialog(context: context, builder: (_) {
-      return AlertDialog(
-        backgroundColor: const Color(0xFF18181B),
-        title: Text('Edit $name', style: const TextStyle(color: Colors.white, letterSpacing: 0.5)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(decoration: const InputDecoration(hintText: 'Category'), controller: categoryCtrl),
-            const SizedBox(height: 8),
-            TextField(decoration: const InputDecoration(hintText: 'Base Unit (e.g., g, kg, ml, l, pc)'), controller: unitCtrl),
-            const SizedBox(height: 8),
-            TextField(decoration: const InputDecoration(hintText: 'Supplier'), controller: supplierCtrl),
-            const SizedBox(height: 8),
-            TextField(decoration: const InputDecoration(hintText: 'Min Threshold'), controller: thresholdCtrl, keyboardType: TextInputType.number),
-            const SizedBox(height: 8),
-            TextField(decoration: const InputDecoration(hintText: 'Current Stock'), controller: stockCtrl, keyboardType: TextInputType.number),
+    final stockCtrl    = TextEditingController(
+        text: _f(_convert(stockB, baseUnit, dispUnit) ?? stockB));
+    final threshCtrl   = TextEditingController(
+        text: _f(_convert(threshB, baseUnit, dispUnit) ?? threshB));
+
+    await showDialog(context: context,
+      builder: (_) => StatefulBuilder(builder: (ctx, set) {
+        final compat = _compatibleUnits(baseUnit);
+        return AlertDialog(
+          backgroundColor: AppColors.bg2,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          title: Text('Edit · $name', style: AppTextStyles.h2),
+          content: SizedBox(width: 460, child: SingleChildScrollView(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              // Base unit badge + inline toggle
+              Row(children: [
+                const Text('Base unit:', style: AppTextStyles.small),
+                const SizedBox(width: 8),
+                _UnitBadge(baseUnit),
+                const Spacer(),
+                const Text('Enter in:', style: AppTextStyles.small),
+                const SizedBox(width: 8),
+                _InlineUnitToggle(
+                  units: compat, selected: dispUnit,
+                  onChanged: (u) {
+                    final sv = double.tryParse(stockCtrl.text) ?? 0.0;
+                    final tv = double.tryParse(threshCtrl.text) ?? 0.0;
+                    set(() {
+                      final sv2 = _convert(sv, dispUnit, u);
+                      final tv2 = _convert(tv, dispUnit, u);
+                      dispUnit = u;
+                      if (sv2 != null) stockCtrl.text = _f(sv2);
+                      if (tv2 != null) threshCtrl.text = _f(tv2);
+                    });
+                  },
+                ),
+              ]),
+              const SizedBox(height: 12),
+              DarkField(label: 'Category', controller: catCtrl),
+              const SizedBox(height: 10),
+              Row(children: [
+                Expanded(child: DarkField(
+                  label: 'Stock ($dispUnit)', controller: stockCtrl,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                )),
+                const SizedBox(width: 10),
+                Expanded(child: DarkField(
+                  label: 'Alert ($dispUnit)', controller: threshCtrl,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                )),
+              ]),
+              const SizedBox(height: 10),
+              DarkField(label: 'Supplier', controller: supplierCtrl),
+            ]),
+          )),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel')),
+            AppButton.primary('Save', onPressed: () async {
+              final sv = double.tryParse(stockCtrl.text.trim()) ?? 0.0;
+              final tv = double.tryParse(threshCtrl.text.trim()) ?? 0.0;
+              await Repository.instance.ingredients.upsertIngredient({
+                'id': id, 'name': name,
+                'category': catCtrl.text.trim().isEmpty
+                    ? 'Uncategorized' : catCtrl.text.trim(),
+                'base_unit': baseUnit,
+                'stock':         _convert(sv, dispUnit, baseUnit) ?? sv,
+                'min_threshold': _convert(tv, dispUnit, baseUnit) ?? tv,
+                'supplier': supplierCtrl.text.trim(),
+              });
+              if (ctx.mounted) { Navigator.pop(ctx); }
+              await _refresh();
+              if (mounted) { context.read<RestaurantProvider>()
+                  .showToast('$name updated', icon: '✅'); }
+            }),
           ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () async {
-            final nav = Navigator.of(context);
-            final rp = context.read<RestaurantProvider>();
-            await Repository.instance.ingredients.upsertIngredient({
-              'id': id,
-              'name': name,
-              'category': categoryCtrl.text.trim().isEmpty ? 'Uncategorized' : categoryCtrl.text.trim(),
-              'base_unit': unitCtrl.text.trim().isEmpty ? 'g' : unitCtrl.text.trim(),
-              'stock': double.tryParse(stockCtrl.text.trim()) ?? (ing['stock'] as num?)?.toDouble() ?? 0.0,
-              'min_threshold': double.tryParse(thresholdCtrl.text.trim()) ?? (ing['min_threshold'] as num?)?.toDouble() ?? 0.0,
-              'supplier': supplierCtrl.text.trim(),
-            });
-            nav.pop();
-            await _refresh();
-            rp.showToast('Ingredient updated.', icon: '✅');
-          }, child: const Text('Save')),
-        ],
-      );
-    });
+        );
+      }),
+    );
   }
 
-  // Removed _openMockupPreview
-}
+  // ── Delete ────────────────────────────────────────────────────────────────
 
-class _QuickActionPill extends StatefulWidget {
-  final IconData icon;
-  final Color color;
-  final VoidCallback? onTap;
-  const _QuickActionPill({required this.icon, required this.color, this.onTap});
-  @override
-  State<_QuickActionPill> createState() => _QuickActionPillState();
-}
+  Future<void> _confirmDelete(String id, String name) async {
+    await showDialog(context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: AppColors.bg2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: Text('Remove $name?', style: AppTextStyles.h2),
+        content: const Text(
+            'Removes recipe mappings. Transaction history is kept.',
+            style: AppTextStyles.body),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel')),
+          AppButton.danger('Remove', onPressed: () async {
+            await Repository.instance.ingredients.deleteIngredient(id);
+            if (mounted) { Navigator.pop(context); }
+            await _refresh();
+            if (mounted) { context.read<RestaurantProvider>()
+                .showToast('$name removed', icon: '🗑️'); }
+          }),
+        ],
+      ),
+    );
+  }
 
-class _QuickActionPillState extends State<_QuickActionPill> {
-  bool _hover = false;
-  @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: const Color(0xFF0B0B0E),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: widget.color.withValues(alpha: 0.35)),
-            boxShadow: _hover ? [BoxShadow(color: widget.color.withValues(alpha: 0.25), blurRadius: 12, spreadRadius: 1, offset: const Offset(0, 4))] : [],
-          ),
-          constraints: const BoxConstraints(minWidth: 56, minHeight: 56),
-          child: Center(child: Icon(widget.icon, color: widget.color, size: 24)),
-        ),
+  // ── Purchase / refill ─────────────────────────────────────────────────────
+
+  Future<void> _showPurchaseDialog({Map<String, Object>? presetIng}) async {
+    String? ingId      = presetIng?['id'] as String?;
+    String baseUnit    = (presetIng?['base_unit'] as String?) ?? 'g';
+    String entryUnit   = baseUnit;
+    final qtyCtrl      = TextEditingController();
+    final costCtrl     = TextEditingController();
+    final supplierCtrl = TextEditingController(
+        text: (presetIng?['supplier'] as String?) ?? '');
+    final invoiceCtrl  = TextEditingController();
+
+    await showDialog(context: context,
+      builder: (_) => StatefulBuilder(builder: (ctx, set) {
+        return AlertDialog(
+          backgroundColor: AppColors.bg2,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          title: const Text('Add Purchase / Refill', style: AppTextStyles.h2),
+          content: SizedBox(width: 460, child: Column(mainAxisSize: MainAxisSize.min,
+            children: [
+              if (ingId == null)
+                _IngredientDropdown(ingredients: _ingredients, value: ingId,
+                    onChanged: (v) => set(() {
+                      ingId = v;
+                      final sel = _ingredients.firstWhere(
+                          (x) => x['id'] == v, orElse: () => {});
+                      baseUnit  = (sel['base_unit'] as String?) ?? 'g';
+                      entryUnit = baseUnit;
+                    }))
+              else
+                _IngredientBadge(_ingredients.firstWhere(
+                    (x) => x['id'] == ingId, orElse: () => {})),
+              const SizedBox(height: 12),
+              Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                Expanded(child: DarkField(
+                  label: 'Quantity ($entryUnit)', controller: qtyCtrl,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                )),
+                const SizedBox(width: 10),
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Text('Unit', style: AppTextStyles.small),
+                  const SizedBox(height: 5),
+                  _InlineUnitToggle(
+                    units: _compatibleUnits(baseUnit),
+                    selected: entryUnit,
+                    onChanged: (u) => set(() => entryUnit = u),
+                  ),
+                ]),
+              ]),
+              const SizedBox(height: 10),
+              Row(children: [
+                Expanded(child: DarkField(label: 'Cost/unit (₹)',
+                    controller: costCtrl,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true))),
+                const SizedBox(width: 10),
+                Expanded(child: DarkField(label: 'Invoice #',
+                    controller: invoiceCtrl)),
+              ]),
+              const SizedBox(height: 10),
+              DarkField(label: 'Supplier', controller: supplierCtrl),
+            ],
+          )),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel')),
+            AppButton.primary('Add Stock', onPressed: () async {
+              if (ingId == null) return;
+              final raw = double.tryParse(qtyCtrl.text.trim()) ?? 0.0;
+              if (raw <= 0) return;
+              final qtyInBase = _convert(raw, entryUnit, baseUnit) ?? raw;
+              final cpu = double.tryParse(costCtrl.text.trim());
+              await Repository.instance.ingredients.insertPurchase(
+                ingId!, qtyInBase, baseUnit,
+                costPerUnit: cpu,
+                supplier: supplierCtrl.text.trim().isEmpty
+                    ? null : supplierCtrl.text.trim(),
+                invoice: invoiceCtrl.text.trim().isEmpty
+                    ? null : invoiceCtrl.text.trim(),
+              );
+              if (ctx.mounted) { Navigator.pop(ctx); }
+              await _refresh();
+              if (mounted) { context.read<RestaurantProvider>()
+                  .showToast('Added ${_smartDisplay(qtyInBase, baseUnit)}', icon: '📦'); }
+            }),
+          ],
+        );
+      }),
+    );
+  }
+
+  // ── Recipe usage ──────────────────────────────────────────────────────────
+
+  Future<void> _showUsageDialog(String id, String name) async {
+    final items = await Repository.instance.ingredients
+        .getMenuItemsUsingIngredient(id);
+    if (!mounted) { return; }
+    showDialog(context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: AppColors.bg2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: Text('Used in · $name', style: AppTextStyles.h2),
+        content: SizedBox(width: 360,
+          child: items.isEmpty
+              ? const Padding(padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Text('No recipes use this ingredient.',
+                      style: AppTextStyles.body))
+              : Column(mainAxisSize: MainAxisSize.min,
+                  children: items.map((e) => ListTile(
+                    dense: true, contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.restaurant_menu_outlined,
+                        color: AppColors.amber, size: 18),
+                    title: Text('${e['name']}', style: AppTextStyles.body),
+                  )).toList())),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context),
+              child: const Text('Close')),
+          AppButton.ghost('Open Menu', small: true, icon: Icons.open_in_new,
+              onPressed: () {
+                // Deep-link to the specific category of the first matched menu item
+                if (items.isNotEmpty) {
+                  final cat = items.first['category']?.toString();
+                  if (cat != null && cat.isNotEmpty) {
+                    context.read<RestaurantProvider>().setSelectedCategory(cat);
+                  }
+                }
+                context.read<RestaurantProvider>().setCurrentView('menu');
+                Navigator.pop(context);
+              }),
+        ],
       ),
     );
   }
 }
 
- 
+// ── Stock tab ─────────────────────────────────────────────────────────────────
+
+class _StockTab extends StatelessWidget {
+  final List<Map<String, Object>> ingredients;
+  final List<String> categories;
+  final String catFilter;
+  final String search;
+  final TextEditingController searchCtrl;
+  final Map<String, int?> lastUpdated;
+  final bool loading;
+  final ValueChanged<String> onCatChanged;
+  final ValueChanged<String> onSearchChanged;
+  final void Function(Map<String, Object>) onEdit;
+  final void Function(String, String) onDelete;
+  final void Function(Map<String, Object>) onRefill;
+  final void Function(String, String) onUsage;
+
+  const _StockTab({
+    required this.ingredients, required this.categories,
+    required this.catFilter, required this.search,
+    required this.searchCtrl, required this.lastUpdated,
+    required this.loading, required this.onCatChanged,
+    required this.onSearchChanged, required this.onEdit,
+    required this.onDelete, required this.onRefill, required this.onUsage,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (loading) { return const Center(
+        child: CircularProgressIndicator(color: AppColors.amber)); }
+
+    final lowCount = ingredients.where((r) {
+      final s = (r['stock'] as num?)?.toDouble() ?? 0.0;
+      final m = (r['min_threshold'] as num?)?.toDouble() ?? 0.0;
+      return m > 0 && s <= m;
+    }).length;
+
+    return Column(children: [
+      // ── Filter bar ────────────────────────────────────────────────────────
+      Container(
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+        color: AppColors.bg1,
+        child: Column(children: [
+          TextField(
+            controller: searchCtrl,
+            style: AppTextStyles.body,
+            onChanged: onSearchChanged,
+            decoration: InputDecoration(
+              hintText: 'Search ingredients or supplier…',
+              hintStyle: AppTextStyles.body.copyWith(
+                  color: AppColors.textSecondary),
+              prefixIcon: const Icon(Icons.search,
+                  color: AppColors.textSecondary, size: 18),
+              filled: true, fillColor: AppColors.bg2, isDense: true,
+              contentPadding: const EdgeInsets.symmetric(vertical: 10),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(color: AppColors.border)),
+              enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(color: AppColors.border)),
+              focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(color: AppColors.amber, width: 1.5)),
+            ),
+          ),
+          const SizedBox(height: 8),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(children: categories.map((c) {
+              final active = c == catFilter;
+              return Padding(
+                padding: const EdgeInsets.only(right: 6, bottom: 8),
+                child: GestureDetector(
+                  onTap: () => onCatChanged(c),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 140),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: active ? AppColors.amber : AppColors.bg2,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: active
+                          ? AppColors.amber : AppColors.border),
+                    ),
+                    child: Text(c, style: TextStyle(
+                      color: active ? Colors.black : AppColors.textSecondary,
+                      fontSize: 12,
+                      fontWeight: active ? FontWeight.w700 : FontWeight.normal,
+                    )),
+                  ),
+                ),
+              );
+            }).toList()),
+          ),
+        ]),
+      ),
+      const Divider(height: 1, color: AppColors.border),
+
+      // ── Low stock banner ──────────────────────────────────────────────────
+      if (lowCount > 0)
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          color: AppColors.red.withValues(alpha: 0.12),
+          child: Row(children: [
+            const Icon(Icons.warning_amber_rounded,
+                color: AppColors.red, size: 16),
+            const SizedBox(width: 8),
+            Text('$lowCount ingredient${lowCount > 1 ? 's' : ''} '
+                'below low-stock threshold',
+                style: const TextStyle(color: AppColors.red, fontSize: 12,
+                    fontWeight: FontWeight.w600)),
+          ]),
+        ),
+
+      // ── Grid of cards ─────────────────────────────────────────────────────
+      Expanded(
+        child: ingredients.isEmpty
+            ? const EmptyState(message: 'No ingredients found',
+                icon: Icons.inventory_2_outlined)
+            : AdaptiveGrid(
+                mobileCols: 1, tabletCols: 2, desktopCols: 3,
+                childAspectRatio: 1.75,
+                children: ingredients.map((r) => _IngredientCard(
+                  ing: r,
+                  lastUpdatedMs: lastUpdated[r['id'] as String],
+                  onEdit:   () => onEdit(r),
+                  onDelete: () => onDelete(r['id'] as String,
+                      r['name'] as String? ?? ''),
+                  onRefill: () => onRefill(r),
+                  onUsage:  () => onUsage(r['id'] as String,
+                      r['name'] as String? ?? ''),
+                )).toList(),
+              ),
+      ),
+    ]);
+  }
+}
+
+// ── Ingredient card ───────────────────────────────────────────────────────────
+
+class _IngredientCard extends StatelessWidget {
+  final Map<String, Object> ing;
+  final int? lastUpdatedMs;
+  final VoidCallback onEdit, onDelete, onRefill, onUsage;
+
+  const _IngredientCard({
+    required this.ing, required this.lastUpdatedMs,
+    required this.onEdit, required this.onDelete,
+    required this.onRefill, required this.onUsage,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final name      = (ing['name']     as String?) ?? '';
+    final baseUnit  = (ing['base_unit'] as String?) ?? 'g';
+    final stock     = (ing['stock']    as num?)?.toDouble() ?? 0.0;
+    final thresh    = (ing['min_threshold'] as num?)?.toDouble() ?? 0.0;
+    final supplier  = (ing['supplier'] as String?) ?? '';
+    final category  = (ing['category'] as String?) ?? '';
+    final isLow     = thresh > 0 && stock <= thresh;
+    final accent    = isLow ? AppColors.red : AppColors.green;
+
+    final barMax = thresh > 0 ? thresh * 2 : (stock > 0 ? stock * 2 : 1.0);
+    final barPct = (stock / barMax).clamp(0.0, 1.0);
+
+    String lastStr = '—';
+    if (lastUpdatedMs != null) {
+      final d = DateTime.fromMillisecondsSinceEpoch(lastUpdatedMs!).toLocal();
+      lastStr = '${d.day}/${d.month}  '
+          '${d.hour.toString().padLeft(2, '0')}:'
+          '${d.minute.toString().padLeft(2, '0')}';
+    }
+
+    final smartStr  = _smartDisplay(stock, baseUnit);
+    final rawStr    = '${_f(stock)} $baseUnit';
+    final showRaw   = smartStr != rawStr;
+
+    return AppCard(
+      borderColor: accent.withValues(alpha: 0.45),
+      padding: const EdgeInsets.all(14),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        // ── Header ────────────────────────────────────────────────────────
+        Row(children: [
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(name, style: AppTextStyles.h3,
+                  maxLines: 1, overflow: TextOverflow.ellipsis),
+              if (category.isNotEmpty)
+                Text(category, style: AppTextStyles.small,
+                    maxLines: 1, overflow: TextOverflow.ellipsis),
+            ])),
+          StatusBadge(isLow ? 'LOW' : 'OK', color: accent, small: true),
+          const SizedBox(width: 4),
+          _TinyBtn(Icons.edit_outlined, AppColors.textSecondary, onEdit),
+          _TinyBtn(Icons.delete_outline, AppColors.red, onDelete),
+        ]),
+        const SizedBox(height: 10),
+
+        // ── Stock display ─────────────────────────────────────────────────
+        Row(crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            const Icon(Icons.inventory_2_outlined,
+                size: 13, color: AppColors.textSecondary),
+            const SizedBox(width: 5),
+            Text(smartStr, style: TextStyle(
+                color: accent, fontSize: 15, fontWeight: FontWeight.w700)),
+            if (showRaw) ...[
+              const SizedBox(width: 6),
+              Text('($rawStr)', style: const TextStyle(
+                  color: AppColors.textSecondary, fontSize: 10)),
+            ],
+          ]),
+
+        // ── Threshold + bar ───────────────────────────────────────────────
+        if (thresh > 0) ...[
+          const SizedBox(height: 4),
+          Row(children: [
+            const Icon(Icons.notifications_outlined,
+                size: 13, color: AppColors.textSecondary),
+            const SizedBox(width: 5),
+            Text('Alert: ${_smartDisplay(thresh, baseUnit)}',
+                style: AppTextStyles.small),
+          ]),
+          const SizedBox(height: 6),
+          ClipRRect(borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: barPct, minHeight: 5,
+              backgroundColor: AppColors.border, color: accent,
+            )),
+        ],
+        const SizedBox(height: 6),
+
+        // ── Meta ──────────────────────────────────────────────────────────
+        if (supplier.isNotEmpty)
+          Row(children: [
+            const Icon(Icons.local_shipping_outlined,
+                size: 13, color: AppColors.textSecondary),
+            const SizedBox(width: 5),
+            Expanded(child: Text(supplier, style: AppTextStyles.small,
+                maxLines: 1, overflow: TextOverflow.ellipsis)),
+          ]),
+        Row(children: [
+          const Icon(Icons.update_outlined,
+              size: 13, color: AppColors.textSecondary),
+          const SizedBox(width: 5),
+          Text(lastStr, style: AppTextStyles.small),
+        ]),
+
+        const Spacer(),
+
+        // ── Action buttons ────────────────────────────────────────────────
+        Row(children: [
+          Expanded(child: _CardBtn(Icons.add_circle_outline,
+              'Refill', AppColors.green, onRefill)),
+          const SizedBox(width: 6),
+          Expanded(child: _CardBtn(Icons.receipt_long_outlined,
+              'Recipes', AppColors.blue, onUsage)),
+        ]),
+      ]),
+    );
+  }
+}
+
+class _TinyBtn extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+  const _TinyBtn(this.icon, this.color, this.onTap);
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+    onTap: onTap, borderRadius: BorderRadius.circular(6),
+    child: Padding(padding: const EdgeInsets.all(4),
+        child: Icon(icon, size: 16, color: color)),
+  );
+}
+
+class _CardBtn extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+  const _CardBtn(this.icon, this.label, this.color, this.onTap);
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+    onTap: onTap, borderRadius: BorderRadius.circular(8),
+    child: Container(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+        Icon(icon, size: 13, color: color),
+        const SizedBox(width: 4),
+        Text(label, style: TextStyle(color: color, fontSize: 11,
+            fontWeight: FontWeight.w600)),
+      ]),
+    ),
+  );
+}
+
+// ── Actions tab ───────────────────────────────────────────────────────────────
+
+class _ActionsTab extends StatelessWidget {
+  final List<Map<String, Object>> ingredients;
+  final Future<void> Function() onRefresh;
+  const _ActionsTab({required this.ingredients, required this.onRefresh});
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const SectionHeader('Quick Actions'),
+        AdaptiveGrid(mobileCols: 2, tabletCols: 2, desktopCols: 4,
+          childAspectRatio: 2.2,
+          children: [
+            _ActionTile(Icons.block_outlined, 'Log Wastage', AppColors.red,
+                () => _showWastageDialog(context, ingredients, onRefresh)),
+            _ActionTile(Icons.playlist_add_outlined, 'Batch Prep',
+                AppColors.amber,
+                () => _showBatchPrepDialog(context, ingredients, onRefresh)),
+            _ActionTile(Icons.restore_outlined, 'Restore KOT', AppColors.blue,
+                () => _showRestoreKOTDialog(context, ingredients, onRefresh)),
+            _ActionTile(Icons.cleaning_services_outlined, 'Fix Duplicates',
+                AppColors.textSecondary, () async {
+              await Repository.instance.ingredients.fixInventoryDuplicates();
+              await onRefresh();
+              if (context.mounted) { context.read<RestaurantProvider>()
+                  .showToast('Duplicates cleaned', icon: '✨'); }
+            }),
+          ],
+        ),
+        const SizedBox(height: 24),
+        const SectionHeader('Reports & Export'),
+        AdaptiveGrid(mobileCols: 2, tabletCols: 3, desktopCols: 3,
+          childAspectRatio: 2.2,
+          children: [
+            _ActionTile(Icons.bar_chart_outlined, 'Daily Summary',
+                AppColors.green, () => _showDailySummary(context)),
+            _ActionTile(Icons.delete_sweep_outlined, 'Wastage Logs',
+                AppColors.amber, () => _showWastageLogs(context)),
+            _ActionTile(Icons.download_outlined, 'Export CSV',
+                AppColors.blue, () => _exportCSV(context)),
+          ],
+        ),
+      ]),
+    );
+  }
+}
+
+class _ActionTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+  const _ActionTile(this.icon, this.label, this.color, this.onTap);
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+    onTap: onTap, borderRadius: BorderRadius.circular(12),
+    child: AppCard(
+      borderColor: color.withValues(alpha: 0.3), padding: const EdgeInsets.all(14),
+      child: Row(children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: color, size: 18),
+        ),
+        const SizedBox(width: 10),
+        Expanded(child: Text(label, style: AppTextStyles.h3,
+            maxLines: 2, overflow: TextOverflow.ellipsis)),
+      ]),
+    ),
+  );
+}
+
+// ── Wastage dialog ────────────────────────────────────────────────────────────
+
+Future<void> _showWastageDialog(BuildContext context,
+    List<Map<String, Object>> ingredients,
+    Future<void> Function() onRefresh) async {
+  String? ingId;
+  String baseUnit = 'g';
+  String entryUnit = 'g';
+  final qtyCtrl    = TextEditingController();
+  final reasonCtrl = TextEditingController(text: 'spoilage');
+
+  await showDialog(context: context,
+    builder: (_) => StatefulBuilder(builder: (ctx, set) => AlertDialog(
+      backgroundColor: AppColors.bg2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      title: const Text('Log Wastage', style: AppTextStyles.h2),
+      content: SizedBox(width: 400, child: Column(mainAxisSize: MainAxisSize.min,
+        children: [
+          _IngredientDropdown(ingredients: ingredients, value: ingId,
+              onChanged: (v) => set(() {
+                ingId = v;
+                final sel = ingredients.firstWhere(
+                    (x) => x['id'] == v, orElse: () => {});
+                baseUnit  = (sel['base_unit'] as String?) ?? 'g';
+                entryUnit = baseUnit;
+              })),
+          const SizedBox(height: 12),
+          Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+            Expanded(child: DarkField(
+              label: 'Quantity ($entryUnit)', controller: qtyCtrl,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            )),
+            const SizedBox(width: 10),
+            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text('Unit', style: AppTextStyles.small),
+              const SizedBox(height: 5),
+              _InlineUnitToggle(
+                units: _compatibleUnits(baseUnit), selected: entryUnit,
+                onChanged: (u) => set(() => entryUnit = u),
+              ),
+            ]),
+          ]),
+          const SizedBox(height: 10),
+          DarkField(label: 'Reason', controller: reasonCtrl),
+        ],
+      )),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel')),
+        AppButton.danger('Deduct', onPressed: () async {
+          if (ingId == null) return;
+          final raw = double.tryParse(qtyCtrl.text.trim()) ?? 0.0;
+          if (raw <= 0) return;
+          final inBase = _convert(raw, entryUnit, baseUnit) ?? raw;
+          await Repository.instance.ingredients.recordWastage(
+              ingId!, inBase, baseUnit,
+              reasonCtrl.text.trim().isEmpty ? 'wastage' : reasonCtrl.text.trim());
+          if (ctx.mounted) { Navigator.pop(ctx); }
+          await onRefresh();
+          if (context.mounted) { context.read<RestaurantProvider>()
+              .showToast('Wastage: ${_smartDisplay(inBase, baseUnit)}', icon: '🗑️'); }
+        }),
+      ],
+    )),
+  );
+}
+
+// ── Batch prep dialog ─────────────────────────────────────────────────────────
+
+Future<void> _showBatchPrepDialog(BuildContext context,
+    List<Map<String, Object>> ingredients,
+    Future<void> Function() onRefresh) async {
+  final rows = <Map<String, dynamic>>[
+    {'ingredient_id': null, 'qty': 0.0, 'unit': 'g', 'base_unit': 'g'},
+  ];
+
+  await showDialog(context: context,
+    builder: (_) => StatefulBuilder(builder: (ctx, set) => AlertDialog(
+      backgroundColor: AppColors.bg2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      title: const Text('Batch Prep Deduction', style: AppTextStyles.h2),
+      content: SizedBox(width: 500, child: SingleChildScrollView(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          ...rows.asMap().entries.map((e) {
+            final idx = e.key;
+            final it  = e.value;
+            final baseU  = (it['base_unit'] as String?) ?? 'g';
+            final entryU = (it['unit'] as String?) ?? baseU;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Row(children: [
+                Expanded(flex: 3, child: _IngredientDropdown(
+                  ingredients: ingredients,
+                  value: it['ingredient_id'] as String?,
+                  onChanged: (v) => set(() {
+                    it['ingredient_id'] = v;
+                    final sel = ingredients.firstWhere(
+                        (x) => x['id'] == v, orElse: () => {});
+                    final bu = (sel['base_unit'] as String?) ?? 'g';
+                    it['base_unit'] = bu;
+                    it['unit'] = bu;
+                  }),
+                )),
+                const SizedBox(width: 8),
+                SizedBox(width: 80, child: TextField(
+                  style: AppTextStyles.body,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  onChanged: (v) => it['qty'] = double.tryParse(v) ?? 0.0,
+                  decoration: InputDecoration(
+                    hintText: 'Qty', isDense: true,
+                    hintStyle: AppTextStyles.body.copyWith(
+                        color: AppColors.textSecondary),
+                    filled: true, fillColor: AppColors.bg1,
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 10),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: AppColors.border)),
+                    enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: AppColors.border)),
+                  ),
+                )),
+                const SizedBox(width: 6),
+                _InlineUnitToggle(
+                  units: _compatibleUnits(baseU),
+                  selected: entryU,
+                  onChanged: (u) => set(() => it['unit'] = u),
+                ),
+                const SizedBox(width: 4),
+                InkWell(
+                  onTap: () => set(() => rows.removeAt(idx)),
+                  child: const Icon(Icons.close, size: 18,
+                      color: AppColors.textSecondary),
+                ),
+              ]),
+            );
+          }),
+          Align(alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: () => set(() => rows.add(
+                  {'ingredient_id': null, 'qty': 0.0,
+                   'unit': 'g', 'base_unit': 'g'})),
+              icon: const Icon(Icons.add, size: 16),
+              label: const Text('Add Row'),
+            )),
+        ]),
+      )),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel')),
+        AppButton.danger('Deduct All', onPressed: () async {
+          final valid = rows
+              .where((it) =>
+                  it['ingredient_id'] != null &&
+                  ((it['qty'] as num?)?.toDouble() ?? 0) > 0)
+              .map((it) {
+                final eu = it['unit'] as String;
+                final bu = it['base_unit'] as String;
+                final q  = (it['qty'] as num).toDouble();
+                return {
+                  'ingredient_id': it['ingredient_id'],
+                  'qty': _convert(q, eu, bu) ?? q,
+                  'unit': bu,
+                };
+              }).toList();
+          if (valid.isEmpty) return;
+          await Repository.instance.ingredients.applyBatchPrep(valid);
+          if (ctx.mounted) { Navigator.pop(ctx); }
+          await onRefresh();
+        }),
+      ],
+    )),
+  );
+}
+
+// ── Restore KOT dialog ────────────────────────────────────────────────────────
+
+Future<void> _showRestoreKOTDialog(BuildContext context,
+    List<Map<String, Object>> ingredients,
+    Future<void> Function() onRefresh) async {
+  final provider = context.read<RestaurantProvider>();
+  final orders = provider.orders
+      .where((o) => o.status != 'Settled' && o.status != 'Cancelled')
+      .toList();
+  String? tableLabel;
+  int? selectedIdx;
+  List<Map<String, dynamic>> batches = [];
+
+  await showDialog(context: context,
+    builder: (_) => StatefulBuilder(builder: (ctx, set) => AlertDialog(
+      backgroundColor: AppColors.bg2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      title: const Text('Restore Cancelled KOT', style: AppTextStyles.h2),
+      content: SizedBox(width: 420, child: Column(mainAxisSize: MainAxisSize.min,
+        children: [
+          DropdownButtonHideUnderline(
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: AppColors.bg1,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: DropdownButton<String>(
+                value: tableLabel,
+                hint: const Text('Select table / token',
+                    style: AppTextStyles.body),
+                dropdownColor: AppColors.bg2, isExpanded: true,
+                items: orders.map((o) => DropdownMenuItem(
+                  value: o.table,
+                  child: Text(o.table, style: AppTextStyles.body),
+                )).toList(),
+                onChanged: (v) async {
+                  final txns = await Repository.instance.ingredients
+                      .listTransactions(type: 'deduction', limit: 100);
+                  final grouped = <String, List<CartItem>>{};
+                  for (final t in txns) {
+                    final kot = t['kot_number']?.toString() ?? 'KOT1';
+                    grouped.putIfAbsent(kot, () => []);
+                  }
+                  set(() {
+                    tableLabel  = v;
+                    batches     = grouped.entries
+                        .map((e) => {'kotNumber': e.key, 'items': e.value})
+                        .toList();
+                    selectedIdx = null;
+                  });
+                },
+              ),
+            ),
+          ),
+          if (batches.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            ...batches.asMap().entries.map((e) => InkWell(
+              onTap: () => set(() => selectedIdx = e.key),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(children: [
+                  Icon(selectedIdx == e.key
+                      ? Icons.radio_button_checked
+                      : Icons.radio_button_unchecked,
+                      color: selectedIdx == e.key ? AppColors.amber : AppColors.textSecondary,
+                      size: 20),
+                  const SizedBox(width: 10),
+                  Text('KOT ${e.value['kotNumber']}', style: AppTextStyles.body),
+                ]),
+              ),
+            )),
+          ],
+        ],
+      )),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel')),
+        AppButton.primary('Restore', onPressed: () async {
+          if (tableLabel == null || selectedIdx == null) return;
+          final order = orders.firstWhere((o) => o.table == tableLabel);
+          final batch = batches[selectedIdx!];
+          final items = List<CartItem>.from(batch['items'] as List);
+          await Repository.instance.ingredients
+              .restoreKOTBatch(items, orderId: order.id);
+          if (ctx.mounted) { Navigator.pop(ctx); }
+          await onRefresh();
+          if (context.mounted) { context.read<RestaurantProvider>()
+              .showToast('KOT items restored to stock', icon: '♻️'); }
+        }),
+      ],
+    )),
+  );
+}
+
+// ── Report helpers ────────────────────────────────────────────────────────────
+
+Future<void> _showDailySummary(BuildContext context) async {
+  final now   = DateTime.now();
+  final start = DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
+  final tx    = await Repository.instance.ingredients
+      .listTransactions(fromMs: start, toMs: start + 86400000, limit: 1000);
+  final cogs = tx.where((t) => t['type'] == 'purchase').fold<double>(0,
+      (s, t) => s + ((t['qty'] as num?)?.toDouble() ?? 0) *
+          ((t['cost_per_unit'] as num?)?.toDouble() ?? 0));
+  final wastage = tx.where((t) => t['type'] == 'wastage').fold<double>(
+      0, (s, t) => s + ((t['qty'] as num?)?.toDouble() ?? 0));
+  final usage = tx.where((t) => t['type'] == 'deduction').fold<double>(
+      0, (s, t) => s + ((t['qty'] as num?)?.toDouble() ?? 0));
+  if (!context.mounted) return;
+  showDialog(context: context,
+    builder: (_) => AlertDialog(
+      backgroundColor: AppColors.bg2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      title: const Text("Today's Summary", style: AppTextStyles.h2),
+      content: Column(mainAxisSize: MainAxisSize.min, children: [
+        _SRow('Deducted (sales)', '${usage.toStringAsFixed(1)} units',
+            AppColors.amber),
+        _SRow('Wastage', '${wastage.toStringAsFixed(1)} units', AppColors.red),
+        _SRow('COGS (purchases)', '₹${cogs.toStringAsFixed(0)}',
+            AppColors.green),
+      ]),
+      actions: [TextButton(onPressed: () => Navigator.pop(context),
+          child: const Text('Close'))],
+    ),
+  );
+}
+
+class _SRow extends StatelessWidget {
+  final String l, v;
+  final Color c;
+  const _SRow(this.l, this.v, this.c);
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 6),
+    child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+      Text(l, style: AppTextStyles.body),
+      Text(v, style: TextStyle(color: c, fontWeight: FontWeight.w700)),
+    ]),
+  );
+}
+
+Future<void> _showWastageLogs(BuildContext context) async {
+  final now   = DateTime.now();
+  final start = DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
+  final tx    = await Repository.instance.ingredients
+      .listTransactions(type: 'wastage',
+          fromMs: start, toMs: start + 86400000, limit: 500);
+  if (!context.mounted) return;
+  showDialog(context: context,
+    builder: (_) => AlertDialog(
+      backgroundColor: AppColors.bg2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      title: const Text("Today's Wastage", style: AppTextStyles.h2),
+      content: SizedBox(width: 460, height: 300,
+        child: tx.isEmpty
+            ? const Center(child: Text('No wastage today 🎉',
+                style: AppTextStyles.body))
+            : ListView.separated(
+                itemCount: tx.length,
+                separatorBuilder: (_, __) =>
+                    const Divider(color: AppColors.border, height: 1),
+                itemBuilder: (_, i) {
+                  final t = tx[i];
+                  return ListTile(
+                    dense: true, contentPadding: EdgeInsets.zero,
+                    title: Text('${t['ingredient_id']}',
+                        style: AppTextStyles.body),
+                    subtitle: Text('${t['reason'] ?? '—'}',
+                        style: AppTextStyles.small),
+                    trailing: Text(
+                      '${(t['qty'] as num?)?.toStringAsFixed(1)} ${t['unit']}',
+                      style: const TextStyle(color: AppColors.red,
+                          fontWeight: FontWeight.w600)),
+                  );
+                }),
+      ),
+      actions: [TextButton(onPressed: () => Navigator.pop(context),
+          child: const Text('Close'))],
+    ),
+  );
+}
+
+Future<void> _exportCSV(BuildContext context) async {
+  final now   = DateTime.now();
+  final start = DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
+  final tx    = await Repository.instance.ingredients
+      .listTransactions(fromMs: start, toMs: start + 86400000, limit: 5000);
+  const hdr =
+      'id,ingredient_id,type,qty,unit,cost_per_unit,supplier,invoice,'
+      'note,timestamp,order_id,kot_number,reason';
+  final body = tx.map((t) => [
+    t['id'], t['ingredient_id'], t['type'], t['qty'], t['unit'],
+    t['cost_per_unit'] ?? '', t['supplier'] ?? '', t['invoice'] ?? '',
+    t['note'] ?? '', t['timestamp'], t['related_order_id'] ?? '',
+    t['kot_number'] ?? '', t['reason'] ?? '',
+  ].join(',')).join('\n');
+  web.openNewTab(
+      'data:text/csv;charset=utf-8,${Uri.encodeComponent('$hdr\n$body')}');
+}
+
+// ── Shared widgets ────────────────────────────────────────────────────────────
+
+class _IngredientDropdown extends StatelessWidget {
+  final List<Map<String, Object>> ingredients;
+  final String? value;
+  final ValueChanged<String?> onChanged;
+  const _IngredientDropdown({required this.ingredients,
+      required this.value, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) => DropdownButtonHideUnderline(
+    child: Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: AppColors.bg1,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: DropdownButton<String>(
+        value: value,
+        hint: const Text('Select ingredient', style: AppTextStyles.body),
+        dropdownColor: AppColors.bg2, isExpanded: true,
+        items: ingredients.map((r) {
+          final name = (r['name'] as String?) ?? '';
+          final cat  = (r['category'] as String?) ?? '';
+          final bu   = (r['base_unit'] as String?) ?? '';
+          return DropdownMenuItem(value: r['id'] as String,
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min, children: [
+              Text(name, style: AppTextStyles.body),
+              Text('$cat • $bu', style: AppTextStyles.small),
+            ]),
+          );
+        }).toList(),
+        onChanged: onChanged,
+      ),
+    ),
+  );
+}
+
+class _IngredientBadge extends StatelessWidget {
+  final Map<String, Object> ing;
+  const _IngredientBadge(this.ing);
+
+  @override
+  Widget build(BuildContext context) {
+    final name = (ing['name'] as String?) ?? '';
+    final cat  = (ing['category'] as String?) ?? '';
+    final bu   = (ing['base_unit'] as String?) ?? '';
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.bg1,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min, children: [
+        Text(name, style: AppTextStyles.h3),
+        Text('$cat • $bu', style: AppTextStyles.small),
+      ]),
+    );
+  }
+}
+
+/// Segmented g/kg or ml/l toggle — auto-converts values on switch.
+class _InlineUnitToggle extends StatelessWidget {
+  final List<String> units;
+  final String selected;
+  final ValueChanged<String> onChanged;
+  const _InlineUnitToggle({required this.units,
+      required this.selected, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    if (units.length == 1) return _UnitBadge(units.first);
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.bg1,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: units.map((u) {
+        final active = u == selected;
+        return GestureDetector(
+          onTap: () => onChanged(u),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 120),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: active ? AppColors.amber : Colors.transparent,
+              borderRadius: BorderRadius.circular(7),
+            ),
+            child: Text(u, style: TextStyle(
+              color: active ? Colors.black : AppColors.textSecondary,
+              fontSize: 12,
+              fontWeight: active ? FontWeight.w700 : FontWeight.normal,
+            )),
+          ),
+        );
+      }).toList()),
+    );
+  }
+}
+
+/// Full unit family picker used in the create dialog.
+class _UnitPicker extends StatelessWidget {
+  final String selected;
+  final ValueChanged<String> onChanged;
+  const _UnitPicker({required this.selected, required this.onChanged});
+
+  static String _hint(String u) {
+    switch (u) {
+      case 'g':  case 'kg':
+        return 'Stored as grams. Enter stock in g or kg interchangeably.';
+      case 'ml': case 'l':
+        return 'Stored as ml. Enter stock in ml or L interchangeably.';
+      case 'pc': return 'Stored as piece count.';
+      default:   return '';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const Text('Base Unit', style: AppTextStyles.small),
+      const SizedBox(height: 6),
+      Wrap(spacing: 6, runSpacing: 6,
+        children: _kUnitFamilies.entries.expand((fam) =>
+          fam.value.map((u) {
+            final active = u == selected;
+            return GestureDetector(
+              onTap: () => onChanged(u),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 120),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                decoration: BoxDecoration(
+                  color: active ? AppColors.amber : AppColors.bg1,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                      color: active ? AppColors.amber : AppColors.border),
+                ),
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Text(u, style: TextStyle(
+                    color: active ? Colors.black : AppColors.textPrimary,
+                    fontSize: 13,
+                    fontWeight: active ? FontWeight.w700 : FontWeight.normal,
+                  )),
+                  Text(fam.key, style: TextStyle(
+                    color: active ? Colors.black54 : AppColors.textSecondary,
+                    fontSize: 9,
+                  )),
+                ]),
+              ),
+            );
+          })
+        ).toList(),
+      ),
+      if (_hint(selected).isNotEmpty) ...[
+        const SizedBox(height: 6),
+        Text(_hint(selected), style: AppTextStyles.small),
+      ],
+    ]);
+  }
+}
+
+class _UnitBadge extends StatelessWidget {
+  final String unit;
+  const _UnitBadge(this.unit);
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+    decoration: BoxDecoration(
+      color: AppColors.bg3,
+      borderRadius: BorderRadius.circular(6),
+      border: Border.all(color: AppColors.border),
+    ),
+    child: Text(unit, style: const TextStyle(
+        color: AppColors.textPrimary, fontSize: 12,
+        fontWeight: FontWeight.w600)),
+  );
+}

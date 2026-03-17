@@ -4,11 +4,11 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/restaurant_provider.dart';
+import '../widgets/app_ui_kit.dart';
 import '../providers/employee_provider.dart';
 import '../providers/expense_provider.dart';
 import '../data/repository.dart';
 import '../utils/auth_helper.dart';
-import '../widgets/page_scaffold.dart';
 
 class EmployeeScreen extends StatelessWidget {
   const EmployeeScreen({super.key});
@@ -41,7 +41,7 @@ class EmployeeScreen extends StatelessWidget {
       }
       cardWidth = cardWidth.clamp(220.0, usableWidth).toDouble();
 
-      return PageScaffold(
+      return AppPageScaffold(
         title: 'Employees',
         actions: isAdmin ? [
           ElevatedButton.icon(

@@ -73,9 +73,20 @@ window.onload = function() {
     final timestamp = billData['timestamp'];
     final table = billData['table'];
     final subtotal = billData['subtotal'] as double;
-    final gst = billData['gst'] as double;
     final total = billData['total'] as double;
     final paymentMethod = billData['paymentMethod'];
+
+    // Dynamic tax fields (populated by restaurant_provider.dart)
+    final taxEnabled = billData['taxEnabled'] as bool? ?? true;
+    final taxLabel   = billData['taxLabel']   as String? ?? 'GST';
+    final taxRate    = billData['taxRate']     as double? ?? 0.05;
+    final taxInclusive = billData['taxInclusive'] as bool? ?? false;
+    final gst        = billData['gst']         as double? ?? (subtotal * taxRate);
+
+    // Build the tax line only when tax is enabled
+    final taxLine = taxEnabled
+        ? '<div class="row"><span>$taxLabel (${(taxRate * 100).toStringAsFixed(taxRate * 100 == (taxRate * 100).truncateToDouble() ? 0 : 2)}%)${taxInclusive ? ' incl.' : ''}:</span><span>${gst.toStringAsFixed(2)}</span></div>'
+        : '';
 
     final content = '''
 <style>
@@ -109,7 +120,7 @@ ${items.map((i) {
     }).join()}
 <div class="totals">
 <div class="row"><span>Subtotal:</span><span>${subtotal.toStringAsFixed(2)}</span></div>
-<div class="row"><span>GST (5%):</span><span>${gst.toStringAsFixed(2)}</span></div>
+$taxLine
 <div class="row total-row"><span>TOTAL:</span><span>${total.toStringAsFixed(2)}</span></div>
 </div>
 <div style="margin-top: 10px; font-weight: bold;">Payment: $paymentMethod</div>

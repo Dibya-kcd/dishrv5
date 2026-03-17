@@ -1,109 +1,38 @@
-// ignore_for_file: deprecated_member_use
-import 'dart:convert';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/restaurant_provider.dart';
 import '../models/menu_item.dart';
 import '../models/cart_item.dart';
+import '../widgets/app_ui_kit.dart';
 
-Widget _buildMenuImage(String value, {double size = 28}) {
-  const fallback = '🍽️';
-  final v = value.trim();
-  if (v.startsWith('data:image/')) {
-    try {
-      final baseStr = v.split(',').last;
-      final bytes = base64Decode(baseStr);
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: Image.memory(
-          Uint8List.fromList(bytes),
-          width: size,
-          height: size,
-          fit: BoxFit.cover,
-        ),
-      );
-    } catch (_) {
-      return Text(fallback, style: TextStyle(fontSize: size * 0.8));
-    }
-  }
-  if (v.isEmpty) {
-    return Text(fallback, style: TextStyle(fontSize: size * 0.8));
-  }
-  return Text(v, style: TextStyle(fontSize: size * 0.8));
-}
-
-class TakeoutScreen extends StatelessWidget {
+class TakeoutScreen extends StatefulWidget {
   final bool embedded;
   const TakeoutScreen({super.key, this.embedded = false});
+  @override
+  State<TakeoutScreen> createState() => _TakeoutScreenState();
+}
 
-  void _showCancelOrderDialog(BuildContext context, String orderId) {
-    final reasons = ['Customer left', 'Emergency', 'Service too slow', 'Mistake', 'Other'];
-    String selectedReason = reasons.first;
-    bool isWastage = true;
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          backgroundColor: const Color(0xFF18181B),
-          title: const Text('Cancel Entire Order?', style: TextStyle(color: Colors.white, letterSpacing: 0.5)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'This will cancel all items in the order. This action cannot be undone.',
-                style: TextStyle(color: Colors.white70),
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: selectedReason,
-                items: reasons.map((r) => DropdownMenuItem(value: r, child: Text(r, style: const TextStyle(color: Colors.white)))).toList(),
-                onChanged: (v) => setState(() => selectedReason = v!),
-                dropdownColor: const Color(0xFF27272A),
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  labelText: 'Reason',
-                  labelStyle: TextStyle(color: Colors.grey),
-                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
-                ),
-              ),
-              const SizedBox(height: 16),
-              CheckboxListTile(
-                title: const Text('Mark as Wastage', style: TextStyle(color: Colors.white)),
-                subtitle: const Text('Ingredients will be deducted', style: TextStyle(color: Colors.grey)),
-                value: isWastage,
-                onChanged: (v) => setState(() => isWastage = v!),
-                activeColor: Colors.red,
-                checkColor: Colors.white,
-                contentPadding: EdgeInsets.zero,
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Back'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                ctx.read<RestaurantProvider>().cancelOrder(orderId, selectedReason, isWastage);
-                Navigator.pop(ctx);
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
-              child: const Text('Confirm Cancel Order'),
-            ),
-          ],
-        ),
-      ),
-    );
+class _TakeoutScreenState extends State<TakeoutScreen> {
+  String _searchQuery = '';
+
+  List<MenuItem> _filtered(List<MenuItem> all, String category) {
+    final base = category == 'All'
+        ? all
+        : all.where((m) => m.category == category).toList();
+    final available = base.where(menuIsAvailable).toList();
+    if (_searchQuery.isEmpty) return available;
+    final q = _searchQuery.toLowerCase();
+    return available
+        .where((m) =>
+            m.name.toLowerCase().contains(q) ||
+            m.category.toLowerCase().contains(q))
+        .toList();
   }
 
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<RestaurantProvider>();
-    final categories = provider.categories;
     final selectedCategory = provider.selectedCategory;
-    final menuItems = selectedCategory == 'All' ? provider.menuItems : provider.menuItems.where((m) => m.category == selectedCategory).toList();
     final takeoutCart = provider.takeoutCart;
     final tokenId = provider.takeoutTokenId;
     final activeItems = provider.getActiveOrderItemsByLabel('Takeout #$tokenId');
@@ -115,40 +44,7 @@ class TakeoutScreen extends StatelessWidget {
       }
     }();
     final kotBatches = provider.getKotBatchesForTable('Takeout #$tokenId');
-
-    bool isAvailable(item) {
-      if (item.soldOut == true) return false;
-      final now = DateTime.now();
-      final days = item.availableDays;
-      final dayMap = {
-        1: 'Mon',
-        2: 'Tue',
-        3: 'Wed',
-        4: 'Thu',
-        5: 'Fri',
-        6: 'Sat',
-        7: 'Sun',
-      };
-      final today = dayMap[now.weekday]!;
-      if (!days.contains(today)) return false;
-      if (item.availableStart != null && item.availableEnd != null && item.availableStart!.isNotEmpty && item.availableEnd!.isNotEmpty) {
-        final partsS = item.availableStart!.split(':');
-        final partsE = item.availableEnd!.split(':');
-        final sH = int.tryParse(partsS[0]) ?? 0;
-        final sM = int.tryParse(partsS.length > 1 ? partsS[1] : '0') ?? 0;
-        final eH = int.tryParse(partsE[0]) ?? 23;
-        final eM = int.tryParse(partsE.length > 1 ? partsE[1] : '59') ?? 59;
-        final start = TimeOfDay(hour: sH, minute: sM);
-        final end = TimeOfDay(hour: eH, minute: eM);
-        final nowTod = TimeOfDay.fromDateTime(now);
-        final nowMin = nowTod.hour * 60 + nowTod.minute;
-        final sMin = start.hour * 60 + start.minute;
-        final eMin = end.hour * 60 + end.minute;
-        if (nowMin < sMin || nowMin > eMin) return false;
-      }
-      return true;
-    }
-    final filtered = menuItems.where(isAvailable).toList();
+    final filtered = _filtered(provider.menuItems, selectedCategory);
 
     return LayoutBuilder(builder: (context, constraints) {
       final width = constraints.maxWidth;
@@ -193,7 +89,7 @@ class TakeoutScreen extends StatelessWidget {
                           onPressed: () {
                             try {
                               final ord = provider.orders.firstWhere((o) => o.table == 'Takeout #$tokenId' && o.status != 'Settled' && o.status != 'Cancelled');
-                              _showCancelOrderDialog(context, ord.id);
+                              showCancelOrderDialog(context, ord.id);
                             } catch (_) {}
                           },
                         ),
@@ -373,7 +269,7 @@ class TakeoutScreen extends StatelessWidget {
                     Builder(builder: (_) {
                       final consolidated = provider.consolidatedItemsForTable('Takeout #$tokenId');
                       final basis = consolidated.isNotEmpty ? consolidated : takeoutCart;
-                      return Text('₹${(provider.cartTotal(basis) * 1.05).toStringAsFixed(2)}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold));
+                      return Text('₹${(provider.taxSettings.totalFor(provider.cartTotal(basis))).toStringAsFixed(2)}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold));
                     }),
                   ]),
                   const SizedBox(height: 8),
@@ -400,7 +296,7 @@ class TakeoutScreen extends StatelessWidget {
           ],
         ),
       );
-      if (embedded) {
+      if (widget.embedded) {
         final isWide = width >= 600;
         final minTile = isWide ? 200.0 : 160.0;
         final cross = ((isWide ? width : (width - 32)) / minTile).floor().clamp(isWide ? 2 : 2, isWide ? 6 : 2);
@@ -410,67 +306,26 @@ class TakeoutScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('Takeout', style: TextStyle(color: Color(0xFFA1A1AA))),
-                    Row(
-                      children: [
-                        DropdownButton<String>(
-                          value: categories.contains(selectedCategory) ? selectedCategory : 'All',
-                          items: categories.map((c) => DropdownMenuItem(
-                            value: c,
-                            child: Text(c, style: const TextStyle(color: Colors.white)),
-                          )).toList(),
-                          onChanged: (v) {
-                            if (v != null) provider.setSelectedCategory(v);
-                          },
-                          dropdownColor: const Color(0xFF27272A),
-                          style: const TextStyle(color: Colors.white),
-                        ),
-                        const SizedBox(width: 8),
-                        Stack(
-                          clipBehavior: Clip.none,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.shopping_cart_outlined, color: Colors.white),
-                              tooltip: 'Open Cart',
-                              onPressed: () {
-                                showModalBottomSheet(
-                                  context: context,
-                                  isScrollControlled: true,
-                                  backgroundColor: const Color(0xFF18181B),
-                                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(12))),
-                                  builder: (_) {
-                                    return SafeArea(
-                                      child: SizedBox(
-                                        height: MediaQuery.of(context).size.height * 0.7,
-                                        child: cartPanel,
-                                      ),
-                                    );
-                                  },
-                                );
-                              },
-                            ),
-                            if (takeoutCart.fold<int>(0, (s, i) => s + i.quantity) > 0)
-                              Positioned(
-                                right: 6,
-                                top: 6,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                  decoration: const BoxDecoration(color: Color(0xFFEF4444), borderRadius: BorderRadius.all(Radius.circular(10))),
-                                  child: Text(
-                                    '${takeoutCart.fold<int>(0, (s, i) => s + i.quantity)}',
-                                    style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ],
+                Row(children: [
+                  Expanded(child: MenuFilterBar(
+                  categories: provider.categories,
+                  selectedCategory: provider.selectedCategory,
+                  onCategoryChanged: provider.setSelectedCategory,
+                  searchQuery: _searchQuery,
+                  onSearchChanged: (q) => setState(() => _searchQuery = q),
+                )),
+                  const SizedBox(width: 8),
+                  _TakeoutCartBadge(
+                    count: takeoutCart.fold<int>(0, (s, i) => s + i.quantity),
+                    onTap: () => showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: AppColors.bg1,
+                      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(14))),
+                      builder: (_) => SafeArea(child: SizedBox(height: MediaQuery.of(context).size.height * 0.72, child: cartPanel)),
                     ),
-                  ],
-                ),
+                  ),
+                ]),
                 const SizedBox(height: 12),
                 GridView.builder(
                   shrinkWrap: true,
@@ -512,81 +367,36 @@ class TakeoutScreen extends StatelessWidget {
         );
       }
       if (width < 600) {
-        if (!embedded) {
+        if (!widget.embedded) {
           return Padding(
             padding: const EdgeInsets.all(16),
             child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
-                          Text('Takeout', style: TextStyle(color: Color(0xFFA1A1AA))),
-                          Text('Take order for takeout', style: TextStyle(color: Color(0xFFA1A1AA), fontSize: 12)),
-                        ],
-                      ),
-                      Row(
-                        children: [
-                          DropdownButton<String>(
-                            value: categories.contains(selectedCategory) ? selectedCategory : 'All',
-                            items: categories.map((c) => DropdownMenuItem(
-                              value: c,
-                              child: Text(c, style: const TextStyle(color: Colors.white)),
-                            )).toList(),
-                            onChanged: (v) {
-                              if (v != null) provider.setSelectedCategory(v);
-                            },
-                            dropdownColor: const Color(0xFF27272A),
-                            style: const TextStyle(color: Colors.white),
-                          ),
-                          const SizedBox(width: 8),
-                          Stack(
-                            clipBehavior: Clip.none,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.shopping_cart_outlined, color: Colors.white),
-                                tooltip: 'Open Cart',
-                                onPressed: () {
-                                  showModalBottomSheet(
-                                    context: context,
-                                    useRootNavigator: true,
-                                    isScrollControlled: true,
-                                    backgroundColor: const Color(0xFF18181B),
-                                    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(12))),
-                                    builder: (_) {
-                                      return SafeArea(
-                                        child: SizedBox(
-                                          height: MediaQuery.of(context).size.height * 0.7,
-                                          child: cartPanel,
-                                        ),
-                                      );
-                                    },
-                                  );
-                                },
-                              ),
-                              if (takeoutCart.fold<int>(0, (s, i) => s + i.quantity) > 0)
-                                Positioned(
-                                  right: 6,
-                                  top: 6,
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                    decoration: const BoxDecoration(color: Color(0xFFEF4444), borderRadius: BorderRadius.all(Radius.circular(10))),
-                                    child: Text(
-                                      '${takeoutCart.fold<int>(0, (s, i) => s + i.quantity)}',
-                                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ],
+                  const Text('Takeout', style: TextStyle(color: AppColors.textSecondary)),
+                  const SizedBox(height: 8),
+                  Row(children: [
+                    Expanded(child: MenuFilterBar(
+                  categories: provider.categories,
+                  selectedCategory: provider.selectedCategory,
+                  onCategoryChanged: provider.setSelectedCategory,
+                  searchQuery: _searchQuery,
+                  onSearchChanged: (q) => setState(() => _searchQuery = q),
+                )),
+                    const SizedBox(width: 8),
+                    _TakeoutCartBadge(
+                    count: takeoutCart.fold<int>(0, (s, i) => s + i.quantity),
+                    onTap: () => showModalBottomSheet(
+                      context: context,
+                      useRootNavigator: true,
+                      isScrollControlled: true,
+                      backgroundColor: AppColors.bg1,
+                      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(14))),
+                      builder: (_) => SafeArea(child: SizedBox(height: MediaQuery.of(context).size.height * 0.72, child: cartPanel)),
+                    ),
                   ),
+                  ]),
                   const SizedBox(height: 12),
                   GridView.builder(
                     shrinkWrap: true,
@@ -612,7 +422,7 @@ class TakeoutScreen extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _buildMenuImage(item.image, size: 28),
+                              buildMenuImage(item.image, size: 28),
                               const SizedBox(height: 6),
                               Text(item.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
                               Text('₹${item.price}', style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
@@ -680,26 +490,12 @@ class TakeoutScreen extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: categories.map((c) {
-                        final active = selectedCategory == c;
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: TextButton(
-                            onPressed: () => provider.setSelectedCategory(c),
-                            style: TextButton.styleFrom(
-                              backgroundColor: active ? const Color(0xFFF59E0B) : const Color(0xFF18181B),
-                              foregroundColor: active ? Colors.white : const Color(0xFFA1A1AA),
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                            ),
-                            child: Text(c),
-                          ),
-                        );
-                      }).toList(),
-                    ),
+                  MenuFilterBar(
+                    categories: provider.categories,
+                    selectedCategory: provider.selectedCategory,
+                    onCategoryChanged: provider.setSelectedCategory,
+                    searchQuery: _searchQuery,
+                    onSearchChanged: (q) => setState(() => _searchQuery = q),
                   ),
                   const SizedBox(height: 12),
                   GridView.builder(
@@ -726,7 +522,7 @@ class TakeoutScreen extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _buildMenuImage(item.image, size: 28),
+                              buildMenuImage(item.image, size: 28),
                               const SizedBox(height: 6),
                               Text(item.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
                               Text('₹${item.price}', style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
@@ -753,59 +549,15 @@ class TakeoutScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: const [
-                              Text('Take order for takeout', style: TextStyle(color: Color(0xFFA1A1AA), fontSize: 12)),
-                            ],
-                          ),
-                          const SizedBox(width: 8),
-                          IconButton(
-                            onPressed: () {
-                              showModalBottomSheet(
-                                context: context,
-                                backgroundColor: const Color(0xFF18181B),
-                                shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(12))),
-                                builder: (_) {
-                                  final cats = context.read<RestaurantProvider>().categories;
-                                  final current = context.read<RestaurantProvider>().selectedCategory;
-                                  return Padding(
-                                    padding: const EdgeInsets.all(16),
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        const Text('Category Filter', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                                        const SizedBox(height: 12),
-                                        Wrap(
-                                          spacing: 8,
-                                          runSpacing: 8,
-                                          children: cats.map((c) {
-                                            final selected = c == current;
-                                            return FilterChip(
-                                              selected: selected,
-                                              label: Text(c),
-                                              onSelected: (_) {
-                                                context.read<RestaurantProvider>().setSelectedCategory(c);
-                                                Navigator.pop(context);
-                                              },
-                                            );
-                                          }).toList(),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              );
-                            },
-                            icon: const Icon(Icons.tune, color: Colors.white),
-                            tooltip: 'Filters',
-                          ),
-                        ],
-                      ),
+                      const Text('Takeout', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                      const SizedBox(height: 10),
+                      MenuFilterBar(
+                      categories: provider.categories,
+                      selectedCategory: provider.selectedCategory,
+                      onCategoryChanged: provider.setSelectedCategory,
+                      searchQuery: _searchQuery,
+                      onSearchChanged: (q) => setState(() => _searchQuery = q),
+                    ),
                       const SizedBox(height: 12),
                       Expanded(
                         child: LayoutBuilder(builder: (context, c) {
@@ -836,7 +588,7 @@ class TakeoutScreen extends StatelessWidget {
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      _buildMenuImage(item.image, size: 28),
+                                      buildMenuImage(item.image, size: 28),
                                       const SizedBox(height: 6),
                                       Text(item.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
                                       Text('₹${item.price}', style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
@@ -865,59 +617,15 @@ class TakeoutScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: const [
-                              Text('Take order for takeout', style: TextStyle(color: Color(0xFFA1A1AA), fontSize: 12)),
-                            ],
-                          ),
-                          const SizedBox(width: 8),
-                          IconButton(
-                            onPressed: () {
-                              showModalBottomSheet(
-                                context: context,
-                                backgroundColor: const Color(0xFF18181B),
-                                shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(12))),
-                                builder: (_) {
-                                  final cats = context.read<RestaurantProvider>().categories;
-                                  final current = context.read<RestaurantProvider>().selectedCategory;
-                                  return Padding(
-                                    padding: const EdgeInsets.all(16),
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        const Text('Category Filter', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                                        const SizedBox(height: 12),
-                                        Wrap(
-                                          spacing: 8,
-                                          runSpacing: 8,
-                                          children: cats.map((c) {
-                                            final selected = c == current;
-                                            return FilterChip(
-                                              selected: selected,
-                                              label: Text(c),
-                                              onSelected: (_) {
-                                                context.read<RestaurantProvider>().setSelectedCategory(c);
-                                                Navigator.pop(context);
-                                              },
-                                            );
-                                          }).toList(),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              );
-                            },
-                            icon: const Icon(Icons.tune, color: Colors.white),
-                            tooltip: 'Filters',
-                          ),
-                        ],
-                      ),
+                      const Text('Takeout', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                      const SizedBox(height: 10),
+                      MenuFilterBar(
+                      categories: provider.categories,
+                      selectedCategory: provider.selectedCategory,
+                      onCategoryChanged: provider.setSelectedCategory,
+                      searchQuery: _searchQuery,
+                      onSearchChanged: (q) => setState(() => _searchQuery = q),
+                    ),
                       const SizedBox(height: 12),
                       Expanded(
                         child: LayoutBuilder(builder: (context, c) {
@@ -948,7 +656,7 @@ class TakeoutScreen extends StatelessWidget {
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      _buildMenuImage(item.image, size: 28),
+                                      buildMenuImage(item.image, size: 28),
                                       const SizedBox(height: 6),
                                       Text(item.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
                                       Text('₹${item.price}', style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
@@ -970,5 +678,44 @@ class TakeoutScreen extends StatelessWidget {
         }
       }
     });
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Takeout cart badge button (mobile)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _TakeoutCartBadge extends StatelessWidget {
+  final int count;
+  final VoidCallback onTap;
+  const _TakeoutCartBadge({required this.count, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(clipBehavior: Clip.none, children: [
+      IconButton(
+        icon: const Icon(Icons.shopping_cart_outlined, color: Colors.white),
+        onPressed: onTap,
+        tooltip: 'Cart',
+      ),
+      if (count > 0)
+        Positioned(
+          right: 4,
+          top: 4,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+            decoration: const BoxDecoration(
+                color: AppColors.red,
+                borderRadius: BorderRadius.all(Radius.circular(10))),
+            child: Text(
+              '$count',
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold),
+            ),
+          ),
+        ),
+    ]);
   }
 }

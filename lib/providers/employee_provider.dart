@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../data/repository.dart';
 import '../data/sync_service.dart';
@@ -5,8 +6,21 @@ import '../utils/auth_helper.dart';
 
 class EmployeeProvider extends ChangeNotifier {
   List<Map<String, dynamic>> _employees = [];
+  StreamSubscription? _dataSub;
 
   List<Map<String, dynamic>> get employees => _employees;
+
+  EmployeeProvider() {
+    _dataSub = Repository.instance.onDataChanged.listen((_) {
+      loadEmployees();
+    });
+  }
+
+  @override
+  void dispose() {
+    _dataSub?.cancel();
+    super.dispose();
+  }
 
   Future<void> loadEmployees() async {
     _employees = await Repository.instance.employees.listEmployees();
@@ -34,19 +48,18 @@ class EmployeeProvider extends ChangeNotifier {
     }
 
     try {
-      // Step 1: Use Online (Firebase) as Master - Soft delete in Firebase
+      // Write soft-delete to Firebase; the sync listener propagates it to SQLite automatically.
       await SyncService.instance.deleteEmployee(id);
 
-      // Step 2: Propagate Deletion to Offline (SQLite) - Local removal
-      // We call with fromSync: true to avoid redundant SyncService calls
-      await Repository.instance.employees.deleteEmployee(id, fromSync: true);
-
-      // Step 4: Audit log ensures traceability
+      // Audit log ensures traceability
       await SyncService.instance.logAuditEvent('employee_deleted', {
         'employee_id': id,
         'deleted_by_role': role,
         'deleted_by_client': Repository.instance.clientMeta?['name'] ?? 'Unknown',
       });
+
+      // Optimistically reflect deletion locally right away (before listener fires)
+      await Repository.instance.employees.deleteEmployee(id, fromSync: true);
 
       await loadEmployees();
     } catch (e) {

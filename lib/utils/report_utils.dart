@@ -55,13 +55,13 @@ List<Order> getFilteredOrders(
     final startOfDay = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day).millisecondsSinceEpoch;
     startMs = startOfDay;
     endMs = startOfDay + 24 * 60 * 60 * 1000;
-  } else if (range == '7D') {
+  } else if (range == 'Week') {
     startMs = nowMs - 7 * 24 * 60 * 60 * 1000;
     endMs = nowMs;
-  } else if (range == '30D') {
+  } else if (range == 'Month') {
     startMs = nowMs - 30 * 24 * 60 * 60 * 1000;
     endMs = nowMs;
-  } else if (range == '365D') {
+  } else if (range == 'Year') {
     startMs = nowMs - 365 * 24 * 60 * 60 * 1000;
     endMs = nowMs;
   } else {
@@ -78,7 +78,7 @@ List<Order> getFilteredOrders(
         final n = int.tryParse(s);
         if (n != null) tsRaw = n < 1000000000000 ? n * 1000 : n;
       }
-      if (tsRaw == null && range != 'All Time') return false;
+      if (tsRaw == null && range != 'All') return false;
     } else {
       if (tsRaw < startMs || tsRaw >= endMs) return false;
     }
@@ -103,13 +103,13 @@ Map<String, int> getDateRange(String range) {
     final startOfDay = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day).millisecondsSinceEpoch;
     startMs = startOfDay;
     endMs = startOfDay + 24 * 60 * 60 * 1000;
-  } else if (range == '7D') {
+  } else if (range == 'Week') {
     startMs = nowMs - 7 * 24 * 60 * 60 * 1000;
     endMs = nowMs;
-  } else if (range == '30D') {
+  } else if (range == 'Month') {
     startMs = nowMs - 30 * 24 * 60 * 60 * 1000;
     endMs = nowMs;
-  } else if (range == '365D') {
+  } else if (range == 'Year') {
     startMs = nowMs - 365 * 24 * 60 * 60 * 1000;
     endMs = nowMs;
   } else {
@@ -119,13 +119,19 @@ Map<String, int> getDateRange(String range) {
   return {'startMs': startMs, 'endMs': endMs};
 }
 
+/// [taxRate]    — the current effective tax rate (e.g. 0.05 for 5 %).
+///               Pass `0` when tax is disabled to get taxCollected = 0.
+/// [taxInclusive] — true if prices already include tax (back-calculation).
 ReportStats calculateReportStats(
   List<Order> filtered,
   List<Map<String, dynamic>> expenses,
   List<MenuItem> menuItems,
   int startMs,
-  int endMs,
-) {
+  int endMs, {
+  double taxRate = 0.05,
+  bool taxInclusive = false,
+  bool taxEnabled = true,
+}) {
   final completed = filtered.where((o) => o.status == 'Settled' || o.status == 'Completed').toList();
   final total = completed.fold<double>(0, (s, o) => s + o.total);
   final count = completed.length;
@@ -145,20 +151,31 @@ ReportStats calculateReportStats(
   final expensesTotal = expenses
       .where((e) => (e['timestamp'] as int) >= startMs && (e['timestamp'] as int) < endMs)
       .fold<double>(0.0, (s, e) => s + (e['amount'] as num).toDouble());
-  final taxCollected = completed.fold<double>(0.0, (s, o) => s + (o.total - (o.total / 1.05)));
+
+  // Tax collected: respect enabled flag and inclusive/exclusive distinction
+  double taxCollected = 0.0;
+  if (taxEnabled && taxRate > 0) {
+    taxCollected = completed.fold<double>(0.0, (s, o) {
+      if (taxInclusive) {
+        // Tax is already inside the price: tax = total - total / (1 + rate)
+        return s + (o.total - o.total / (1.0 + taxRate));
+      } else {
+        // Tax is added on top: tax = subtotal * rate = total / (1 + rate) * rate
+        return s + (o.total / (1.0 + taxRate)) * taxRate;
+      }
+    });
+  }
+
   final netRevenue = total - expensesTotal;
 
   final itemsCount = <int, int>{};
   final catCount = <String, int>{};
-  final instrCount = <String, int>{};
   for (final o in completed) {
     for (final it in o.items) {
       itemsCount[it.id] = (itemsCount[it.id] ?? 0) + it.quantity;
       final mi = menuItems.firstWhere((m) => m.id == it.id, orElse: () => MenuItem(id: -1, name: '', category: '', price: 0, image: ''));
       final cat = mi.category;
       if (cat.isNotEmpty) catCount[cat] = (catCount[cat] ?? 0) + it.quantity;
-      final note = (it.instructions ?? '').trim();
-      if (note.isNotEmpty) instrCount[note] = (instrCount[note] ?? 0) + 1;
     }
   }
   final topCats = catCount.entries.toList()..sort((a, b) => b.value.compareTo(a.value));

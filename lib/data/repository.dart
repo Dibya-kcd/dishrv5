@@ -8,6 +8,7 @@ import '../models/menu_item.dart';
 import '../models/order.dart';
 import '../models/cart_item.dart';
 import '../models/table_info.dart';
+import '../models/tax_settings.dart';
 import 'sync_service.dart';
 
 class Repository {
@@ -22,6 +23,7 @@ class Repository {
   final tables = TablesDao();
   final expenses = ExpensesDao();
   final settings = SettingsDao();
+  final taxSettings = TaxSettingsDao();
   final ingredients = IngredientsDao();
   final employees = EmployeesDao();
   final roles = RoleDao();
@@ -38,7 +40,17 @@ class Repository {
       await txn.delete('recipes');
       await txn.delete('inventory_txns');
       await txn.delete('ingredients');
+      await txn.delete('role_configs');
       await txn.delete('settings');
+      // Re-seed required defaults so the app doesn't break after a reset
+      final categoriesJson = jsonEncode(['All','Starters','Main Course','South Indian','Breads','Desserts','Beverages']);
+      await txn.insert('settings', {'key': 'categories', 'value': categoriesJson}, conflictAlgorithm: ConflictAlgorithm.ignore);
+      final taxConfigJson = jsonEncode({'enabled': true, 'rate': 0.05, 'label': 'GST', 'inclusive': false});
+      await txn.insert('settings', {'key': 'tax_config', 'value': taxConfigJson}, conflictAlgorithm: ConflictAlgorithm.ignore);
+      await txn.insert('settings', {'key': 'takeoutTokenNumber', 'value': '1'}, conflictAlgorithm: ConflictAlgorithm.ignore);
+      final today = DateTime.now();
+      final dateStr = '${(today.year % 100).toString().padLeft(2,'0')}${today.month.toString().padLeft(2,'0')}${today.day.toString().padLeft(2,'0')}';
+      await txn.insert('settings', {'key': 'takeoutTokenDate', 'value': dateStr}, conflictAlgorithm: ConflictAlgorithm.ignore);
       await settings.set('seed_vmo', '1', txn: txn);
     });
     if (notify) notifyDataChanged();
@@ -514,7 +526,11 @@ class OrderDao {
   Future<List<Order>> listActiveOrders({Transaction? txn}) async {
     final db = await Repository.instance._db.database;
     final executor = txn ?? db;
-    final rows = await executor.query('orders', where: 'status != ?', whereArgs: ['Settled']);
+    final rows = await executor.query(
+      'orders',
+      where: 'status != ? AND status != ?',
+      whereArgs: ['Settled', 'Cancelled'],
+    );
     return rows.map((r) {
       return Order(
         id: r['id'] as String,
@@ -1562,5 +1578,35 @@ class RoleDao {
     final executor = txn ?? db;
     await executor.delete('role_configs', where: 'id = ?', whereArgs: [id]);
     if (!fromSync) await SyncService.instance.deleteRoleConfig(id);
+  }
+}
+
+/// DAO for reading and writing the restaurant's tax configuration.
+/// The config is stored as a single JSON blob under the key `tax_config`
+/// in the `settings` table so it is automatically synced via Firebase.
+class TaxSettingsDao {
+  static const _key = 'tax_config';
+
+  Future<TaxSettings> load() async {
+    try {
+      final raw = await Repository.instance.settings.get(_key);
+      if (raw != null && raw.isNotEmpty) {
+        return TaxSettings.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+      }
+    } catch (_) {}
+    // Return safe defaults if the key is missing or malformed.
+    return const TaxSettings();
+  }
+
+  Future<void> save(TaxSettings ts, {bool notify = true}) async {
+    await Repository.instance.settings.set(
+      _key,
+      jsonEncode(ts.toJson()),
+      notify: notify,
+    );
+    // Mirror to Firebase so all connected devices get the update instantly.
+    try {
+      await SyncService.instance.updateSetting(_key, jsonEncode(ts.toJson()));
+    } catch (_) {}
   }
 }

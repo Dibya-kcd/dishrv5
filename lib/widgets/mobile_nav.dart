@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/restaurant_provider.dart';
 import '../utils/auth_helper.dart';
+import '../widgets/app_ui_kit.dart';
 
 class MobileNav extends StatelessWidget {
   final double width;
@@ -10,119 +11,250 @@ class MobileNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<RestaurantProvider>();
-    final isMobile = width < 1024;
+    if (width >= 1024) return const SizedBox.shrink();
+
     final rawRole = (provider.clientRole ?? '').trim().toLowerCase();
-    final roleLabel = rawRole.isEmpty ? 'Live' : '${rawRole[0].toUpperCase()}${rawRole.substring(1)}';
-    
-    if (!isMobile) return const SizedBox.shrink();
-    
-    final items = [
-      {'id': 'dashboard', 'label': '$roleLabel Services', 'icon': Icons.wifi_tethering},
-      {'id': 'tables', 'label': 'Tables', 'icon': Icons.table_bar},
-      {'id': 'takeout', 'label': 'Takeout', 'icon': Icons.shopping_bag_outlined},
-      {'id': 'kitchen', 'label': 'Kitchen', 'icon': Icons.restaurant_menu},
-      {'id': 'menu', 'label': 'Menu', 'icon': Icons.menu_book_outlined},
-      {'id': 'reports', 'label': 'Reports', 'icon': Icons.bar_chart},
-      {'id': 'inventory', 'label': 'Inventory', 'icon': Icons.inventory_2_outlined},
-      {'id': 'expenses', 'label': 'Expenses', 'icon': Icons.account_balance_wallet_outlined},
-      {'id': 'employees', 'label': 'Employees', 'icon': Icons.badge_outlined},
-      {'id': 'settings', 'label': 'Settings', 'icon': Icons.settings_outlined},
+    final allowed = AuthHelper.allowedViewsForRole(rawRole);
+
+    // All navigable items in priority order.
+    // 'settings' is intentionally included — it surfaces all management screens.
+    const allItems = [
+      _Item('dashboard', 'Live',        Icons.dashboard_outlined),
+      _Item('tables',    'Tables',     Icons.table_bar_outlined),
+      _Item('takeout',   'Takeout',    Icons.shopping_bag_outlined),
+      _Item('kitchen',   'Kitchen',    Icons.restaurant_menu_outlined),
+      _Item('reports',   'Reports',    Icons.bar_chart_outlined),
+      _Item('menu',      'Menu',       Icons.menu_book_outlined),
+      _Item('inventory', 'Inventory',  Icons.inventory_2_outlined),
+      _Item('expenses',  'Expenses',   Icons.account_balance_wallet_outlined),
+      _Item('employees', 'Staff',      Icons.badge_outlined),
+      _Item('settings',  'Settings',   Icons.settings_outlined),
     ];
 
-    final visibleItems = items.where((it) {
-      final allowed = AuthHelper.allowedViewsForRole(rawRole);
-      final view = it['id'] as String;
-      return allowed.contains(view);
-    }).toList()
-      ..sort((a, b) {
-        final order = {
-          'dashboard': 0,
-          'tables': 1,
-          'takeout': 2,
-          'kitchen': 3,
-          'menu': 4,
-          'inventory': 5,
-          'reports': 6,
-          'expenses': 7,
-          'employees': 8,
-          'settings': 9,
-        };
-        final ai = order[a['id']] ?? 999;
-        final bi = order[b['id']] ?? 999;
-        return ai.compareTo(bi);
-      });
+    final visible = allItems
+        .where((it) => allowed.contains(it.id))
+        .toList();
 
-    if (visibleItems.isEmpty) return const SizedBox.shrink();
+    if (visible.isEmpty) return const SizedBox.shrink();
 
-    final primary = visibleItems.length > 3 ? visibleItems.take(3).toList() : visibleItems;
-    final hasOverflow = visibleItems.length > 3;
-    final barItems = List<Map<String, Object>>.from(primary.cast<Map<String, Object>>());
-    if (hasOverflow) {
-      barItems.add({'id': '_more', 'label': 'More', 'icon': Icons.apps});
-    }
+    // First 4 items go in the bar; the rest go in "More"
+    const barMax = 4;
+    final barItems  = visible.length <= barMax
+        ? visible
+        : visible.sublist(0, barMax - 1); // leave room for More
+    final moreItems = visible.length <= barMax
+        ? <_Item>[]
+        : visible.sublist(barMax - 1); // overflow items only
+
+    final showMore = moreItems.isNotEmpty;
+    final currentView = provider.currentView;
+    final moreActive = showMore &&
+        moreItems.any((it) => it.id == currentView);
 
     return SafeArea(
       top: false,
       child: Container(
         decoration: const BoxDecoration(
-          color: Color(0xFF18181B),
-          border: Border(top: BorderSide(color: Color(0xFF27272A))),
+          color: AppColors.bg1,
+          border: Border(top: BorderSide(color: AppColors.border)),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
         child: Row(
-          children: barItems.map((it) {
-            final view = it['id'] as String;
-            final active = provider.currentView == view || (view == '_more' && hasOverflow && provider.currentView != (primary.isNotEmpty ? primary.first['id'] : null));
-            return Expanded(
-              child: TextButton(
-                onPressed: () async {
-                  if (view == '_more') {
-                    await showModalBottomSheet(
-                      context: context,
-                      backgroundColor: const Color(0xFF18181B),
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-                      ),
-                      builder: (ctx) {
-                        return SafeArea(
-                          top: false,
-                          child: ListView(
-                            shrinkWrap: true,
-                            children: visibleItems.map((v) {
-                              final id = v['id'] as String;
-                              final activeView = provider.currentView == id;
-                              return ListTile(
-                                leading: Icon(v['icon'] as IconData, color: Colors.white),
-                                title: Text(v['label'] as String, style: const TextStyle(color: Colors.white)),
-                                trailing: activeView ? const Icon(Icons.check, color: Color(0xFFF59E0B)) : null,
-                                onTap: () {
-                                  Navigator.of(ctx).pop();
-                                  provider.setCurrentView(id);
-                                },
-                              );
-                            }).toList(),
-                          ),
-                        );
-                      },
-                    );
-                  } else {
-                    provider.setCurrentView(view);
-                    provider.setMobileMenuOpen(false);
-                  }
+          children: [
+            // Fixed bar items
+            ...barItems.map((it) {
+              final active = currentView == it.id;
+              return _NavTab(
+                icon: it.icon,
+                label: it.label,
+                active: active,
+                onTap: () {
+                  provider.setCurrentView(it.id);
+                  provider.setMobileMenuOpen(false);
                 },
-                style: TextButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  foregroundColor: active ? const Color(0xFFF59E0B) : const Color(0xFFA1A1AA),
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-                  minimumSize: const Size(0, 44),
-                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-                ),
-                child: Icon(it['icon'] as IconData, size: 22),
+              );
+            }),
+
+            // More button (only shows items NOT already in the bar)
+            if (showMore)
+              _NavTab(
+                icon: Icons.apps_outlined,
+                label: 'More',
+                active: moreActive,
+                onTap: () => _showMoreSheet(
+                    context, provider, moreItems, currentView),
               ),
-            );
-          }).toList(),
+          ],
         ),
       ),
     );
   }
+
+  void _showMoreSheet(
+    BuildContext context,
+    RestaurantProvider provider,
+    List<_Item> items,
+    String currentView,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.bg1,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) {
+        return SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Drag handle
+              Container(
+                width: 36,
+                height: 4,
+                margin: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: AppColors.border,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              // Grid of overflow items
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                child: Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: items.map((it) {
+                    final active = currentView == it.id;
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.of(ctx).pop();
+                        provider.setCurrentView(it.id);
+                        provider.setMobileMenuOpen(false);
+                      },
+                      child: SizedBox(
+                        width: (MediaQuery.of(ctx).size.width - 32 - 36) / 4,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 52,
+                              height: 52,
+                              decoration: BoxDecoration(
+                                color: active
+                                    ? AppColors.amber.withValues(alpha: 0.15)
+                                    : AppColors.bg2,
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: active
+                                      ? AppColors.amber
+                                      : AppColors.border,
+                                ),
+                              ),
+                              child: Icon(
+                                it.icon,
+                                color: active
+                                    ? AppColors.amber
+                                    : AppColors.textSecondary,
+                                size: 22,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              it.label,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: active
+                                    ? AppColors.amber
+                                    : AppColors.textSecondary,
+                                fontWeight: active
+                                    ? FontWeight.w600
+                                    : FontWeight.normal,
+                              ),
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Nav tab button
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _NavTab extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+
+  const _NavTab({
+    required this.icon,
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Active indicator line
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              height: 2,
+              width: active ? 20 : 0,
+              margin: const EdgeInsets.only(bottom: 4),
+              decoration: BoxDecoration(
+                color: AppColors.amber,
+                borderRadius: BorderRadius.circular(1),
+              ),
+            ),
+            Icon(
+              icon,
+              size: 22,
+              color: active ? AppColors.amber : AppColors.textSecondary,
+            ),
+            const SizedBox(height: 3),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                color: active ? AppColors.amber : AppColors.textSecondary,
+                fontWeight:
+                    active ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Data class
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _Item {
+  final String id;
+  final String label;
+  final IconData icon;
+  const _Item(this.id, this.label, this.icon);
 }

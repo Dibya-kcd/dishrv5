@@ -27,7 +27,7 @@ class AppDatabase {
     final basePath = await factory.getDatabasesPath();
     final dbPath = p.join(basePath, 'dishr.db');
     final db = await factory.openDatabase(dbPath, options: OpenDatabaseOptions(
-      version: 13,
+      version: 14,
       onCreate: (db, v) async {
         await db.execute('''
           CREATE TABLE menu_items(
@@ -106,6 +106,9 @@ class AppDatabase {
         ''');
         final categoriesJson = jsonEncode(['All','Starters','Main Course','South Indian','Breads','Desserts','Beverages']);
         await db.insert('settings', {'key': 'categories', 'value': categoriesJson});
+        // Default tax configuration: 5 % GST, exclusive, enabled
+        final taxConfigJson = jsonEncode({'enabled': true, 'rate': 0.05, 'label': 'GST', 'inclusive': false});
+        await db.insert('settings', {'key': 'tax_config', 'value': taxConfigJson});
         final today = DateTime.now();
         final yy = (today.year % 100).toString().padLeft(2, '0');
         final mm = today.month.toString().padLeft(2, '0');
@@ -192,22 +195,7 @@ class AppDatabase {
         ''');
       },
       onUpgrade: (db, oldVersion, newVersion) async {
-        if (oldVersion < 13) {
-          try {
-            await db.execute('ALTER TABLE employees ADD COLUMN deleted INTEGER DEFAULT 0');
-          } catch (_) {}
-        }
-        if (oldVersion < 12) {
-          await db.execute('''
-            CREATE TABLE IF NOT EXISTS role_configs(
-              id TEXT PRIMARY KEY,
-              name TEXT,
-              permissions TEXT,
-              pin TEXT,
-              updated_at INTEGER
-            )
-          ''');
-        }
+        // ── Always run in ascending version order ──────────────────────────
         if (oldVersion < 2) {
           await db.execute('''
             CREATE TABLE IF NOT EXISTS expenses(
@@ -220,7 +208,9 @@ class AppDatabase {
           ''');
         }
         if (oldVersion < 3) {
-          await db.execute('ALTER TABLE orders ADD COLUMN settled_at INTEGER');
+          try {
+            await db.execute('ALTER TABLE orders ADD COLUMN settled_at INTEGER');
+          } catch (_) {}
           await db.execute('CREATE INDEX IF NOT EXISTS idx_orders_settled_at ON orders(settled_at)');
         }
         if (oldVersion < 4) {
@@ -297,23 +287,46 @@ class AppDatabase {
         }
         if (oldVersion < 8) {
           try {
-             await db.execute('ALTER TABLE menu_items ADD COLUMN stock INTEGER');
+            await db.execute('ALTER TABLE menu_items ADD COLUMN stock INTEGER');
           } catch (_) {}
         }
         if (oldVersion < 9) {
+          // Add pin column to employees (single authoritative location)
           try {
-             await db.execute('ALTER TABLE employees ADD COLUMN pin TEXT');
+            await db.execute('ALTER TABLE employees ADD COLUMN pin TEXT');
           } catch (_) {}
         }
-        if (oldVersion < 10) {
+        if (oldVersion < 12) {
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS role_configs(
+              id TEXT PRIMARY KEY,
+              name TEXT,
+              permissions TEXT,
+              pin TEXT,
+              updated_at INTEGER
+            )
+          ''');
+        }
+        if (oldVersion < 13) {
           try {
-             await db.execute('ALTER TABLE employees ADD COLUMN pin TEXT');
+            await db.execute('ALTER TABLE employees ADD COLUMN deleted INTEGER DEFAULT 0');
           } catch (_) {}
         }
-        if (oldVersion < 11) {
-          try {
-             await db.execute('ALTER TABLE employees ADD COLUMN pin TEXT');
-          } catch (_) {}
+        if (oldVersion < 14) {
+          // Ensure settings table exists (may be missing on very old installs)
+          await db.execute('CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY, value TEXT)');
+          // Seed default categories if missing
+          final cats = await db.query('settings', where: 'key = ?', whereArgs: ['categories'], limit: 1);
+          if (cats.isEmpty) {
+            final categoriesJson = jsonEncode(['All','Starters','Main Course','South Indian','Breads','Desserts','Beverages']);
+            await db.insert('settings', {'key': 'categories', 'value': categoriesJson}, conflictAlgorithm: ConflictAlgorithm.ignore);
+          }
+          // Seed default tax configuration if missing
+          final existing = await db.query('settings', where: 'key = ?', whereArgs: ['tax_config'], limit: 1);
+          if (existing.isEmpty) {
+            final taxConfigJson = jsonEncode({'enabled': true, 'rate': 0.05, 'label': 'GST', 'inclusive': false});
+            await db.insert('settings', {'key': 'tax_config', 'value': taxConfigJson}, conflictAlgorithm: ConflictAlgorithm.ignore);
+          }
         }
       },
     ));

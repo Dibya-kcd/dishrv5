@@ -1,17 +1,31 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../data/repository.dart';
 
 class ExpenseProvider extends ChangeNotifier {
   List<Map<String, dynamic>> _expenses = [];
+  StreamSubscription? _dataSub;
 
   List<Map<String, dynamic>> get expenses => _expenses;
+
+  ExpenseProvider() {
+    _dataSub = Repository.instance.onDataChanged.listen((_) {
+      loadExpenses();
+    });
+  }
+
+  @override
+  void dispose() {
+    _dataSub?.cancel();
+    super.dispose();
+  }
 
   Future<void> loadExpenses() async {
     _expenses = await Repository.instance.expenses.listExpenses();
     notifyListeners();
   }
 
-  void addExpense({required double amount, required String category, String? note}) {
+  Future<void> addExpense({required double amount, required String category, String? note}) async {
     final entry = {
       'id': DateTime.now().millisecondsSinceEpoch.toString(),
       'amount': amount,
@@ -19,9 +33,8 @@ class ExpenseProvider extends ChangeNotifier {
       'note': note ?? '',
       'timestamp': DateTime.now().millisecondsSinceEpoch,
     };
-    _expenses = [..._expenses, entry];
-    Repository.instance.expenses.insertExpense(entry);
-    notifyListeners();
+    await Repository.instance.expenses.insertExpense(entry);
+    await loadExpenses();
   }
   
   Future<void> addSalaryExpense(Map<String, dynamic> entry) async {
