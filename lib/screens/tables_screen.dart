@@ -29,6 +29,7 @@ class TablesScreen extends StatelessWidget {
                   tabletCols: 3,
                   desktopCols: 4,
                   childAspectRatio: 0.95,
+                  shrinkWrap: false,
                   children: tables.map((t) => _TableCard(
                     table: t,
                     onTap: () => provider.selectTableForOrder(t),
@@ -68,6 +69,7 @@ class TableManagementScreen extends StatelessWidget {
                 tabletCols: 3,
                 desktopCols: 4,
                 childAspectRatio: 0.85,
+                physics: const NeverScrollableScrollPhysics(),
                 children: tables.map((t) => _TableCard(
                   table: t,
                   editable: true,

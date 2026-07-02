@@ -634,6 +634,8 @@ class AdaptiveGrid extends StatelessWidget {
   final int tabletCols;
   final int desktopCols;
   final double childAspectRatio;
+  final bool shrinkWrap;
+  final ScrollPhysics? physics;
 
   const AdaptiveGrid({
     super.key,
@@ -643,6 +645,8 @@ class AdaptiveGrid extends StatelessWidget {
     this.tabletCols = 3,
     this.desktopCols = 4,
     this.childAspectRatio = 1,
+    this.shrinkWrap = true,
+    this.physics,
   });
 
   @override
@@ -650,8 +654,8 @@ class AdaptiveGrid extends StatelessWidget {
     return LayoutBuilder(builder: (context, constraints) {
       final cols = Bp.pick(context, mob: mobileCols, tab: tabletCols, desk: desktopCols);
       return GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
+        shrinkWrap: shrinkWrap,
+        physics: physics,
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: cols,
           crossAxisSpacing: spacing,
