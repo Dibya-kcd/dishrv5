@@ -88,12 +88,12 @@ class TheDishApp extends StatelessWidget {
           labelLarge: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, letterSpacing: 0.2),
         ),
       ).copyWith(
-        pageTransitionsTheme: const PageTransitionsTheme(builders: {
-          TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
-          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
-          TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
-          TargetPlatform.windows: FadeUpwardsPageTransitionsBuilder(),
-          TargetPlatform.linux: FadeUpwardsPageTransitionsBuilder(),
+        pageTransitionsTheme: PageTransitionsTheme(builders: {
+          TargetPlatform.android: const FadeUpwardsPageTransitionsBuilder(),
+          TargetPlatform.iOS: const CupertinoPageTransitionsBuilder(),
+          TargetPlatform.macOS: const CupertinoPageTransitionsBuilder(),
+          TargetPlatform.windows: const FadeUpwardsPageTransitionsBuilder(),
+          TargetPlatform.linux: const FadeUpwardsPageTransitionsBuilder(),
         }),
       ),
       home: const LoginScreen(),
